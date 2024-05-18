@@ -1800,8 +1800,8 @@ void OffboardControl::timer_callback(void){
 		//if(arm_done_){	
 			command_takeoff_or_land("TAKEOFF");
 			
-		// if (pose_.pose.position.z>2.5+start.z){
-		if (false){
+		if (pose_.pose.position.z>2.5+start.z){
+		// if (false){
 			RCLCPP_INFO(this->get_logger(), "goto_shot_area start, totaltime=%fs", (this->get_clock()->now().nanoseconds() / 1000- timestamp0)/1000000.0);
 			fly_state_ = FlyState::goto_shot_area;
 		}

@@ -1,0 +1,625 @@
+# Ardupilot
+
+git clone --recurse-submodules https://github.com/your-github-userid/ardupilot
+cd ardupilot
+
+ 进入到目录下面
+
+#cd ardupilot
+
+更新子模块
+
+git submodule update --init --recursive
+
+
+Tools/environment_install/install-prereqs-ubuntu.sh -y
+
+https://link.zhihu.com/?target=https%3A//blog.csdn.net/qq_20016593/article/details/125343260
+重新加载路径（注销和登录以永久）：
+
+. ~/.profile
+
+
+#./waf configure --board CubeBlack
+./waf configure --board sitl
+./waf configure --board Pixhawk1
+./waf copter
+
+
+# SITL Simulator (Software in the Loop)¶
+
+启动SITL仿真器¶
+
+sim_vehicle.py --vehicle=ArduCopter
+要启动模拟器，请先将目录更改为车辆目录。 例如，对于多旋翼飞行器代码更改为 ardupilot/ArduCopter：
+
+cd ardupilot/ArduCopter
+
+
+然后使用sim_vehicle.py启动模拟器。第一次你 运行它，您应该使用 -w 选项擦除虚拟 EEPROM 并加载 车辆的正确默认参数。
+
+sim_vehicle.py -w
+加载默认参数后，可以启动模拟器 通常。首先使用 Ctrl-C 杀死您正在运行的sim_vehicle.py。然后：
+
+sim_vehicle.py --console --map
+
+# gazebo
+https://ardupilot.org/dev/docs/sitl-with-gazebo.html
+......
+export GZ_SIM_SYSTEM_PLUGIN_PATH=$HOME/gz_ws/src/ardupilot_gazebo/build:~/ardupilot_gazebo/build:${GZ_SIM_SYSTEM_PLUGIN_PATH}
+#MAVProxy¶
+#sudo apt-get install python3-dev python3-opencv python3-wxgtk4.0 python3-pip python3-matplotlib #python3-lxml python3-pygame
+#pip3 install PyYAML mavproxy --user
+#echo 'export PATH="$PATH:$HOME/.local/bin"' >> ~/.bashrc
+
+将 Gazebo 与 ArduPilot 一起使用¶
+该插件提供了两种型号作为示例：Iris 四轴飞行器和 西风三角翼。
+虹膜四轴飞行器¶
+运行凉亭
+
+gz sim -v4 -r iris_runway.sdf
+运行 SITL
+
+sim_vehicle.py -v ArduCopter -f gazebo-iris --model JSON --map --console
+arm和起飞
+
+STABILIZE> mode guided
+GUIDED> arm throttle
+GUIDED> takeoff 5
+更改仿真速度¶
+默认情况下，Gazebo 将尝试使用 实时因子 （RTF） 为 1。要提高仿真速度，请添加 以下 XML 块进入 world 文件，紧跟在开始 <world> 元素之后：
+
+<physics name="1ms" type="ignore">
+  <max_step_size>0.001</max_step_size>
+  <real_time_factor>-1.0</real_time_factor>
+</physics>
+然后在 MAVProxy 中设置仿真加速参数
+
+MANUAL> param set SIM_SPEEDUP 10
+
+#################################1 MAVROS+ros1-bridge
+#安装 MAVROS¶
+1.ros1+ros1-bridge
+MAVROS 与所有最新版本的 ROS 兼容，包括 Kinetic、Melodic 和 Noetic。
+
+ros1:
+可以在此处找到安装 MAVROS 的说明，但简而言之，涉及运行以下命令。
+sudo apt-get install ros-noetic-mavros ros-noetic-mavros-extras
+wget https://raw.githubusercontent.com/mavlink/mavros/master/mavros/scripts/install_geographiclib_datasets.sh
+chmod a+x install_geographiclib_datasets.sh
+./install_geographiclib_datasets.sh
+为了便于在台式计算机上使用，请同时安装 RQT
+sudo apt-get install ros-noetic-rqt ros-noetic-rqt-common-plugins ros-noetic-rqt-robot-plugins
+
+2.ros2 
+https://github.com/mavlink/mavros/blob/ros2/mavros/README.md
+
+
+#########################2 使用 DDS/micro-Ros 进行测试
+https://github.com/ArduPilot/ardupilot/tree/master/libraries/AP_DDS
+
+### 使用 DDS 为 SITL 设置 ardupilot
+设置 SITL。 使用以下命令运行模拟器。如果使用 UDP，则唯一需要设置的参数是 .DDS_ENABLE
+
+名字	描述	违约
+DDS_ENABLE	设置为 1 可启用 DDS，设置为 0 可禁用 DDS	1
+SERIAL1_BAUD	DDS 的串行波特率	57
+SERIAL1_PROTOCOL	将此设置为 45 以在串行端口上使用 DDS	0
+
+# Wipe params till you see "AP: ArduPilot Ready"
+# Select your favorite vehicle type
+sim_vehicle.py -w -v ArduPlane --console -DG --enable-dds 
+#--map
+
+# Only set this for Serial, which means 115200 baud
+param set SERIAL1_BAUD 115
+# See libraries/AP_SerialManager/AP_SerialManager.h AP_SerialManager SerialProtocol_DDS_XRCE
+param set SERIAL1_PROTOCOL 45
+
+
+DDS 当前默认处于启用状态（如果它是生成的一部分）。若要禁用它，请运行以下命令并重新启动模拟器。
+
+param set DDS_ENABLE 0
+REBOOT
+
+
+使用 ROS 2 CLI 读取 Ardupilot 数据
+设置完成后，请执行以下操作：
+
+### 获取 ROS 2 安装
+
+安装 ROS 2 和 micro-ROS 构建系统
+......
+source install/local_setup.bash
+创建 micro-ROS 代理
+micro-ROS 应用程序现在已准备好连接到 micro-ROS 代理，以开始与 ROS 2 的其余部分进行通信 世界。 为此，我们首先创建一个 micro-ROS 代理：
+# Download micro-ROS-Agent packages
+ros2 run micro_ros_setup create_agent_ws.sh
+它由中国GFW引起，它阻止了ROS存储库地址。
+所以，如果你生活在中国，也有同样的问题。
+使用工具proxychains
+和这样的命令
+proxychains ros2 run micro_ros_setup create_agent_ws.sh
+######
+1. 打开~/microros_ws/src/micro_ros_setup/scripts/目录下的create_ws.sh文件，然后修改ros2.repos的链接
+cd ~/microros_ws/src/micro_ros_setup/scripts
+sudo gedit create_ws.sh
+将43行的https://raw.githubusercontent.com/ros2/ros2/foxy/ros2.repos修改为
+https://ghproxy.com/https://raw.githubusercontent.com/ros2/ros2/foxy/ros2.repos
+2. 保存关闭后，再利用国内镜像加速github下载，修改如下
+git config --global url."https://kgithub.com/".insteadOf https://github.com/
+ 查看当前设置：
+git config --global -l
+如下就替换国内镜像了
+
+现在，让我们生成代理包，并在完成此操作后获取安装：
+# Build step
+ros2 run micro_ros_setup build_agent.sh
+source install/local_setup.bash
+
+####使用 ROS 2 CLI 读取 Ardupilot 数据
+......
+Gradle 7.0-8.0
+......
+设置完成后，请执行以下操作：
+source /opt/ros/humble/setup.bash
+接下来，按照所选传输的相关部分进行操作，最后您可以使用 ROS 2 CLI。
+
+UDP（推荐用于 SITL）
+运行 microROS 代理
+cd ardupilot/libraries/AP_DDS
+ros2 run micro_ros_agent micro_ros_agent udp4 -p 2019 -r dds_xrce_profile.xml
+运行 SITL（记得事先杀死任何运行 ardupilot SITL 的终端）
+sim_vehicle.py -v ArduPlane -DG --console --enable-dds
+串行
+使用 socat 启动虚拟串口。记下这两个端口。如果您的有所不同，请根据需要替换。/dev/pts/*
+socat -d -d pty,raw,echo=0 pty,raw,echo=0
+>>> 2023/02/21 05:26:06 socat[334] N PTY is /dev/pts/1
+>>> 2023/02/21 05:26:06 socat[334] N PTY is /dev/pts/2
+>>> 2023/02/21 05:26:06 socat[334] N starting data transfer loop with FDs [5,5] and [7,7]
+运行 microROS 代理
+cd ardupilot/libraries/AP_DDS
+# assuming we are using tty/pts/2 for DDS Application
+ros2 run micro_ros_agent micro_ros_agent serial -b 115200  -r dds_xrce_profile.xml -D /dev/pts/2
+运行 SITL（记得事先杀死任何运行 ardupilot SITL 的终端）
+# assuming we are using /dev/pts/1 for Ardupilot SITL
+sim_vehicle.py -v ArduPlane -DG --console --enable-dds -A "--serial1=uart:/dev/pts/1"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+https://github.com/ArduPilot/ardupilot/tree/master/Tools/ros2#readme
+https://github.com/ArduPilot/ardupilot_ros
+colcon build --event-handlers console_direct+ --cmake-args -DBUILD_TESTING=ON
+若要防止内存不足问题，可以限制作业数：
+MAKEFLAGS="-j<Number of jobs> " colcon build --executor sequential
+MAKEFLAGS="-j4 " colcon build --executor sequential --event-handlers console_direct+ --cmake-args -DBUILD_TESTING=ON
+
+microxrceddsgen -version
+openjdk version "11.0.22" 2024-01-16
+OpenJDK Runtime Environment (build 11.0.22+7-post-Ubuntu-0ubuntu222.04.1)
+OpenJDK 64-Bit Server VM (build 11.0.22+7-post-Ubuntu-0ubuntu222.04.1, mixed mode, sharing)
+microxrceddsgen version: null
+
+
+
+source ./install/setup.bash
+启动sitl ros2 launch ardupilot_sitl sitl.launch.py command:=ardurover model:=rover
+
+使用单个启动文件
+cd ~/ros2_ws
+ros2 launch ardupilot_sitl virtual_ports.launch.py tty0:=./dev/ttyROS0 tty1:=./dev/ttyROS1
+
+ros2 launch ardupilot_sitl micro_ros_agent.launch.py transport:=serial refs:=$(ros2 pkg prefix ardupilot_sitl)/share/ardupilot_sitl/config/dds_xrce_profile.xml baudrate:=115200 device:=./dev/ttyROS0
+
+ros2 launch ardupilot_sitl sitl.launch.py synthetic_clock:=True wipe:=True model:=quad speedup:=1 slave:=0 instance:=0 serial1:=uart:./dev/ttyROS1 defaults:=$(ros2 pkg prefix ardupilot_sitl)/share/ardupilot_sitl/config/default_params/copter.parm,$(ros2 pkg prefix ardupilot_sitl)/share/ardupilot_sitl/config/default_params/dds_serial.parm sim_address:=127.0.0.1
+
+ros2 launch ardupilot_sitl mavproxy.launch.py master:=tcp:127.0.0.1:5760 sitl:=127.0.0.1:5501
+
+使用组合启动文件
+cd ~/ros2_ws/
+ros2 launch ardupilot_sitl sitl_dds_serial.launch.py \
+\
+tty0:=./dev/ttyROS0 \
+tty1:=./dev/ttyROS1 \
+\
+transport:=serial \
+refs:=$(ros2 pkg prefix ardupilot_sitl)/share/ardupilot_sitl/config/dds_xrce_profile.xml \
+baudrate:=115200 \
+device:=./dev/ttyROS0 \
+\
+synthetic_clock:=True \
+wipe:=True \
+model:=quad \
+speedup:=1 \
+slave:=0 \
+instance:=0 \
+serial1:=uart:./dev/ttyROS1 \
+defaults:=$(ros2 pkg prefix ardupilot_sitl)/share/ardupilot_sitl/config/default_params/copter.parm,$(ros2 pkg prefix ardupilot_sitl)/share/ardupilot_sitl/config/default_params/dds_serial.parm \
+sim_address:=127.0.0.1 \
+\
+master:=tcp:127.0.0.1:5760 \
+sitl:=127.0.0.1:5501
+UDP 版本
+
+ros2 launch ardupilot_sitl sitl_dds_udp.launch.py transport:=udp4 refs:=$(ros2 pkg prefix ardupilot_sitl)/share/ardupilot_sitl/config/dds_xrce_profile.xml synthetic_clock:=True wipe:=False model:=quad speedup:=1 slave:=0 instance:=0 defaults:=$(ros2 pkg prefix ardupilot_sitl)/share/ardupilot_sitl/config/default_params/copter.parm,$(ros2 pkg prefix ardupilot_sitl)/share/ardupilot_sitl/config/default_params/dds_udp.parm sim_address:=127.0.0.1 master:=tcp:127.0.0.1:5760 sitl:=127.0.0.1:5501
+
+
+
+要进行测试和飞行，您可以在另一个终端中启动一个 mavproxy 实例：
+mavproxy.py --console --map --aircraft test --master=:14550
+
+
+
+本节介绍如何在GUIDED模式下起飞。主要步骤 将切换到GUIDED模式，布防油门，然后调用takeoff命令。起飞必须在布防后 15 秒内开始，或者 电机会撤防！
+在 MAVProxy 命令提示符中输入以下命令。
+
+mode guided
+arm throttle
+takeoff 40
+
+
+ROS 2 带凉亭¶
+https://ardupilot.org/dev/docs/ros2-gazebo.html#ros2-gazebo
+...
+cd ~/ros2_ws
+colcon build --packages-up-to ardupilot_gz_bringup
+MAKEFLAGS="-j4 " colcon build --executor sequential --event-handlers console_direct+ --cmake-args -DBUILD_TESTING=ON --packages-up-to ardupilot_gz_bringup
+如果要测试安装，请运行：
+
+cd ~/ros2_ws
+source ./install/setup.bash
+colcon test --packages-select ardupilot_sitl ardupilot_dds_tests ardupilot_gazebo ardupilot_gz_applications ardupilot_gz_description ardupilot_gz_gazebo ardupilot_gz_bringup
+colcon test-result --all --verbose
+最后，您可以获取工作区并启动示例 Gazebo 模拟之一：
+
+source ~/ros2_ws/install/setup.sh
+cd ~/ros2_ws/
+ros2 launch ardupilot_gz_bringup iris_runway.launch.py
+
+
+
+
+source ~/ros2_ws/install/setup.sh
+ros2 launch ardupilot_gz_bringup iris_runway.launch.py
+mavproxy.py --console --map --aircraft test --master=:14550
+
+
+colcon build --packages-select px4_ros_com
+
+
+
+
+
+
+
+
+
+
+
+如何在ros2中订阅 /ap/pose/filtered 主题
+cpp ardupilot如何在ros2中实现定点飞行
+cpp ardupilot如何在ros2中实现/ap/cmd_vel姿态控制飞行需要切换到哪个模式
+ros2作为自定义控制器
+c++ ros2起飞
+
+linhao@linhao-Legion-R9000P-ARX8:~$ ros2 topic list -v
+Published topics:
+ * /ap/battery/battery0 [sensor_msgs/msg/BatteryState] 1 publisher
+ ---
+header:
+  stamp:
+    sec: 1712381744
+    nanosec: 763219000
+  frame_id: ''
+voltage: 12.600000381469727
+temperature: .nan
+current: -0.0
+charge: 3.3000001907348633
+capacity: .nan
+design_capacity: 3.3000001907348633
+percentage: 1.0
+power_supply_status: 4
+power_supply_health: 1
+power_supply_technology: 0
+present: true
+cell_voltage: []
+cell_temperature: []
+location: ''
+serial_number: ''
+---
+
+ * /ap/clock [rosgraph_msgs/msg/Clock] 1 publisher
+ ---
+clock:
+  sec: 1712381771
+  nanosec: 725763000
+---
+
+ * /ap/geopose/filtered [geographic_msgs/msg/GeoPoseStamped] 1 publisher
+ ---
+header:
+  stamp:
+    sec: 1712381798
+    nanosec: 140193000
+  frame_id: base_link
+pose:
+  position:
+    latitude: -35.36326217651367
+    longitude: 149.1652374267578
+    altitude: 584.0700073242188
+  orientation:
+    x: 0.000803431321401149
+    y: 0.0001320586889050901
+    z: 0.741480827331543
+    w: 0.670973539352417
+---
+
+ * /ap/gps_global_origin/filtered [geographic_msgs/msg/GeoPointStamped] 1 publisher
+ ---
+cheader:
+  stamp:
+    sec: 1712381832
+    nanosec: 333177000
+  frame_id: base_link
+position:
+  latitude: -35.36326217651367
+  longitude: 149.1652374267578
+  altitude: 584.0899658203125
+---
+
+ * /ap/imu/experimental/data [sensor_msgs/msg/Imu] 1 publisher
+ ---
+header:
+  stamp:
+    sec: 1712381904
+    nanosec: 1998000
+  frame_id: base_link_ned
+orientation:
+  x: 0.998664915561676
+  y: 0.0006489086081273854
+  z: 0.0004989297594875097
+  w: -0.05164944380521774
+orientation_covariance:
+- -1.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+angular_velocity:
+  x: 0.0029517076909542084
+  y: 0.002928700065240264
+  z: 0.002924912376329303
+angular_velocity_covariance:
+- -1.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+linear_acceleration:
+  x: -0.0005190839292481542
+  y: -0.001879860763438046
+  z: -9.817710876464844
+linear_acceleration_covariance:
+- -1.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+---
+
+ * /ap/navsat/navsat0 [sensor_msgs/msg/NavSatFix] 1 publisher
+ ---
+header:
+  stamp:
+    sec: 1712381952
+    nanosec: 236030000
+  frame_id: WGS-84
+status:
+  status: 2
+  service: 1
+latitude: -35.36326217651367
+longitude: 149.1652374267578
+altitude: 584.0899658203125
+position_covariance:
+- 0.09000000357627869
+- 0.0
+- 0.0
+- 0.0
+- 0.09000000357627869
+- 0.0
+- 0.0
+- 0.0
+- 0.09000000357627869
+position_covariance_type: 2
+---
+
+ * /ap/pose/filtered [geometry_msgs/msg/PoseStamped] 1 publisher
+ ---
+header:
+  stamp:
+    sec: 1712381981
+    nanosec: 886665000
+  frame_id: base_link
+pose:
+  position:
+    x: 0.009078041650354862
+    y: -0.011131884530186653
+    z: -0.019999999552965164
+  orientation:
+    x: 0.0007941186195239425
+    y: 0.00010930441203527153
+    z: 0.7431656122207642
+    w: 0.6691069602966309
+---
+
+ * /ap/tf_static [tf2_msgs/msg/TFMessage] 1 publisher
+ transforms:
+- header:
+    stamp:
+      sec: 2
+      nanosec: 663101000
+    frame_id: base_link
+  child_frame_id: GPS_0
+  transform:
+    translation:
+      x: 0.0
+      y: -0.0
+      z: -0.0
+    rotation:
+      x: 0.0
+      y: 0.0
+      z: 0.0
+      w: 0.0
+---
+
+ * /ap/time [builtin_interfaces/msg/Time] 1 publisher
+ sec: 1712382088
+nanosec: 745571000
+---
+
+ * /ap/twist/filtered [geometry_msgs/msg/TwistStamped] 1 publisher
+ ---
+header:
+  stamp:
+    sec: 1712382108
+    nanosec: 646774000
+  frame_id: base_link
+twist:
+  linear:
+    x: -0.019306477159261703
+    y: 0.014676488935947418
+    z: -0.00020442955428734422
+  angular:
+    x: -0.00023524649441242218
+    y: 0.0002760677598416805
+    z: 0.0007185013964772224
+--
+
+ * /parameter_events [rcl_interfaces/msg/ParameterEvent] 2 publishers
+ * /rosout [rcl_interfaces/msg/Log] 2 publishers
+
+Subscribed topics:
+ * /ap/cmd_gps_pose [ardupilot_msgs/msg/GlobalPosition] 1 subscriber
+ * /ap/cmd_vel [geometry_msgs/msg/TwistStamped] 1 subscriber
+ * /ap/joy [sensor_msgs/msg/Joy] 1 subscriber
+ * /ap/tf [tf2_msgs/msg/TFMessage] 1 subscriber
+
+
+linhao@linhao-Legion-R9000P-ARX8:~$ ros2 service list
+/ap/arm_motors
+/ap/mode_switch
+
+
+
+mavros安装
+二进制安装命令
+
+sudo apt-get install ros-foxy-mavros 
+sudo apt-get install ros-foxy-mavros-extras
+运行install_geographiclib_datasets.sh
+
+git clone -b ros2 https://github.com/mavlink/mavros.git
+cd mavros/mavros/scripts
+sudo ./install_geographiclib_datasets.sh
+最后一句sudo ./install_geographiclib_datasets.sh需要根据实际网络环境等待一会儿，运行完终端显示如下
+
+ubuntu@ubuntu:~/mavros/mavros/scripts$ sudo ./install_geographiclib_datasets.sh
+Installing GeographicLib geoids egm96-5
+Installing GeographicLib gravity egm96
+Installing GeographicLib magnetic emm2015
+ubuntu@ubuntu:~/mavros/mavros/scripts$
+
+
+打开另一个终端并启动 Mavros，如 ROS/Mavros wiki 上所述。例如，以下说明适用于打开端口 14855 的 TX2/APSync 安装（请参阅本页底部的“如何将飞控数据路由到各种程序”）：
+ros2 launch mavros apm.launch fcu_url:=udp://:14855@
+打开一个终端并输入“roscore”
+
+
+
+如果在配套计算机上运行的其他程序也需要来自飞行控制器的数据，则可以通过在 ~/start_mavlink-router/mavlink-router.conf 底部添加新行来打开新端口，然后重新启动主板。
+
+例如，可以添加以下行以打开端口 14855，供在配套计算机上本地运行的 ROS 使用：
+
+[UdpEndpoint to_ros]
+Mode = Normal
+Address = 127.0.0.1
+Port = 14855
+
+
+https://ardupilot.org/dev/docs/ros-sitl.html
+sim_vehicle.py -v ArduCopter --console --map
+#"mavproxy.py" "--master" "tcp:127.0.0.1:5760" "--sitl" "127.0.0.1:5501" "--out" "127.0.0.1:14550" "--out" "127.0.0.1:14551" "--map" "--console"
+->SIM_VEHICLE: Run MavProxy
+->SIM_VEHICLE: "mavproxy.py" "--out" "127.0.0.1:14550" "--master" "tcp:127.0.0.1:5760" "--sitl" "127.0.0.1:5501" "--map" "--console"
+让我们复制 ArduPilot 的 MAVROS 默认启动文件：
+roscp mavros apm.launch apm.launch
+gedit apm.launch
+#连接到 SITL第一行修改为<arg name="fcu_url" default="udp://127.0.0.1:14551@14555" />
+第一行修改为<arg name="fcu_url" default="udp://127.0.0.1:14550@14555" />
+
+
+et:-0.002352 0.002652 5.000000
+et:9.997648 0.002652 5.000000
+
+
+et:5.072941 -1.498502 5.000000
+et:5.780456 -2.205200 5.000000
+et:4.367060 -0.790170 5.000000
+et:2.952029 0.623226 5.000000
+et:5.072124 -1.499319
+
+已知角度yaw，求原x，y经过旋转后的x1,y1
+
+et:-0.531610 -0.101871 5.000000
+et:-2.945791 2.240902 5.000000
+
+
+ SLAM¶
+本页介绍如何使用 ArduPilot SITL 设置 ROS 2 并将 Google Cartographer 作为 SLAM 源运行。
+
+安装¶
+本页假设您已成功遵循本 wiki 中的 ROS 2 基本设置：ROS 2、带 SITL 的 ROS 2 和带凉亭的 ROS 2。
+
+完成后，只需运行：
+
+cd ~/ros2_ws/src
+git clone git@github.com:ArduPilot/ardupilot_ros.git
+cd ~/ros2_ws
+rosdep install --from-paths src --ignore-src -r --skip-keys gazebo-ros-pkgs
+现在，源工作区并生成ardupilot_ros：
+
+cd ~/ros2_ws
+source ./install/setup.bash
+colcon build --packages-up-to ardupilot_ros ardupilot_gz_bringup
+用法¶
+该软件包与ardupilot_gz结合使用，首先我们将在迷宫世界中启动一个包含配备 360 度 2D 激光雷达的直升机的模拟。 要启动 rviz 和 gazebo，请运行：
+
+source ~/ros2_ws/install/setup.sh
+ros2 launch ardupilot_gz_bringup iris_maze.launch.py
+现在，我们可以启动 Google Cartographer 来生成 SLAM，检查 RVIZ 中是否正确生成了地图。 在另一个终端中，运行：
+
+source ~/ros2_ws/install/setup.sh
+ros2 launch ardupilot_ros cartographer.launch.py
