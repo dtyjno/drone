@@ -732,7 +732,7 @@ void OffboardControl::velocity_callback(const geometry_msgs::msg::TwistStamped::
 void OffboardControl::altitude_callback(const mavros_msgs::msg::Altitude::SharedPtr msg) 
 {
 	// this->location.global_frame.alt = msg->amsl;
-
+	msg->amsl;
 
 	// RCLCPP_INFO(this->get_logger(), "Received altitude data");
 	// RCLCPP_INFO(this->get_logger(), "Monotonic: %f", msg->monotonic);
@@ -1798,8 +1798,7 @@ void OffboardControl::timer_callback(void){
 		//RCLCPP_INFO(this->get_logger(), "pose_.pose.position.z-start.z=%lf", pose_.pose.position.z-start.z);
 		//if (true){//pose_.pose.position.z>1+start.z){
 		//if(arm_done_){	
-			command_takeoff_or_land("TAKEOFF");
-			
+		command_takeoff_or_land("TAKEOFF");	
 		if (pose_.pose.position.z>2.5+start.z){
 		// if (false){
 			RCLCPP_INFO(this->get_logger(), "goto_shot_area start, totaltime=%fs", (this->get_clock()->now().nanoseconds() / 1000- timestamp0)/1000000.0);
