@@ -1,5 +1,8 @@
+ardupilot 飞控与树莓派连接
+通过 mavros 与 ros2 节点通信
 
-ardupilot 通过 mavros 与 ros2 节点通信
+https://ardupilot.org/dev/docs/sitl-with-gazebo.html
+启动仿真
 ```sh
 #!/bin/bash
 gnome-terminal -t "gazebo" -x bash -c "export GZ_SIM_SYSTEM_PLUGIN_PATH=$HOME/gz_ws/src/ardupilot_gazebo/build:$GZ_SIM_SYSTEM_PLUGIN_PATH;

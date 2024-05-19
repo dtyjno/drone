@@ -104,10 +104,10 @@ private:
 	double kp_yaw = 0.20;  // 比例参数
 	double ki_yaw = 0.04;  // 积分参数
 	double kd_yaw = 0.04;  // 微分参数
-	double max_vx=0.1; //前后方向最大速度
-	double max_vy=0.1; //左右方向最大速度
-	double max_vz=0.1; //上下方向最大速度
-	double max_yaw=2; //最大角速度(°/s)
+	double max_vx=0.05; //前后方向最大速度
+	double max_vy=0.05; //左右方向最大速度
+	double max_vz=0.05; //上下方向最大速度
+	double max_yaw=1; //最大角速度(°/s)
 
 	float delta_heading=DELTA_HEADING;//-2;
 

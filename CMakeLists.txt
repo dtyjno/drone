@@ -29,7 +29,7 @@ find_package(rclpy REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(trajectory_msgs REQUIRED)
-#sudo ln -s /usr/share/cmake/geographiclib/FindGeographicLib.cmake /usr/share/cmake-3.22(jutibanben)/Modules/
+#sudo ln -s /usr/share/cmake/geographiclib/FindGeographicLib.cmake /usr/share/cmake-3.22/Modules/
 find_package(GeographicLib REQUIRED)
 find_package(OpenCV REQUIRED)
 
@@ -80,6 +80,11 @@ install(TARGETS offboard_control_srv_simple DESTINATION lib/${PROJECT_NAME})
 add_executable(test_offboard src/examples/offboard/test_offboard.cpp)
 ament_target_dependencies(test_offboard rclcpp mavros_msgs geometry_msgs geographic_msgs)
 install(TARGETS test_offboard DESTINATION lib/${PROJECT_NAME})
+
+#examples/offboard/base_local
+add_executable(base_local src/examples/offboard/base_local.cpp)
+ament_target_dependencies(base_local rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 GeographicLib)
+install(TARGETS base_local DESTINATION lib/${PROJECT_NAME})
 
 # examples/drone/offboard_control
 include_directories(src/examples/drone)
