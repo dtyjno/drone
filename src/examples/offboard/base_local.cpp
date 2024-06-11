@@ -1,21 +1,13 @@
 #include <mavros_msgs/srv/command_bool.hpp>
 #include <mavros_msgs/srv/set_mode.hpp>
-//#include <mavros_msgs/srv/command_tol_local.hpp>
 #include <mavros_msgs/srv/command_tol.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <mavros_msgs/msg/position_target.hpp>
 
-//#include <trajectory_msgs/msg/multi_dof_joint_trajectory.hpp>
-
 #include <rclcpp/rclcpp.hpp>
-//#include <stdint.h>
 
-//#include <chrono>
-//#include <iostream>
 #include <string>
-//#include <cmath>
-
 //  #define GET_GPS //开启gps控制功能
 #ifdef GET_GPS
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
@@ -27,52 +19,13 @@
 
 
 #define PI 3.14159
-//#define default_heading -0.044156
-//#define default_heading -60  //yaw=-2.53
-//M_PI dhaeding: 0.000000
 #define DEFAULT_ACCURACY 0.3 //+-0.3m
 #define DEFAULT_ACCURACY_YAW 1 //+-1°
 #define DEfault_HEADING 0.000000//角度制
-//using namespace std::chrono;
-// struct State {
-//   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-//   Eigen::Vector3d position;
-//   Eigen::Vector3d velocity;
-//   Eigen::Vector4d attitude;
-// };
+
 using namespace std::chrono_literals;
 
 // #define USE_GPS //
-
-//#include <iostream>
-//#include <thread>
-// #include <Eigen/Dense>
-//   std::vector<Eigen::Vector3d> vehicle_position_history_;
-//   std::vector<geometry_msgs::msg::PoseStamped> posehistory_vector_;
-//   std::vector<geometry_msgs::msg::PoseStamped> referencehistory_vector_;
-//   Eigen::Vector3d vehicle_position_{Eigen::Vector3d::Zero()};
-//   Eigen::Vector3d vehicle_velocity_{Eigen::Vector3d::Zero()};
-//   Eigen::Vector4d vehicle_attitude_{Eigen::Vector4d(1.0, 0.0, 0.0, 0.0)};
-//   Eigen::Vector3d last_planning_position_{Eigen::Vector3d::Zero()};
-//   Eigen::Vector3d previous_start_position_{Eigen::Vector3d::Zero()};
-//   Eigen::Vector3d previous_return_start_position_{Eigen::Vector3d::Zero()};
-//   Eigen::Vector3d mission_loiter_center_{Eigen::Vector3d::Zero()};
-// void TerrainPlanner::mavLocalPoseCallback(const geometry_msgs::msg::PoseStamped &msg) {
-//   vehicle_attitude_(0) = msg.pose.orientation.w;
-//   vehicle_attitude_(1) = msg.pose.orientation.x;
-//   vehicle_attitude_(2) = msg.pose.orientation.y;
-//   vehicle_attitude_(3) = msg.pose.orientation.z;
-// }
-
-// class DaemonThread {
-// public:
-// 	static void run() {
-// 		for (int i = 0; i < 600; i++) {
-// 			std::cout << i << std::endl;
-// 			std::this_thread::sleep_for(std::chrono::seconds(1));
-// 		}
-// 	}
-// };
 
 #include <Eigen/Dense>
 Eigen::Quaterniond quaternion_from_euler(const Eigen::Vector3d &euler)
@@ -132,18 +85,6 @@ void add_flu_offset_to_llh(double lat, double lon, double alt, double offset_f, 
 }
 #endif
 
-// 	double PrintYaw(void){
-// 		quaternion.w() = pose_.pose.orientation.w;
-// 		quaternion.x() = pose_.pose.orientation.x;
-// 		quaternion.y() = pose_.pose.orientation.y;
-// 		quaternion.z() = pose_.pose.orientation.z;
-// 		euler = quaternion_to_euler(quaternion);
-// 		heading = euler(2); //弧度制
-// 		// std::cout << "heading: " << heading/PI*180 << std::endl;
-// 		return heading/PI*180; //角度制
-// 	}
-	
-// };
 class OffboardControl : public rclcpp::Node {
 public:
 	OffboardControl(const std::string ardupilot_namespace) :
@@ -153,19 +94,10 @@ public:
 		service_result_{0},
 		service_done_{false},
 		
-		////global_gps_publisher_{this->create_publisher<ardupilot_msgs::msg::GlobalPosition>(ardupilot_namespace+"cmd_gps_pose", 5)},
 		twist_stamped_publisher_{this->create_publisher<geometry_msgs::msg::TwistStamped>(ardupilot_namespace+"setpoint_velocity/cmd_vel", 5)},
-		//  * /mavros/setpoint_position/global [geographic_msgs/msg/GeoPoseStamped] 1 subscriber
-		//local_setpoint_publisher_{this->create_publisher<geometry_msgs::msg::PoseStamped>(ardupilot_namespace+"setpoint_position/local", 5)},
-		// * /mavros/setpoint_raw/local [mavros_msgs/msg/PositionTarget] 1 subscriber
-		//setpoint_raw_local_publisher_(this->create_publisher<mavros_msgs::msg::PositionTarget>(ardupilot_namespace+"setpoint_raw/local", 5)),
-		//  * /mavros/setpoint_raw/global [mavros_msgs/msg/GlobalPositionTarget] 1 subscriber
-		//trajectory_publisher_{this->create_publisher<trajectory_msgs::msg::MultiDOFJointTrajectory>(ardupilot_namespace+"setpoint_trajectory/local", 5)},
         #ifdef GET_GPS
 		global_gps_publisher_{this->create_publisher<geographic_msgs::msg::GeoPoseStamped>(ardupilot_namespace+"setpoint_position/global", 5)},
-		// * /mavros/setpoint_position/local [geometry_msgs/msg/PoseStamped] 1 subscriber
 		setpoint_raw_global_publisher_(this->create_publisher<mavros_msgs::msg::GlobalPositionTarget>(ardupilot_namespace+"setpoint_raw/global", 5)),
-		// /mavros/setpoint_trajectory/local [trajectory_msgs/msg/MultiDOFJointTrajectory] 1 subscriber
 		#endif
 		
 		arm_motors_client_{this->create_client<mavros_msgs::srv::CommandBool>(ardupilot_namespace+"cmd/arming")},
@@ -192,13 +124,8 @@ public:
         altitude_subscription_ = this->create_subscription<mavros_msgs::msg::Altitude>(ardupilot_namespace_copy_+"altitude", qos,
         std::bind(&OffboardControl::altitude_callback, this, std::placeholders::_1),sub_opt);
 		#endif
-        // /mavros/home_position/home
-		///mavros/state [mavros_msgs/msg/State] 1 publisher
-		// state_subscription_ = this->create_subscription<mavros_msgs::msg::State>(ardupilot_namespace_copy_+"state", qos,
-		// std::bind(&OffboardControl::state_callback, this, std::placeholders::_1));
 
-		RCLCPP_INFO(this->get_logger(), "Starting Offboard Control example with PX4 services");
-		//RCLCPP_INFO_STREAM(geometry_msgs::msg::PoseStampedthis->get_logger(), "Waiting for " << px4_namespace << "vehicle_command service");
+		RCLCPP_INFO(this->get_logger(), "Starting Offboard Control example with PX4 services");;
 		while (!mode_switch_client_->wait_for_service(std::chrono::seconds(2))) {
 			if (!rclcpp::ok()) {
 				RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. Exiting.");
@@ -206,8 +133,6 @@ public:
 			}
 			RCLCPP_INFO(this->get_logger(), "service not available, waiting again...");
   		}
-		// std::thread t1(DaemonThread::run);
-		// t1.detach();
 		timer_ = this->create_wall_timer(100ms, std::bind(&OffboardControl::timer_callback, this));
 	}
 
@@ -252,15 +177,10 @@ private:
 	LocalFrame start{0,0,0,0};
 	LocalFrame start_temp{0,0,0,0};
 	LocalFrame end_temp={0,0,0,0};
-	//LocalFrame end={0,0,0,0};
 
 	GlobalFrame start_global{0,0,0,0};
 	GlobalFrame start_temp_global{0,0,0,0};
 	GlobalFrame end_temp_global={0,0,0,0};
-	//LocalFrame end_global={0,0,0,0};
-
-		
-
 
 	double PrintYaw(void){
 		quaternion.w() = pose_.pose.orientation.w;
@@ -269,7 +189,6 @@ private:
 		quaternion.z() = pose_.pose.orientation.z;
 		euler = quaternion_to_euler(quaternion);
 		heading = euler(2); //弧度制
-		// std::cout << "heading: " << heading/PI*180 << std::endl;
 		return heading/PI*180; //角度制
 	}
 	
@@ -284,7 +203,6 @@ private:
 	} state_;
 	enum class FlyState{
 		init,
-		//request,
 		takeoff,
 		goto_shot_area,
 		findtarget,
@@ -319,20 +237,10 @@ private:
 
 	rclcpp::TimerBase::SharedPtr timer_;
 	
-	//sensor_msgs::msg::NavSatFix global_gps_start{};
-	//ardupilot_msgs::msg::GlobalPosition global_gps_start{};
-
-	//rclcpp::Publisher<ardupilot_msgs::msg::GlobalPosition>::SharedPtr global_gps_publisher_;
 	rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_stamped_publisher_; //速度控制
-	//rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr local_setpoint_publisher_; //位置控制
-	//rclcpp::Publisher<mavros_msgs::msg::PositionTarget>::SharedPtr setpoint_raw_local_publisher_;
-	//rclcpp::Publisher<trajectory_msgs::msg::MultiDOFJointTrajectory>::SharedPtr trajectory_publisher_; //轨迹控制
+
 	rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_subscription_; // 位置订阅
 	rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr velocity_subscription_; // 速度订阅
- 	//// rclcpp::Publisher<geographic_msgs::msg::GeoPoseStamped>::SharedPtr global_gps_publisher_; // 全局位置控制
-	// rclcpp::Publisher<mavros_msgs::msg::GlobalPositionTarget>::SharedPtr setpoint_raw_global_publisher_; // 全局位置控制
-	// rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gps_subscription_; // 全局位置订阅
-	// rclcpp::Subscription<mavros_msgs::msg::Altitude>::SharedPtr altitude_subscription_; // 高度订阅
 
  	rclcpp::Client<mavros_msgs::srv::CommandBool>::SharedPtr arm_motors_client_;
 	rclcpp::Client<mavros_msgs::srv::SetMode>::SharedPtr mode_switch_client_;
@@ -341,43 +249,37 @@ private:
 	void pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
 	void velocity_callback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
 	
-    void arm_motors(bool arm);
-    void switch_mode(std::string mode);
-    void switch_to_guided_mode();
+	void arm_motors(bool arm);
+	void switch_mode(std::string mode);
+	void switch_to_guided_mode();
 	void switch_to_rtl_mode();
-    // void switch_to_flip_mode();
-	// void switch_to_auto_mode();
-	//void publish_global_gps(double latitude, double longitude, double altitude);
-	
-	//void command_takeoff_or_land_local(std::string mode);
+
 	void command_takeoff_or_land(std::string mode);
 	
 	void send_local_setpoint_command(double x, double y, double z, double yaw);
-	//void publish_setpoint_raw_local(double x, double y, double z, double yaw);
-    //void publish_trajectory(double x, double y, double z, double yaw);
     
-    void trajectory_setpoint_takeoff(double x,double y ,double z ,double yaw);
+	void trajectory_setpoint_takeoff(double x,double y ,double z ,double yaw);
 	void trajectory_setpoint(double x,double y ,double z ,double yaw, double accuracy=DEFAULT_ACCURACY);
 	void trajectory_setpoint_start(double x,double y ,double z ,double yaw,double accuracy=DEFAULT_ACCURACY);
+	
 	bool alt_hold(double vx,double vy ,double z ,double yaw,double time,double accuracy=DEFAULT_ACCURACY);
 	void publish_trajectory_setpoint(double x,double y ,double z ,double yaw);
 	bool publish_trajectory_setpoint_z(double *x,double accuracy=DEFAULT_ACCURACY);
 	bool publish_trajectory_setpoint_yaw(double *yaw,double accuracy=DEFAULT_ACCURACY_YAW);
+	
 	bool send_velocity_command_with_time(double linear_x, double linear_y, double linear_z, double angular_z, double time);
 	void send_velocity_command(double linear_x, double linear_y, double linear_z, double angular_z);
 
 	bool set_time(double time);
-    void get_target_location(double* x, double* y,double default_heading=0);
+	void get_target_location(double* x, double* y,double default_heading=0);
 	void set_target_point(std::string mode,double x=0,double y=0,double z=0,double yaw=0);
 	bool at_check_point(double accuracy=DEFAULT_ACCURACY);	
 
     #ifdef USE_GPS
-    void altitude_callback(const mavros_msgs::msg::Altitude::SharedPtr msg);
-    void gps_callback(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
+   	void altitude_callback(const mavros_msgs::msg::Altitude::SharedPtr msg);
+  	void gps_callback(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
 	
-    void publish_setpoint_raw_global(double latitude, double longitude, double altitude, double yaw);
-
-	void trajectory_setpoint_global(double x,double y ,double z ,double yaw);
+	void publish_setpoint_raw_global(double latitude, double longitude, double altitude, double yaw);
 
 	void send_gps_setpoint_command(double latitude, double longitude, double altitude);
    	inline void get_target_location_global(double &lat,double &lon,double &alt,double default_heading=0);
@@ -394,69 +296,12 @@ void OffboardControl::switch_to_guided_mode(){
 	OffboardControl::switch_mode("GUIDED");
 }
 
-// void OffboardControl::switch_to_flip_mode(){
-// 	RCLCPP_INFO(this->get_logger(), "requesting switch to FLIP mode");
-// 	OffboardControl::switch_mode("FLIP");
-// }
-
 void OffboardControl::switch_to_rtl_mode(){
  	RCLCPP_INFO(this->get_logger(), "requesting switch to RTL mode");
  	OffboardControl::switch_mode("RTL");
 }
 
-/*
-# set FCU mode
-#
-# Known custom modes listed here:
-# http://wiki.ros.org/mavros/CustomModes
 
-# basic modes from MAV_MODE
-uint8 MAV_MODE_PREFLIGHT		= 0
-uint8 MAV_MODE_STABILIZE_DISARMED	= 80
-uint8 MAV_MODE_STABILIZE_ARMED		= 208
-uint8 MAV_MODE_MANUAL_DISARMED		= 64
-uint8 MAV_MODE_MANUAL_ARMED		= 192
-uint8 MAV_MODE_GUIDED_DISARMED		= 88
-uint8 MAV_MODE_GUIDED_ARMED		= 216
-uint8 MAV_MODE_AUTO_DISARMED		= 92
-uint8 MAV_MODE_AUTO_ARMED		= 220
-uint8 MAV_MODE_TEST_DISARMED		= 66
-uint8 MAV_MODE_TEST_ARMED		= 194
-
-uint8 base_mode		# filled by MAV_MODE enum value or 0 if custom_mode != ''
-string custom_mode	# string mode representation or integer
----
-bool mode_sent		# Mode known/parsed correctly and SET_MODE are sent
-
-// Auto Pilot Modes enumeration
-enum class Number {
-    STABILIZE =     0,  // manual airframe angle with manual throttle
-    ACRO =          1,  // manual body-frame angular rate with manual throttle
-    ALT_HOLD =      2,  // manual airframe angle with automatic throttle
-    AUTO =          3,  // fully automatic waypoint control using mission commands
-    GUIDED =        4,  // fully automatic fly to coordinate or fly at velocity/direction using GCS immediate commands
-    LOITER =        5,  // automatic horizontal acceleration with automatic throttle
-    RTL =           6,  // automatic return to launching point
-    CIRCLE =        7,  // automatic circular flight with automatic throttle
-    LAND =          9,  // automatic landing with horizontal position control
-    DRIFT =        11,  // semi-automous position, yaw and throttle control
-    SPORT =        13,  // manual earth-frame angular rate control with manual throttle
-    FLIP =         14,  // automatically flip the vehicle on the roll axis
-    AUTOTUNE =     15,  // automatically tune the vehicle's roll and pitch gains
-    POSHOLD =      16,  // automatic position hold with manual override, with automatic throttle
-    BRAKE =        17,  // full-brake using inertial/GPS system, no pilot input
-    THROW =        18,  // throw to launch mode using inertial/GPS system, no pilot input
-    AVOID_ADSB =   19,  // automatic avoidance of obstacles in the macro scale - e.g. full-sized aircraft
-    GUIDED_NOGPS = 20,  // guided mode but only accepts attitude and altitude
-    SMART_RTL =    21,  // SMART_RTL returns to home by retracing its steps
-    FLOWHOLD  =    22,  // FLOWHOLD holds position with optical flow without rangefinder
-    FOLLOW    =    23,  // follow attempts to follow another vehicle or ground station
-    ZIGZAG    =    24,  // ZIGZAG mode is able to fly in a zigzag manner with predefined point A and point B
-    SYSTEMID  =    25,  // System ID mode produces automated system identification signals in the controllers
-    AUTOROTATE =   26,  // Autonomous autorotation
-    NEW_MODE =     27,  // your new flight mode
-};
-*/
 void OffboardControl::switch_mode(std::string mode)
 {
 	auto request = std::make_shared<mavros_msgs::srv::SetMode::Request>();
@@ -488,14 +333,6 @@ void OffboardControl::switch_mode(std::string mode)
 		});
 }
 
-// void OffboardControl::switch_to_auto_mode(){
-// 	RCLCPP_INFO(this->get_logger(), "requesting switch to mode");
-// 	OffboardControl::switch_mode("AUTO");
-// }
-
-
-// arm or disarm motors
-// arm= arm: true, disarm: false
 void OffboardControl::arm_motors(bool arm)
 {
   auto request = std::make_shared<mavros_msgs::srv::CommandBool::Request>();
@@ -530,85 +367,10 @@ void OffboardControl::arm_motors(bool arm)
 			}
 		});
 }
-// # Common type for switch commands
 
-// bool value
-// ---
-// bool success
-// uint8 result
 
-/*
-// 笛卡尔坐标系起飞或降落命令（无效）
-void OffboardControl::command_takeoff_or_land_local(std::string mode)
-{
-	std::string mode_str(mode);
-	if(mode=="TAKEOFF"){
-	auto takeoff_client = this->create_client<mavros_msgs::srv::CommandTOLLocal>(ardupilot_namespace_copy_+"cmd/takeoff_local");
-
-	auto takeoff_request = std::make_shared<mavros_msgs::srv::CommandTOLLocal::Request>();
-	takeoff_request->min_pitch = 0.0;
-	takeoff_request->offset = 0.0;
-	takeoff_request->rate = 1.0;
-	takeoff_request->yaw = 0.0;
-	takeoff_request->position.x = 0.0;
-	takeoff_request->position.y = 0.0;
-	takeoff_request->position.z = 0.0;
-	RCLCPP_INFO(this->get_logger(), "Take Off Local Command send");
-	auto takeoff_result_future = takeoff_client->async_send_request(takeoff_request);
-	} else if(mode=="LAND"){
-	auto land_client = this->create_client<mavros_msgs::srv::CommandTOLLocal>(ardupilot_namespace_copy_+"cmd/land_local");
-
-	auto land_request = std::make_shared<mavros_msgs::srv::CommandTOLLocal::Request>();
-	land_request->min_pitch = 0.0;
-	land_request->offset = 0.0;
-	land_request->rate = 1.0;
-	land_request->yaw = 0.0;
-	land_request->position.x = 0.0;
-	land_request->position.y = 0.0;
-	land_request->position.z = 0.0;
-	RCLCPP_INFO(this->get_logger(), "Land Local Command send");
-	auto land_result_future = land_client->async_send_request(land_request);
-	}
-	
-	service_done_ = false;
-		[this](rclcpp::Client<mavros_msgs::srv::CommandTOLLocal>::SharedFuture future) {
-			auto status = future.wait_for(0.5s);
-			if (status == std::future_status::ready) {
-				auto reply = future.get()->success;
-				RCLCPP_INFO(this->get_logger(), "Mode switch: %s", reply ? "success" : "failed");
-				if (reply == 1) {
-					// Code to execute if the future is successful
-					service_done_ = true;
-				}
-				else {
-					// Code to execute if the future is unsuccessful
-					//service_done_ = false;
-					RCLCPP_ERROR(this->get_logger(), "Failed to call service /ap/mode_switch");
-				}
-			} else {
-				// Wait for the result.
-				RCLCPP_INFO(this->get_logger(), "Service In-Progress...");
-			}
-		});
-	
-}
-*/
-
-// #Common type for LOCAL Take Off and Landing
-
-// double32 min_pitch		# used by takeoff
-// double32 offset    		# used by land (landing position accuracy)
-// double32 rate			# speed of takeoff/land in m/s
-// double32 yaw			# in radians
-// geometry_msgs/Vector3 position 	#(x,y,z) in meters
-// ---
-// bool success
-// uint8 result
-
-// # Common type for GLOBAL Take Off and Landing
 void OffboardControl::command_takeoff_or_land(std::string mode)
 {
-	//RCLCPP_ERROR(this->get_logger(), ("Failed to call service "+ardupilot_namespace_copy_+"cmd/takeoff").c_str());
 	service_done_ = false;
 	std::string mode_str(mode);
 	if(mode=="TAKEOFF"){
@@ -670,70 +432,22 @@ void OffboardControl::command_takeoff_or_land(std::string mode)
 		});
 	}
 }
-/*
-接收位置数据
-std::cout << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
-std::cout << "RECEIVED POSITION DATA"   << std::endl;
-std::cout << "============================="   << std::endl;
-std::cout << "stamp:" << std::to_string(msg->header.stamp.sec) << "." << std::to_string(msg->header.stamp.nanosec) << std::endl;
-std::cout << "frame_id:" << msg->header.frame_id << std::endl;
-std::cout << "position x: " << msg->pose.position.x << std::endl;
-std::cout << "position y: " << msg->pose.position.y  << std::endl;
-std::cout << "position z: " << msg->pose.position.z  << std::endl;
-std::cout << "orientation: x: " << msg->pose.orientation.x << std::endl;
-std::cout << "orientation: y: " << msg->pose.orientation.y << std::endl;
-std::cout << "orientation: z: " << msg->pose.orientation.z << std::endl;
-std::cout << "orientation: w: " << msg->pose.orientation.w << std::endl;
-*/
+
 void OffboardControl::pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) 
 {
 	pose_ = *msg;
 	location.local_frame.x = msg->pose.position.x;
 	location.local_frame.y = msg->pose.position.y;
 	location.local_frame.z = msg->pose.position.z;
-	// quaternion.w() = msg->pose.orientation.w;
-	// quaternion.x() = msg->pose.orientation.x;
-	// quaternion.y() = msg->pose.orientation.y;
-	// quaternion.z() = msg->pose.orientation.z;
-	// location.local_frame.x = loc.pose.position.x;
-	// location.local_frame.y = loc.pose.position.y;
-	// location.local_frame.z = loc.pose.position.z;
-	// quaternion.w() = loc.pose.orientation.w;
-	// quaternion.x() = loc.pose.orientation.x;
-	// quaternion.y() = loc.pose.orientation.y;
-	// quaternion.z() = loc.pose.orientation.z;
-	// euler = quaternion_to_euler(quaternion);
-	// location.global_frame.lat = loc.latitude;
-	// location.global_frame.lon = loc.longitude;
-	// location.global_frame.alt = loc.altitude;
-	
-	// RCLCPP_INFO(this->get_logger(),"position x: %lf", pose_.pose.position.x);
-	// std::cout << "position x: " << msg->pose.position.x << std::endl;
-	// std::cout << "position y: " << msg->pose.position.y  << std::endl;
-	// std::cout << "position z: " << msg->pose.position.z  << std::endl;
-	//RCLCPP_INFO(this->get_logger(), "Received yaw: %f", quaternion_to_yaw(msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w));
 }
 
 // 接收速度数据
 void OffboardControl::velocity_callback(const geometry_msgs::msg::TwistStamped::SharedPtr msg) 
 {
 	velocity_ = *msg;
-	// RCLCPP_INFO(this->get_logger(), "Received velocity data");
-	// RCLCPP_INFO(this->get_logger(), "Linear x: %f", msg->twist.linear.x);
-	// RCLCPP_INFO(this->get_logger(), "Linear y: %f", msg->twist.linear.y);
-	// RCLCPP_INFO(this->get_logger(), "Linear z: %f", msg->twist.linear.z);
-	// RCLCPP_INFO(this->get_logger(), "Angular x: %f", msg->twist.angular.x);
-	// RCLCPP_INFO(this->get_logger(), "Angular y: %f", msg->twist.angular.y);
-	// RCLCPP_INFO(this->get_logger(), "Angular z: %f", msg->twist.angular.z);
 }
 #ifdef GET_GPS
 // 接收GPS数据
-// RCLCPP_INFO(this->get_logger(), "Received GPS data");
-// RCLCPP_INFO(this->get_logger(), "Header frame id: %s", (*msg).header.frame_id.c_str());
-// RCLCPP_INFO(this->get_logger(), "Header stamp: %d.%d", (*msg).header.stamp.sec, (*msg).header.stamp.nanosec);
-// RCLCPP_INFO(this->get_logger(), "Latitude: %f", (*msg).latitude);
-// RCLCPP_INFO(this->get_logger(), "Longitude: %f", (*msg).longitude);
-// RCLCPP_INFO(this->get_logger(), "Altitude: %f", (*msg).altitude);
 void OffboardControl::gps_callback(const sensor_msgs::msg::NavSatFix::SharedPtr msg) 
 {
 	global_gps_ = *msg;
@@ -751,14 +465,6 @@ void OffboardControl::altitude_callback(const mavros_msgs::msg::Altitude::Shared
 {
 	// this->location.global_frame.alt = msg->amsl;
 	msg->amsl;
-
-	// RCLCPP_INFO(this->get_logger(), "Received altitude data");
-	// RCLCPP_INFO(this->get_logger(), "Monotonic: %f", msg->monotonic);
-	// RCLCPP_INFO(this->get_logger(), "Amsl: %f", msg->amsl);
-	// RCLCPP_INFO(this->get_logger(), "Local: %f", msg->local);
-	// RCLCPP_INFO(this->get_logger(), "Relative: %f", msg->relative);
-	// RCLCPP_INFO(this->get_logger(), "Terrain: %f", msg->terrain);
-	// RCLCPP_INFO(this->get_logger(), "Bottom clear: %f", msg->bottom_clearance);
 }
 #endif
 // 环绕射击区域
@@ -772,12 +478,6 @@ bool OffboardControl::surrounding_shot_area(void){
 		end
 	} sur_state_;
 	static uint64_t time_find_start;
-	/*bool result=false;
-	if(vehicle_local_position_msg.x>10 || vehicle_local_position_msg.x<-10 || vehicle_local_position_msg.y>10 || vehicle_local_position_msg.y<-10){
-		result=true;
-	}*/
-	//uint64_t time_now = this->get_clock()->now().nanoseconds() / 1000;
-	//AtCheckPoint();
 	switch (sur_state_)
 	{
 	case SurState::init:
@@ -834,12 +534,6 @@ bool OffboardControl::surrounding_scout_area(void){
 		end
 	} sco_state_;
 	static uint64_t time_find_start;
-	/*bool result=false;
-	if(vehicle_local_position_msg.x>10 || vehicle_local_position_msg.x<-10 || vehicle_local_position_msg.y>10 || vehicle_local_position_msg.y<-10){
-		result=true;
-	}*/
-	//uint64_t time_now = this->get_clock()->now().nanoseconds() / 1000;
-	//AtCheckPoint();
 	switch (sco_state_)
 	{
 	case ScoState::init:
@@ -920,7 +614,6 @@ void OffboardControl::trajectory_setpoint_global(double x,double y ,double z ,do
 		return;
 	}
 	get_target_location_global(x,y,z,yaw);
-	// RCLCPP_INFO(this->get_logger(),"trajectory_setpoint_global: et:%f %f %f",end_temp.x, end_temp.y, end_temp.z);
 	publish_setpoint_raw_global(x,y,z,yaw);
 }
 #endif
@@ -1023,11 +716,6 @@ bool OffboardControl::alt_hold(double vx,double vy ,double z ,double yaw,double 
 // x:目标位置(m) y:~ z:~ yaw:目标角度(°) //at_check_point(accuracy:精度(m)默认)
 // 返回值：是否到达目标位置
 void OffboardControl::publish_trajectory_setpoint(double x,double y ,double z ,double yaw){
-    //RCLCPP_INFO(this->get_logger(), "Publishing setpoint: x=%f, y=%f, z=%f, yaw=%f", x, y, z, yaw);
-	//static double previous_error_x = x - pose_.pose.position.x;
-    //static double previous_error_y = y - pose_.pose.position.y;
-    //static double previous_error_z = z - pose_.pose.position.z;
-    //static double previous_error_yaw = yaw - quaternion_to_yaw(pose_.pose.orientation.x, pose_.pose.orientation.y, pose_.pose.orientation.z, pose_.pose.orientation.w);//-pi-pi
 
     static double integral_x = 0;
     static double integral_y = 0;
@@ -1256,46 +944,8 @@ void OffboardControl::send_local_setpoint_command(double x, double y, double z,d
 	msg.header.frame_id = "base_link";
 	//local_setpoint_publisher_->publish(msg);
 }
-// 设置本地目标点(无效//)
-// publish_setpoint_raw_local(x, y, z, yaw);
-// 
-// ros2 topic pub /mavros/setpoint_raw/local mavros_msgs/msg/PositionTarget '{header: "auto", position: {x: 1.0, y: 2.0, z: 3.0}, yaw: 0.0}'
-// publishing #15: mavros_msgs.msg.PositionTarget(header=std_msgs.msg.Header(stamp=builtin_interfaces.msg.Time(sec=1713970314, nanosec=464943418), frame_id=''), coordinate_frame=0, type_mask=0, position=geometry_msgs.msg.Point(x=1.0, y=2.0, z=3.0), velocity=geometry_msgs.msg.Vector3(x=0.0, y=0.0, z=0.0), acceleration_or_force=geometry_msgs.msg.Vector3(x=0.0, y=0.0, z=0.0), yaw=0.0, yaw_rate=0.0)
-/*
-void OffboardCont//rol::publish_setpoint_raw_local(double x, double y, double z, double yaw) {
-    mavros_msgs::msg::PositionTarget msg;
-    msg.position.x = x;
-    msg.position.y = y;
-    msg.position.z = z;
-	msg.yaw = yaw;
-    //msg.yaw = tf2::getYaw(pose.pose.orientation);
-	msg.velocity.x = max_vx;
-	msg.velocity.y = max_vy;
-	msg.velocity.z = max_vz;
-	msg.yaw_rate = max_yaw;
-	//msg.acceleration_or_force.x = 0;
-	//msg.acceleration_or_force.y = 0;
-	//msg.acceleration_or_force.z = 0;
-	msg.header.stamp = this->now();
-	msg.header.frame_id = "base_link";
-    //setpoint_raw_local_publisher_->publish(msg);
-}*/
-#ifdef GET_GPS
-// 发布全局位置控制指令(无效)
-// send_gps_setpoint_command(latitude, longitude, altitude);
-// 
-// ros2 topic pub /mavros/setpoint_position/global geographic_msgs/msg/GeoPoseStamped '{header: {stamp: {sec: 0, nanosec: 0}, frame_id: "base_link"}, pose: {position: {latitude: 0.0, longitude: 0.0, altitude: 0.0}}}'
-// publishing #6: geographic_msgs.msg.GeoPoseStamped(header=std_msgs.msg.Header(stamp=builtin_interfaces.msg.Time(sec=0, nanosec=0), frame_id='base_link'), pose=geographic_msgs.msg.GeoPose(position=geographic_msgs.msg.GeoPoint(latitude=0.0, longitude=0.0, altitude=0.0), orientation=geometry_msgs.msg.Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)))
 
-void OffboardControl::send_gps_setpoint_command(double latitude, double longitude, double altitude){
-	geographic_msgs::msg::GeoPoseStamped msg;
-  	msg.pose.position.latitude = latitude;
-	msg.pose.position.longitude = longitude;
-	msg.pose.position.altitude = altitude;
-	msg.header.stamp = this->now();
-	msg.header.frame_id = "base_link";
-	global_gps_publisher_->publish(msg);
-}
+#ifdef GET_GPS
 
 // 发布全局位置控制指令
 // publish_setpoint_raw_global(latitude, longitude, altitude);
@@ -1428,133 +1078,7 @@ void OffboardControl::set_target_point(std::string mode,double x,double y,double
 	#endif
 }
 
-// template <typename T>
-// class AtCheckPoint{
-// public:
-// 	AtCheckPoint(T t):t_(t){}
-// 	bool operator()(const T& t){
-// 		return t_->at_check_point();
-// 	}
-// private:
-// 	T t_;
-// };
 
-// template <typename T>
-// void OffboardControl::set_target_point(std::string mode,double x,double y,double z,double yaw,bool(*at_check_point)(const T&)){
-// 	#ifdef PRE_TEST
-// 	static double x_pre;
-// 	static double y_pre;
-// 	static double z_pre;
-// 	//static double yaw_pre;
-// 	if(x!=x_pre || y!=y_pre || z!=z_pre){
-// 		x_pre=x;
-// 		y_pre=y;
-// 		z_pre=z;
-// 		//yaw_pre=yaw;
-// 		//mode_pre=mode;
-// 	#endif
-// 		if(mode=="base_link"){
-// 			start_temp=end_temp;
-// 			end_temp.x=start_temp.x+x;
-// 			end_temp.y=start_temp.y+y;
-// 			end_temp.z=start_temp.z+z;
-// 			end_temp.yaw=start_temp.yaw+yaw;
-// 			RCLCPP_INFO(this->get_logger(),"base_link:%f %f %f %f",end_temp.x, end_temp.y, end_temp.z, end_temp.yaw);
-// 		}else if(mode=="start"){
-// 			start_temp=end_temp;
-// 			end_temp.x=start.x+x;
-// 			end_temp.y=start.y+y;
-// 			end_temp.z=start.z+z;
-// 			end_temp.yaw=start.yaw+yaw;
-// 			RCLCPP_INFO(this->get_logger(),"start:%f %f %f %f",end_temp.x, end_temp.y, end_temp.z,end_temp.yaw);
-// 		}else if(mode=="world"){
-// 			start_temp=end_temp;
-// 			end_temp.x=x;
-// 			end_temp.y=y;
-// 			end_temp.z=z;
-// 			end_temp.yaw=yaw;
-// 			RCLCPP_INFO(this->get_logger(),"world:%f %f %f %f",end_temp.x, end_temp.y, end_temp.z, end_temp.yaw);
-// 		}else if(mode=="start_temp"){
-// 			if(x==0.0){start_temp.x=pose_.pose.position.x;}else{start_temp.x=x;}
-// 			if(y==0.0){start_temp.y=pose_.pose.position.y;}else{start_temp.y=y;}
-// 			if(z==0.0){start_temp.z=pose_.pose.position.z;}else{start_temp.z=z;}
-// 			if(yaw==0.0){start_temp.yaw=quaternion_to_yaw(pose_.pose.orientation.x, pose_.pose.orientation.y, pose_.pose.orientation.z, pose_.pose.orientation.w);}else{start_temp.yaw=yaw;}
-// 			RCLCPP_INFO(this->get_logger(),"start_temp:%f %f %f %f",end_temp.x, end_temp.y, end_temp.z, end_temp.yaw);
-// 		}else if(mode=="end_temp"){
-// 			if(x==0.0){end_temp.x=pose_.pose.position.x;}else{end_temp.x=x;}
-// 			if(y==0.0){end_temp.y=pose_.pose.position.y;}else{end_temp.y=y;}
-// 			if(z==0.0){end_temp.z=pose_.pose.position.z;}else{end_temp.z=z;}
-// 			if(yaw==0.0){end_temp.yaw=quaternion_to_yaw(pose_.pose.orientation.x, pose_.pose.orientation.y, pose_.pose.orientation.z, pose_.pose.orientation.w);}else{end_temp.yaw=yaw;}
-
-// 			RCLCPP_INFO(this->get_logger(),"end_temp:%f %f %f %f",end_temp.x, end_temp.y, end_temp.z, end_temp.yaw);
-// 		}else{
-// 			RCLCPP_ERROR(this->get_logger(), "No such mode");
-// 		}
-// 	#ifdef PRE_TEST
-// 	}else{
-// 		RCLCPP_INFO(this->get_logger(),"set_target_point:%f %f %f %f",end_temp.x, end_temp.y, end_temp.z, end_temp.yaw); 
-// 		return;
-// 	}
-// 	#endif
-// }
-
-// void OffboardControl::set_target_point_global(std::string mode,double x,double y,double z,double yaw){
-// 	#ifdef PRE_TEST
-// 	static double x_pre;
-// 	static double y_pre;
-// 	static double z_pre;
-// 	//static double yaw_pre;
-// 	if(x!=x_pre || y!=y_pre || z!=z_pre){
-// 		x_pre=x;
-// 		y_pre=y;
-// 		z_pre=z;
-// 		//yaw_pre=yaw;
-// 		//mode_pre=mode;
-// 	#endif
-// 		if(mode=="base_link"){
-// 			start_temp_global=end_temp_global;
-// 			end_temp_global.x=start_temp_global.x+x;
-// 			end_temp_global.y=start_temp_global.y+y;
-// 			end_temp_global.z=start_temp_global.z+z;
-// 			end_temp_global.yaw=start_temp_global.yaw+yaw;
-// 			RCLCPP_INFO(this->get_logger(),"base_link:%f %f %f %f",end_temp_global.x, end_temp_global.y, end_temp_global.z, end_temp_global.yaw);
-// 		}else if(mode=="start"){
-// 			start_temp_global=end_temp_global;
-// 			end_temp_global.x=start_global.x+x;
-// 			end_temp_global.y=start_global.y+y;
-// 			end_temp_global.z=start_global.z+z;
-// 			end_temp_global.yaw=start_global.yaw+yaw;
-// 			RCLCPP_INFO(this->get_logger(),"start_global:%f %f %f %f",end_temp_global.x, end_temp_global.y, end_temp_global.z,end_temp_global.yaw);
-// 		}else if(mode=="world"){
-// 			start_temp_global=end_temp_global;
-// 			end_temp_global.x=x;
-// 			end_temp_global.y=y;
-// 			end_temp_global.z=z;
-// 			end_temp_global.yaw=yaw;
-// 			RCLCPP_INFO(this->get_logger(),"world:%f %f %f %f",end_temp_global.x, end_temp_global.y, end_temp_global.z, end_temp_global.yaw);
-// 		}else if(mode=="start_temp_global"){
-// 			if(x==0.0){start_temp_global.x=pose_.pose.position.x;}else{start_temp_global.x=x;}
-// 			if(y==0.0){start_temp_global.y=pose_.pose.position.y;}else{start_temp_global.y=y;}
-// 			if(z==0.0){start_temp_global.z=pose_.pose.position.z;}else{start_temp_global.z=z;}
-// 			if(yaw==0.0){start_temp_global.yaw=quaternion_to_yaw(pose_.pose.orientation.x, pose_.pose.orientation.y, pose_.pose.orientation.z, pose_.pose.orientation.w);}else{start_temp_global.yaw=yaw;}
-// 			RCLCPP_INFO(this->get_logger(),"start_temp_global:%f %f %f %f",end_temp_global.x, end_temp_global.y, end_temp_global.z, end_temp_global.yaw);
-// 		}else if(mode=="end_temp_global"){
-// 			if(x==0.0){end_temp_global.x=pose_.pose.position.x;}else{end_temp_global.x=x;}
-// 			if(y==0.0){end_temp_global.y=pose_.pose.position.y;}else{end_temp_global.y=y;}
-// 			if(z==0.0){end_temp_global.z=pose_.pose.position.z;}else{end_temp_global.z=z;}
-// 			if(yaw==0.0){end_temp_global.yaw=quaternion_to_yaw(pose_.pose.orientation.x, pose_.pose.orientation.y, pose_.pose.orientation.z, pose_.pose.orientation.w);}else{end_temp_global.yaw=yaw;}
-
-// 			RCLCPP_INFO(this->get_logger(),"end_temp_global:%f %f %f %f",end_temp_global.x, end_temp_global.y, end_temp_global.z, end_temp_global.yaw);
-// 		}else{
-// 			RCLCPP_ERROR(this->get_logger(), "No such mode");
-// 		}
-// 	#ifdef PRE_TEST
-// 	}else{
-// 		RCLCPP_INFO(this->get_logger(),"set_target_point:%f %f %f %f",end_temp_global.x, end_temp_global.y, end_temp_global.z, end_temp_global.yaw); 
-// 		return;
-// 	}
-// 	#endif
-// }
 
 //确认到达目标点_local
 //accuracy: 精度（默认为DEFAULT_ACCURACY）
@@ -1577,100 +1101,7 @@ bool OffboardControl::at_check_point(double accuracy){
 		return false;
 	}	
 }
-// void OffboardControl::set_target_point(std::string mode,double x,double y,double z,double yaw){
-// 	static double x_pre;
-// 	static double y_pre;
-// 	static double z_pre;
-// 	//static double yaw_pre;
-// 	if(x!=x_pre || y!=y_pre || z!=z_pre){
-// 		x_pre=x;
-// 		y_pre=y;
-// 		z_pre=z;
-// 		//yaw_pre=yaw;
-// 		//mode_pre=mode;
-// 		if(mode=="base_link"){
-// 			set_drone_target_point_local(x,y,z,yaw);
-// 			RCLCPP_INFO(this->get_logger(),"base_link:et:%f %f %f %f",end_temp.x, end_temp.y, end_temp.z, end_temp.yaw);
-// 		}
-// 		else if(mode=="start"){
-// 			set_start_point_local(x,y,z,yaw);
-// 			RCLCPP_INFO(this->get_logger(),"start:et:%f %f %f %f",end_temp.x, end_temp.y, end_temp.z,end_temp.yaw);
-// 		}
-// 		else if(mode=="world"){
-// 			set_world_point_local(x,y,z,yaw);
-// 			RCLCPP_INFO(this->get_logger(),"world:et:%f %f %f %f",end_temp.x, end_temp.y, end_temp.z, end_temp.yaw);
-// 		}
-// 		else{
-// 			RCLCPP_ERROR(this->get_logger(), "No such mode");
-// 		}
-// 	}else{
-// 		RCLCPP_INFO(this->get_logger(),"set_target_point: et:%f %f %f %f",end_temp.x, end_temp.y, end_temp.z, end_temp.yaw); 
-// 		return;
-// 	}
-// }
-// void OffboardControl::set_start_temp_point(double x,double y,double z,double yaw){
-// 	start_temp.x=x;
-// 	start_temp.y=y;
-// 	start_temp.z=z;
-// 	start_temp.yaw=yaw;
-// 	//RCLCPP_INFO(this->get_logger(),"set:et:%f %f %f",end_temp.x, end_temp.y, end_temp.z); 
-// }
-// void OffboardControl::set_end_temp_point(double x=0.0,double y=0.0,double z=0.0,double yaw=0.0){
-//     if(x==0.0){end_temp.x=pose_.pose.position.x;}else{end_temp.x=x;}
-//     if(y==0.0){end_temp.y=pose_.pose.position.y;}else{end_temp.y=y;}
-//     if(z==0.0){end_temp.z=pose_.pose.position.z;}else{end_temp.z=z;}
-//     if(yaw==0.0){end_temp.yaw=quaternion_to_yaw(pose_.pose.orientation.x, pose_.pose.orientation.y, pose_.pose.orientation.z, pose_.pose.orientation.w);}else{end_temp.yaw=yaw;}
-// 	RCLCPP_INFO(this->get_logger(),"set:et:%f %f %f %f",end_temp.x, end_temp.y, end_temp.z, end_temp.yaw); 
-// }
 
-// void OffboardControl::set_drone_target_point_local(double x,double y,double z,double yaw){
-// 	start_temp=end_temp;
-// 	end_temp.x=start_temp.x+x;
-// 	end_temp.y=start_temp.y+y;
-// 	end_temp.z=start_temp.z+z;
-// 	end_temp.yaw=start_temp.yaw+yaw;
-	
-// 	RCLCPP_INFO(this->get_logger(),"set:drone_et:%f %f %f",end_temp.x, end_temp.y, end_temp.z); 
-// }
-
-// void OffboardControl::set_start_point_local(double x,double y,double z,double yaw){
-// 	start_temp=end_temp;
-// 	end_temp.x=start.x+x;
-// 	end_temp.y=start.y+y;
-// 	end_temp.z=start.z+z;
-// 	end_temp.yaw=start.yaw+yaw;
-	
-// 	//RCLCPP_INFO(this->get_logger(),"set:et:%f %f %f",end_temp.x, end_temp.y, end_temp.z); 
-// }
-
-// void OffboardControl::set_world_point_local(double x,double y,double z,double yaw){
-// 	start_temp=end_temp;
-// 	end_temp.x=x;
-// 	end_temp.y=y;
-// 	end_temp.z=z;
-// 	end_temp.yaw=yaw;
-	
-// 	//RCLCPP_INFO(this->get_logger(),"set:et:%f %f %f",end_temp.x, end_temp.y, end_temp.z); 
-// }
-
-// bool OffboardControl::at_check_point(double accuracy){
-// 	////////RCLCPP_INFO(this->get_logger(),"et:%f %f %f",end_temp.x, end_temp.y, end_temp.z); 
-// 	////////RCLCPP_INFO(this->get_logger(),"vl:%f %f %f",pose_.pose.position.x-end_temp.x, pose_.pose.position.y - end_temp.y, pose_.pose.position.z - end_temp.z); 
-// 	RCLCPP_INFO(this->get_logger()," p: %f %f %f %f",pose_.pose.position.x, pose_.pose.position.y, pose_.pose.position.z, quaternion_to_yaw(pose_.pose.orientation.x, pose_.pose.orientation.y, pose_.pose.orientation.z, pose_.pose.orientation.w));
-// 	RCLCPP_INFO(this->get_logger()," e: %f %f %f %f",end_temp.x, end_temp.y, end_temp.z, end_temp.yaw);
-// 	if(
-// 		abs(pose_.pose.position.x - end_temp.x) <=accuracy && 
-// 		abs(pose_.pose.position.y - end_temp.y) <=accuracy && 
-// 		abs(pose_.pose.position.z - end_temp.z) <=accuracy 
-// 		&& abs(quaternion_to_yaw(pose_.pose.orientation.x, pose_.pose.orientation.y, pose_.pose.orientation.z, pose_.pose.orientation.w) - end_temp.yaw) <= DEFAULT_ACCURACY_YAW
-// 		){
-		
-// 		return true;
-// 	}
-// 	else{
-// 		return false;
-// 	}	
-// }
 
 double OffboardControl::quaternion_to_yaw(double x, double y, double z, double w) {
     double siny_cosp = 2.0 * (w * z + x * y);
@@ -1739,38 +1170,12 @@ void OffboardControl::get_target_location_global(double &x,double &y,double &z,d
 	// lat_new: 0.000904368, lon_new: 0, alt_new: 10.0008
 }
 #endif
-// #将相对坐标系下的坐标 x:m,y:m,z:m,heading:degree
-// 转换为全局坐标系下的经纬度坐标
-//get_target_location(default_heading
-// OffboardControl::GlobalFrame OffboardControl::get_target_location(double dheading,double x,OffboardControl &offboard_control){
-//     double heading = offboard_control.heading;
-//     double alt = offboard_control.location.global_frame.alt + 5;
-//     heading += dheading;
-//     if (heading >= 360){
-//         heading -= 360;
-// 	}
-    
-//     double heading_radians = heading * M_PI / 180;
 
-//     //change in lat and lon    
-//     double dlon = x * sin(heading_radians) * 0.0000093;
-//     double dlat = x * cos(heading_radians) * 0.000009;
-    
-//     // print("dlat: ", dlat, "dlon: ", dlon)
-
-//     GlobalFrame target_location = {offboard_control.location.global_frame.lat + dlat, offboard_control.location.global_frame.lon + dlon, alt};
-    
-//     return target_location;
-// }
 
 
 void OffboardControl::timer_callback(void){
 	static uint8_t num_of_steps = 0;
 	static bool is_takeoff = false;
-	// RCLCPP_INFO(this->get_logger(), "arm_done_: %d", arm_done_);
-	//switch_to_autotune_mode();
-	// offboard_control_mode needs to be paired with trajectory_setpoint
-	//publish_offboard_control_mode();
 	switch (fly_state_)
 	{
 	case FlyState::init:
@@ -1880,16 +1285,11 @@ void OffboardControl::timer_callback(void){
 		}
 		break;
 	case State::takeoff:
-		// rclcpp::sleep_for(1s);
-			//RCLCPP_INFO(this->get_logger(), "vehicle is start");
-			
-			//arm_motors(true);
-			
-			//publish_global_gps(global_gps_.pose.position.latitude, global_gps_.pose.position.longitude, 600.0);
-			
-			//arm_motors(true)//;
+
 			if(pose_.pose.position.z-start.z < 1){
 				command_takeoff_or_land("TAKEOFF");
+				
+			}else{
 				state_ = State::autotune_mode;
 			}
 

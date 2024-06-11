@@ -31,8 +31,13 @@ find_package(tf2 REQUIRED)
 find_package(trajectory_msgs REQUIRED)
 #sudo ln -s /usr/share/cmake/geographiclib/FindGeographicLib.cmake /usr/share/cmake-3.22/Modules/
 find_package(GeographicLib REQUIRED)
-find_package(OpenCV REQUIRED)
+#
+find_package(vision_msgs REQUIRED)
 
+find_package(ros2_interfaces REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(cv_bridge REQUIRED)
 #################
 # Setup targets #
 #################
@@ -54,16 +59,20 @@ ament_target_dependencies(pose_subscriber rclcpp geometry_msgs )
 install(TARGETS pose_subscriber DESTINATION lib/${PROJECT_NAME})
 
 # examlles/camera/camera_image_subscriber
-add_executable(camera_image_subscriber src/examples/listeners/camera_image_subscriber.cpp)
-ament_target_dependencies(camera_image_subscriber rclcpp mavros_msgs OpenCV)
-install(TARGETS camera_image_subscriber DESTINATION lib/${PROJECT_NAME})
+#add_executable(camera_image_subscriber src/examples/listeners/camera_image_subscriber.cpp)
+#ament_target_dependencies(camera_image_subscriber rclcpp mavros_msgs OpenCV)
+#install(TARGETS camera_image_subscriber DESTINATION lib/${PROJECT_NAME})
 
 # examples/offboard/offboard_control_srv
 
 add_executable(offboard_control_srv src/examples/offboard/offboard_control_srv.cpp)
-ament_target_dependencies(offboard_control_srv rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 GeographicLib)
+ament_target_dependencies(offboard_control_srv rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 GeographicLib vision_msgs ros2_interfaces sensor_msgs OpenCV cv_bridge)
 install(TARGETS offboard_control_srv DESTINATION lib/${PROJECT_NAME})
 
+# # examples/offboard/offboard_control_gps
+# add_executable(offboard_control_gps src/examples/offboard/offboard_control_gps.cpp)
+# ament_target_dependencies(offboard_control_gps rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 GeographicLib vision_msgs)
+# install(TARGETS offboard_control_gps DESTINATION lib/${PROJECT_NAME})
 
 # examples/offboard/offboard_control_drone
 add_executable(offboard_control_drone src/examples/offboard/offboard_control_drone.cpp)
@@ -89,8 +98,9 @@ install(TARGETS base_local DESTINATION lib/${PROJECT_NAME})
 # examples/drone/offboard_control
 include_directories(src/examples/drone)
 file(GLOB SOURCES "src/examples/drone/*.cpp")
+#list(REMOVE_ITEM SOURCES "src/examples/drone/offboard_control_srv.cpp")
 add_executable(offboard_control ${SOURCES})
-ament_target_dependencies(offboard_control rclcpp mavros_msgs geometry_msgs geographic_msgs)
+ament_target_dependencies(offboard_control rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 GeographicLib vision_msgs)
 install(TARGETS offboard_control DESTINATION lib/${PROJECT_NAME})
 
 

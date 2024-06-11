@@ -1,91 +1,104 @@
+#include <rclcpp/rclcpp.hpp>
 #include "offboard_control.hpp"
-#include "yolo.hpp"
+#include "tools.hpp"
 
+int main(int argc, char *argv[])
+{
+	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
+	rclcpp::init(argc, argv);
+	rclcpp::spin(std::make_shared<OffboardControl>("/mavros/"));
+	rclcpp::shutdown();
+	return 0;
+}
+OffboardControl::OffboardControl(std::string ardupilot_namespace) :
+		Node("offboard_control_srv"),
+		state_{State::init},
+		fly_state_{FlyState::init},
+		service_result_{0},
+		service_done_{false},
+		//global_gps_publisher_{this->create_publisher<ardupilot_msgs::msg::GlobalPosition>(ardupilot_namespace_+"cmd_gps_pose", 5)},
+		twist_stamped_publisher_{this->create_publisher<geometry_msgs::msg::TwistStamped>(ardupilot_namespace+"setpoint_velocity/cmd_vel", 5)},
+		arm_motors_client_{this->create_client<mavros_msgs::srv::CommandBool>(ardupilot_namespace+"cmd/arming")},
+		mode_switch_client_{this->create_client<mavros_msgs::srv::SetMode>(ardupilot_namespace+"set_mode")}
+		
+	{
+		ardupilot_namespace_ = ardupilot_namespace;
+		rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
+		auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5), qos_profile);
+		
+		pose_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(ardupilot_namespace_+"local_position/pose", qos,
+		std::bind(&OffboardControl::pose_callback, this, std::placeholders::_1));
+		gps_subscription_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(ardupilot_namespace_+"global_position/global", qos,
+		std::bind(&OffboardControl::gps_callback, this, std::placeholders::_1));
+		velocity_subscription_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(ardupilot_namespace_+"local_position/velocity_local", qos,
+		std::bind(&OffboardControl::velocity_callback, this, std::placeholders::_1));
+
+		RCLCPP_INFO(this->get_logger(), "Starting Offboard Control example with PX4 services");
+		//RCLCPP_INFO_STREAM(geometry_msgs::msg::PoseStampedthis->get_logger(), "Waiting for " << px4_namespace << "vehicle_command service");
+		while (!mode_switch_client_->wait_for_service(std::chrono::seconds(2))) {
+			if (!rclcpp::ok()) {
+				RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. Exiting.");
+				return;
+			}
+			RCLCPP_INFO(this->get_logger(), "service not available, waiting again...");
+  		}
+		timer_ = this->create_wall_timer(100ms, std::bind(&OffboardControl::timer_callback, this));
+	}
 void OffboardControl::timer_callback(void){
 	static uint8_t num_of_steps = 0;
-	static bool is_takeoff = false;
-	// RCLCPP_INFO(this->get_logger(), "timer_callback");
-	// RCLCPP_INFO(this->get_logger(), "arm_done: %d", arm_done_);
 	//switch_to_autotune_mode();
 	// offboard_control_mode needs to be paired with trajectory_setpoint
 	//publish_offboard_control_mode();
-	//trajectory_setpoint_global(0, 0, 100, 0);
-	//PrintYaw();
-	//RCLCPP_INFO(this->get_logger(), "yaw: %lf", quaternion_to_yaw(pose_.pose.orientation.x, pose_.pose.orientation.y, pose_.pose.orientation.z, pose_.pose.orientation.w));
-	GlobalFrame a{0,0,10,0}; get_target_location_global(a.lat, a.lon, a.alt, a.yaw);
-	std::cout << "alt: " << location.global_frame.alt << " lon " << location.global_frame.lon << " alt: " << location.global_frame.alt  << std::endl;
-
-	RCLCPP_INFO(this->get_logger(), "global_gps: %lf %lf %lf", location.global_frame.lat, location.global_frame.lon, location.global_frame.alt);
-	switch (fly_state_)
+	
+	
+	//publish_trajectory_setpoint(0, 0, 10, 0);
+	
+    switch (fly_state_)
 	{
 	case FlyState::init:
-		rclcpp::sleep_for(1s);
-		if(pose_.header.stamp.sec == 0 || global_gps_.header.stamp.sec == 0){
+		if(pose_.header.stamp.sec == 0){
 			RCLCPP_INFO(this->get_logger(), "No pose data received yet");
 			break;
 		}
+		
 		timestamp0 = this->get_clock()->now().nanoseconds() / 1000;
-		RCLCPP_INFO(this->get_logger(), "timestamp0= %f ,\ntimestamp-timestamp0=%f", timestamp0, this->get_clock()->now().nanoseconds() - timestamp0);
-		start = {pose_.pose.position.x,pose_.pose.position.y,pose_.pose.position.z,quaternion_to_yaw(pose_.pose.orientation.x, pose_.pose.orientation.y, pose_.pose.orientation.z, pose_.pose.orientation.w)};
-		start_global = {global_gps_.latitude, global_gps_.longitude, global_gps_.altitude, 0};
+		RCLCPP_INFO(this->get_logger(), "timestamp-timestamp0=%f", this->get_clock()->now().nanoseconds() - timestamp0);
+		start.x= pose_.pose.position.x;
+		start.y= pose_.pose.position.y;
+		start.z= pose_.pose.position.z;
+		start.yaw=quaternion_to_yaw(pose_.pose.orientation.x, pose_.pose.orientation.y, pose_.pose.orientation.z, pose_.pose.orientation.w);
 		end_temp=start;
 		heading=start.yaw;
-		RCLCPP_INFO(this->get_logger(), "yaw: %f", heading);
-		// shot_area_start = get_target_location_global(0, 0);
-		// scout_area_start = get_target_location_global(0, 30);
-		
-		//RCLCPP_INFO(this->get_logger()," start: x: %f  y: %f  z: %f", start.x, start.y,  start.z);
-		fly_state_ = FlyState::takeoff;
+		RCLCPP_INFO(this->get_logger(), "target_heading: %f", heading);
+		RCLCPP_INFO(this->get_logger()," current location: x: %f  y: %f  z: %f", start.x, start.y,  start.z);
+		//subscribe to yolo detection
+        fly_state_ = FlyState::request;
 		break;
-	// case FlyState::request:
-	// 	if (arm_done_){
-	// 		fly_state_ = FlyState::takeoff;
-	// 	}
-	// 	break;
+	case FlyState::request:
+		if (arm_done_){
+            RCLCPP_INFO(this->get_logger(), "Taking off");
+			fly_state_ = FlyState::takeoff;
+		}
+		break;
 	case FlyState::takeoff:
-		RCLCPP_INFO(this->get_logger(), "arm_done_: %d", arm_done_);
-		//RCLCPP_INFO(this->get_logger(), "takeoff start");
-		// command_takeoff_or_land("TAKEOFF");
-		// rclcpp::sleep_for(1s);
-		//RCLCPP_INFO(this->get_logger(), "pose_.pose.position.z-start.z=%lf", pose_.pose.position.z-start.z);
-		//if (true){//pose_.pose.position.z>1+start.z){
-		//if(arm_done_){
-		if (is_takeoff){	
-		//command_takeoff_or_land("TAKEOFF");	
-			if (pose_.pose.position.z>2.5+start.z){
-			// if (false){
-				RCLCPP_INFO(this->get_logger(), "goto_shot_area start, totaltime=%fs", (this->get_clock()->now().nanoseconds() / 1000- timestamp0)/1000000.0);
-				fly_state_ = FlyState::goto_shot_area;
-			}
-			else{
-				send_velocity_command(0, 0, 0.5, 0);
-
-				// publish_setpoint_raw_global(global_gps_.latitude, global_gps_.longitude,global_gps_.altitude, 0);
-				// trajectory_setpoint_global(0 , 0, 0, 0);
-			}
-		// 	if (false){//pose_.pose.position.z>2.5+start.z){
-		// 		RCLCPP_INFO(this->get_logger(), "goto_shot_area start, totaltime=%fs", (this->get_clock()->now().nanoseconds() / 1000- timestamp0)/1000000.0);
-		// 		fly_state_ = FlyState::goto_shot_area;
-		// 	}
-		// 	else{
-		// 		//send_velocity_command(0, 0, 0.5, 0);
-		// 		//send_local_setpoint_command(0, 0, 10,0);
-		// 		//publish_setpoint_raw_global(global_gps_.latitude, global_gps_.longitude,global_gps_.altitude+10);
-		// 		//publish_setpoint_raw_local(0, 0, 10, 0);
-		// 		//publish_setpoint_raw_global(global_gps_.latitude, global_gps_.longitude, global_gps_.altitude+10, 0);
-		// 		//publish_setpoint_raw_global(0, 1, 2, 0);
-		// 		//publish_trajectory(0, 0, 10, 0);
-				
-		// 		publish_setpoint_raw_global(location.global_frame.lat,location.global_frame.lon, location.global_frame.alt+100, location.global_frame.yaw);
-		// 	}
-			//rclcpp::sleep_for(3s);
+        //takeoff and leave tekeoff area
+		if (pose_.pose.position.z>5){
+			RCLCPP_INFO(this->get_logger(), "goto_shot_area start, totaltime=%fs", (this->get_clock()->now().nanoseconds() / 1000- timestamp0)/1000000.0);
+			fly_state_ = FlyState::goto_shot_area;
+		}else if(pose_.pose.position.z>0.5){
+			trajectory_setpoint_takeoff(0, 0, 5, 0);
+		}
+		else{
+			command_takeoff_or_land("TAKEOFF");//height=6m
+			rclcpp::sleep_for(2s);
 		}
 		break;
 	case FlyState::goto_shot_area:
-		//trajectory_setpoint(53, 10, 0, 0);
-		trajectory_setpoint_start(30, 0, 5, 0);
+    ////////////////////////////////
+		trajectory_setpoint(53, 0, 0, 0);
 		if (at_check_point()){
 			fly_state_ = FlyState::findtarget;
+            RCLCPP_INFO(this->get_logger(), "开始投弹部分");
 			RCLCPP_INFO(this->get_logger(), "findtarget start, totaltime=%fs", (this->get_clock()->now().nanoseconds() / 1000- timestamp0)/1000000.0);
 		}
 		else{
@@ -93,13 +106,13 @@ void OffboardControl::timer_callback(void){
 		}
 		break;
 	case FlyState::findtarget:
-		if(surrounding_shot_area()){
+		if(surrending_shot_area()){
 			fly_state_ = FlyState::goto_scout_area;
 			RCLCPP_INFO(this->get_logger(), "findtarget done,goto_scout_area start totaltime=%fs", (this->get_clock()->now().nanoseconds() / 1000- timestamp0)/1000000.0);
 		}
 		break;
 	case FlyState::goto_scout_area:
-		trajectory_setpoint_start(53, 0, 5, 0);
+		trajectory_setpoint_start(53+30, 0, 5, 0);
 
 		if(at_check_point()){
 			fly_state_ = FlyState::scout;
@@ -107,17 +120,19 @@ void OffboardControl::timer_callback(void){
 		}
 		break;
 	case FlyState::scout:
-		if(surrounding_scout_area()){
+		if(surrending_scout_area()){
 			fly_state_ = FlyState::land;
 			RCLCPP_INFO(this->get_logger(), "scout done,land start totaltime=%fs", (this->get_clock()->now().nanoseconds() / 1000- timestamp0)/1000000.0);	
-			switch_to_rtl_mode();
+			RCLCPP_INFO(this->get_logger(), "RTL open!");
+            switch_to_rtl_mode();
 			rclcpp::sleep_for(10s);
+            RCLCPP_INFO(this->get_logger(), "gogogo");
 		}
 		break;
 	case FlyState::land:
 		
 		switch_to_guided_mode();
-		trajectory_setpoint_start(0, 0, 2, 0);
+		trajectory_setpoint_start(0, 0, 1, 0);
 		if(at_check_point(0.1)){
 			send_velocity_command(0, 0, 0, 0);
 			command_takeoff_or_land("LAND");
@@ -135,23 +150,19 @@ void OffboardControl::timer_callback(void){
 		break;
 	}
 
-	
-	switch (state_)
+    switch (state_)
 	{
 	case State::init :
-		RCLCPP_INFO(this->get_logger(), "Entered guided mode");
+		RCLCPP_INFO(this->get_logger(), "Arming motors...");
 			//global_gps_publisher_->publish(global_gps_start);
-			
-
-		
 		state_ = State::send_geo_grigin;
 		break;
 	case State::send_geo_grigin :
-		
-			//global_gps_start=global_gps_;
-			//global_gps_start=global_gps_;
-			switch_to_guided_mode();
-			state_ = State::wait_for_stable_offboard_mode;				
+		RCLCPP_INFO(this->get_logger(), "Vehicle mode: GUIDED");
+		//global_gps_start=global_gps_;
+		//global_gps_start=global_gps_;
+        switch_to_guided_mode();
+        state_ = State::wait_for_stable_offboard_mode;				
 		
 		break;
 	case State::wait_for_stable_offboard_mode :
@@ -161,49 +172,29 @@ void OffboardControl::timer_callback(void){
 		}
 		break;
 	case State::arm_requested :
-		if(arm_done_==true){
-			
-			//RCLCPP_INFO(this->get_logger(), "vehicle is armed");
+		if(arm_done_){
+			RCLCPP_INFO(this->get_logger(), "Vehicle armed");
 			//switch_to_auto_mode();
 			state_ = State::takeoff;
 		}
 		else{
+            RCLCPP_INFO(this->get_logger(), "Waiting for arming...");
 			rclcpp::sleep_for(1s);
 			arm_motors(true);
-			//service_done_ = false;command
+			//service_done_ = false;
 		}
 		break;
 	case State::takeoff:
-		// rclcpp::sleep_for(1s);
-			//RCLCPP_INFO(this->get_logger(), "vehicle is start");
-			
-			//arm_motors(true);
-			
-			//publish_global_gps(global_gps_.pose.position.latitude, global_gps_.pose.position.longitude, 600.0);
-			
-			//arm_motors(true)//;
-			if(pose_.pose.position.z-start.z < 2){
-				command_takeoff_or_land("TAKEOFF");
-				
-			}else{
-				//RCLCPP_INFO(this->get_logger(), "takeoff done");
-				state_ = State::autotune_mode;
-			}
 		break;
-	case State::autotune_mode:
-		is_takeoff = true;
-		if(!drone_state_.armed){
-			RCLCPP_INFO(this->get_logger(), "vehicle is not armed");
-			state_ = State::wait_for_stable_offboard_mode;
-		}
 	default:
 		break;
 	}
+	//RCLCPP_INFO(this->get_logger(), "State: %d", pose_.header.stamp.sec);
+	//RCLCPP_INFO(this->get_logger(), "State: %d", pose_.header.stamp.nanosec);
+	
 }
 
-
-// 环绕射击区域
-bool OffboardControl::surrounding_shot_area(void){
+bool OffboardControl::surrending_shot_area(void){
 	static enum class SurState{
 		init,
 		set_point_x,
@@ -223,7 +214,7 @@ bool OffboardControl::surrounding_shot_area(void){
 	{
 	case SurState::init:
 		time_find_start = this->get_clock()->now().nanoseconds() / 1000;
-		static double fx=1,fy=2*fx;
+		static float fx=1,fy=2*fx;
 		sur_state_=SurState::set_point_x;
 		break;
 	case SurState::set_point_x:
@@ -262,8 +253,7 @@ bool OffboardControl::surrounding_shot_area(void){
 	}
 	return false;
 }
-// 环绕侦察区域
-bool OffboardControl::surrounding_scout_area(void){
+bool OffboardControl::surrending_scout_area(void){
 	static enum class ScoState{
 		init,
 		first_path,
@@ -350,24 +340,4 @@ bool OffboardControl::surrounding_scout_area(void){
 		break;
 	}
 	return false;
-}
-
-
-
-int main(int argc, char *argv[])
-{
-	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
-	rclcpp::init(argc, argv);
-
-	rclcpp::executors::MultiThreadedExecutor executor;
-	auto node = std::make_shared<OffboardControl>("/mavros/");
-	auto node1 = std::make_shared<YOLO>();
-	// auto pubnode = std::make_shared<PublisherNode>();
-	/* 运行节点，并检测退出信号*/
-	executor.add_node(node);
-	executor.add_node(node1);
-	executor.spin();
-	// rclcpp::spin(std::make_shared<OffboardControl>("/mavros/"));
-	rclcpp::shutdown();
-	return 0;
 }
