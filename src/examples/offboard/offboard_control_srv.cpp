@@ -1036,9 +1036,9 @@ bool OffboardControl::catch_target_bucket(bool &result){
 		}
 		case CatchState::fly_to_target:{
 			double now_x = yolo_->get_x();
-			double now_y = - yolo_->get_y();
+			double now_y = yolo_->get_y();
 			double tar_x = SET_CAP_FRAME_WIDTH/2 - 10;// /10
-			double tar_y = - (SET_CAP_FRAME_HEIGHT/2 - 10);// /3
+			double tar_y = (SET_CAP_FRAME_HEIGHT/2 - 10);// /3
 			get_target_location(&now_x,&now_y);
 			get_target_location(&tar_x,&tar_y);
 			RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x, now_y, tar_x, tar_y);
