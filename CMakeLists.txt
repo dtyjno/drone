@@ -33,11 +33,13 @@ find_package(trajectory_msgs REQUIRED)
 find_package(GeographicLib REQUIRED)
 #
 find_package(vision_msgs REQUIRED)
-
+list(APPEND CMAKE_PREFIX_PATH "~/ardupilot_ws/install/ros2_interfaces")
 find_package(ros2_interfaces REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(cv_bridge REQUIRED)
+find_package(Curses REQUIRED)
+
 #################
 # Setup targets #
 #################
@@ -95,14 +97,30 @@ add_executable(base_local src/examples/offboard/base_local.cpp)
 ament_target_dependencies(base_local rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 GeographicLib)
 install(TARGETS base_local DESTINATION lib/${PROJECT_NAME})
 
-# examples/drone/offboard_control
-include_directories(src/examples/drone)
-file(GLOB SOURCES "src/examples/drone/*.cpp")
-#list(REMOVE_ITEM SOURCES "src/examples/drone/offboard_control_srv.cpp")
+# # examples/drone1.0/offboard_control
+# include_directories(src/examples/drone)
+# file(GLOB SOURCES "src/examples/drone1.0/*.cpp")
+# #list(REMOVE_ITEM SOURCES "src/examples/drone1.0/offboard_control_srv.cpp")
+# add_executable(offboard_control ${SOURCES})
+# ament_target_dependencies(offboard_control rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 GeographicLib vision_msgs)
+# install(TARGETS offboard_control DESTINATION lib/${PROJECT_NAME})
+
+# examples/offboard/offboard_control
+include_directories(src/examples/offboard_control)
+file(GLOB SOURCES "src/examples/offboard_control/*.cpp")
+#list(REMOVE_ITEM SOURCES "src/examples/drone1.0/offboard_control_srv.cpp")
 add_executable(offboard_control ${SOURCES})
-ament_target_dependencies(offboard_control rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 GeographicLib vision_msgs)
+ament_target_dependencies(offboard_control rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs ros2_interfaces sensor_msgs OpenCV cv_bridge)
 install(TARGETS offboard_control DESTINATION lib/${PROJECT_NAME})
 
+# examples/offboard/offboard_land
+include_directories(src/examples/offboard_land)
+file(GLOB SOURCES "src/examples/offboard_land/*.cpp")
+#list(REMOVE_ITEM SOURCES "src/examples/drone1.0/offboard_land_srv.cpp")
+add_executable(offboard_land ${SOURCES})
+target_link_libraries(offboard_land ${CURSES_LIBRARIES})
+ament_target_dependencies(offboard_land rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs ros2_interfaces sensor_msgs OpenCV cv_bridge)
+install(TARGETS offboard_land DESTINATION lib/${PROJECT_NAME})
 
 ############
 # Install ##
