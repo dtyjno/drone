@@ -2,7 +2,7 @@
 #define OFFBOARD_CONTROL_BASE_H
 
 #include "rclcpp/rclcpp.hpp"
-
+#include "Vector4.h"
 // #include <geometry_msgs/msg/pose_stamped.hpp>
 // #include <sensor_msgs/msg/nav_sat_fix.hpp>
 // #include <geometry_msgs/msg/twist_stamped.hpp>
@@ -11,7 +11,7 @@
 // #include <mavros_msgs/msg/home_position.hpp>
 // #include <mavros_msgs/msg/state.hpp>
 
- # define DEFAULT_YAW                               0.0f   // default yaw for position control
+ # define DEFAULT_YAW                               (3*M_PI_2)   // default yaw for position control
 
 class OffboardControl_Base : public rclcpp::Node {
 public:
@@ -36,7 +36,8 @@ public:
 	// virtual void set_state();
 	// virtual void set_home_position();
 	rclcpp::Client<mavros_msgs::srv::SetMode>::SharedPtr mode_switch_client_;
-
+	static Vector4f start;
+	
 private:
 
     // class GlobalFrame{

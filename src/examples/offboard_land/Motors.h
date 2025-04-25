@@ -59,9 +59,7 @@ public:
 	void command_takeoff_or_land(std::string mode, double altitude = 5.0);
 
 	bool takeoff(float local_frame_z ,float takeoff_altitude = 5.0);
-	void command_takeoff_or_land(std::string mode, Vector4f v);
-
-
+	
 	static bool armed;
     static bool connected;
     static bool guided;

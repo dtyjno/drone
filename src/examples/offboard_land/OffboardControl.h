@@ -18,7 +18,7 @@
 // #include <geometry_msgs/msg/twist_stamped.hpp>
 // #include <mavros_msgs/msg/altitude.hpp>
 #include "Motors.h"
-#include "PoseControl.h"
+#include "PosControl.h"
 
 // #include "math.h"
 #include "memory"
@@ -45,7 +45,7 @@ public:
 		_servo_controller{servo_controller_},
 		_inav(std::make_shared<InertialNav>(ardupilot_namespace_copy_, this)),
         _motors(std::make_shared<Motors>(ardupilot_namespace_copy_,this)),
-        _pose_control(std::make_shared<PoseControl>(ardupilot_namespace_copy_,this)),
+        _pose_control(std::make_shared<PosControl>(ardupilot_namespace_copy_,this)),
 		fly_state_{FlyState::init}//,
 		// service_result_{0},
 		// service_done_{false}
@@ -161,7 +161,7 @@ public:
 		return Motors::home_position.z;
 	}
 	float get_cur_time(void){
-		return (this->get_clock()->now().nanoseconds() / 1000- timestamp_init)/1000000.0;
+		return (this->get_clock()->now().nanoseconds() / 1000)/1000000.0 - timestamp_init;
 	}
 private:
 	std::string ardupilot_namespace_copy_;
@@ -169,7 +169,7 @@ private:
     std::shared_ptr<ServoController> _servo_controller;
     std::shared_ptr<InertialNav> _inav;
     std::shared_ptr<Motors> _motors;
-    std::shared_ptr<PoseControl> _pose_control;
+    std::shared_ptr<PosControl> _pose_control;
 
 	enum class FlyState{
 		init,
@@ -193,7 +193,7 @@ private:
 
 	// '''定义一个全局变量'''
 	// float _rngfnd_distance;
-	float timestamp_init;
+	float timestamp_init = 0;
 	// float heading=0;
 	// const float default_heading=DEFAULT_YAW;//初始偏转角
 
@@ -221,10 +221,10 @@ private:
 
 	// int yaw_n = 0;
 
-	Vector4f start{0,0,0,0};
 	// Vector4f start_temp{0,0,0,0};
 	// Vector4f end_temp={0,0,0,0};
 	//Vector3f end={0,0,0,0};
+	// static Vector4f start;
 
 	GlobalFrame start_global{0,0,0};
 	// GlobalFrame start_global_temp{0,0,0};
@@ -274,12 +274,20 @@ private:
 	void FlyState_init(void);
 
 	//control.cpp
-	bool catch_target_bucket(bool &result);
+	bool catch_target(bool &result, enum YOLO::TARGET_TYPE target);
 	bool surrounding_shot_area(void);
 	bool surrounding_scout_area(void);
 	bool trajectory_setpoint(float x,float y,float z,float yaw,double accuracy = DEFAULT_ACCURACY);
-	bool trajectory_setpoint(float x,float y,float z,float yaw,PID::Defaults defaults,double accuracy = DEFAULT_ACCURACY);
+	bool trajectory_setpoint_world(float x,float y,float z,float yaw,PID::Defaults defaults,double accuracy = DEFAULT_ACCURACY);
 	bool trajectory_setpoint_world(float x,float y,float z,float yaw,double accuracy = DEFAULT_ACCURACY);
 	bool publish_setpoint_world(float x,float y,float z,float yaw,double accuracy = DEFAULT_ACCURACY);
+	void send_velocity_command(float x,float y,float z,float yaw);
+	bool send_velocity_command_with_time(float x,float y,float z,float yaw,double time);
+	bool trajectory_circle(float a,float b,float height,float dt=0.05,float yaw = 0);
+	bool trajectory_generator_world(double speed_factor, std::array<double, 3> q_goal);
+	bool trajectory_generator(double speed_factor, std::array<double, 3> q_goal);
+	bool trajectory_generator_world_points(double speed_factor,const std::vector<std::array<double, 3>>& data, int data_length, bool init = false);
+
+
 };
 #endif // OFFBOARDCONTROL_H

@@ -1,4 +1,7 @@
 #include "OffboardControl_Base.h"
+#include "Vector4.h"
+
+Vector4f OffboardControl_Base::start;
 
 // void OffboardControl_Base::set_pose(){}
 // void OffboardControl_Base::set_gps(){}

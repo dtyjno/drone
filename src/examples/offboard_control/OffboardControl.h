@@ -1,6 +1,6 @@
 // OffboardControl.h
-#ifndef OFFBOARDCONTROL_H  // 如果OFFBOARDCONTROL_H没有被定义
-#define OFFBOARDCONTROL_H  // 定义OFFBOARDCONTROL_H
+#ifndef OFFBOARDCONTROL_H // 如果OFFBOARDCONTROL_H没有被定义
+#define OFFBOARDCONTROL_H // 定义OFFBOARDCONTROL_H
 
 #include <rclcpp/rclcpp.hpp>
 // #include <stdint.h>
@@ -8,7 +8,6 @@
 // #include <iostream>
 // #include <string>
 // #include <cmath>
-
 
 #include "Yolo.h"
 #include "ServoController.h"
@@ -32,31 +31,38 @@
 // #define DEFAULT_HEADING 90.00//角度
 #define DEFAULT_X_POS FLT_MAX
 
+#define TRAIN_PID
+
 using namespace std::chrono_literals;
 
 #include "OffboardControl_Base.h"
 
-class OffboardControl : public OffboardControl_Base{
+#include <fstream>
+#include <iostream>
+
+class OffboardControl : public OffboardControl_Base
+{
 public:
-	OffboardControl(const std::string ardupilot_namespace,std::shared_ptr<YOLO> yolo_,std::shared_ptr<ServoController> servo_controller_) :
-		OffboardControl_Base(ardupilot_namespace),
-		ardupilot_namespace_copy_{ardupilot_namespace},
-		_yolo{yolo_},
-		_servo_controller{servo_controller_},
-		_inav(std::make_shared<InertialNav>(ardupilot_namespace_copy_, this)),
-        _motors(std::make_shared<Motors>(ardupilot_namespace_copy_,this)),
-        _pose_control(std::make_shared<PosControl>(ardupilot_namespace_copy_,this)),
-		fly_state_{FlyState::init}//,
-		// service_result_{0},
-		// service_done_{false}
+	OffboardControl(const std::string ardupilot_namespace, std::shared_ptr<YOLO> yolo_, std::shared_ptr<ServoController> servo_controller_) : OffboardControl_Base(ardupilot_namespace),
+																																																																						ardupilot_namespace_copy_{ardupilot_namespace},
+																																																																						_yolo{yolo_},
+																																																																						_servo_controller{servo_controller_},
+																																																																						_inav(std::make_shared<InertialNav>(ardupilot_namespace_copy_, this)),
+																																																																						_motors(std::make_shared<Motors>(ardupilot_namespace_copy_, this)),
+																																																																						_pose_control(std::make_shared<PosControl>(ardupilot_namespace_copy_, this)),
+																																																																						fly_state_{FlyState::init} //,
+																																																																																			 // service_result_{0},
+																																																																																			 // service_done_{false}
 	{
 		// RCLCPP_INFO(this->get_logger(), "Starting Offboard Control example with PX4 services");
-		//RCLCPP_INFO_STREAM(geometry_msgs::msg::PoseStampedthis->get_logger(), "Waiting for " << px4_namespace << "vehicle_command service");
-        InertialNav::position.x = DEFAULT_X_POS;
+		// RCLCPP_INFO_STREAM(geometry_msgs::msg::PoseStampedthis->get_logger(), "Waiting for " << px4_namespace << "vehicle_command service");
+		InertialNav::position.x = DEFAULT_X_POS;
 		Motors::home_position.x = DEFAULT_X_POS;
 		// rclcpp::Rate rate(1s);
-		while (!mode_switch_client_->wait_for_service(std::chrono::seconds(1))) {
-			if (!rclcpp::ok()||is_equal(get_x_pos(),DEFAULT_X_POS)) {
+		while (!mode_switch_client_->wait_for_service(std::chrono::seconds(1)))
+		{
+			if (!rclcpp::ok() || is_equal(get_x_pos(), DEFAULT_X_POS))
+			{
 				RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. Exiting.");
 				return;
 			}
@@ -68,46 +74,57 @@ public:
 		timer_ = this->create_wall_timer(100ms, std::bind(&OffboardControl::timer_callback, this));
 	}
 
-	float get_x_pos(void){
+	float get_x_pos(void)
+	{
 		// return local_frame.x;
 		return InertialNav::position.x;
 	}
-	float get_y_pos(void){
+	float get_y_pos(void)
+	{
 		// return local_frame.y;
 		return InertialNav::position.y;
 	}
-	float get_z_pos(void){
+	float get_z_pos(void)
+	{
 		// return local_frame.z;
 		return InertialNav::position.z;
 	}
-	Vector3f get_pos_3f(void){
+	Vector3f get_pos_3f(void)
+	{
 		// return local_frame;
 		return InertialNav::position;
 	}
-	Vector4f get_pos_4f(void){
-		return {InertialNav::position.x,InertialNav::position.y,InertialNav::position.z,get_yaw()};
+	Vector4f get_pos_4f(void)
+	{
+		return {InertialNav::position.x, InertialNav::position.y, InertialNav::position.z, get_yaw()};
 	}
-	float get_x_vel(void){
+	float get_x_vel(void)
+	{
 		// return local_frame.x;
 		return InertialNav::velocity.x;
 	}
-	float get_y_vel(void){
+	float get_y_vel(void)
+	{
 		// return local_frame.y;
 		return InertialNav::velocity.y;
 	}
-	float get_z_vel(void){
+	float get_z_vel(void)
+	{
 		// return local_frame.z;
 		return InertialNav::velocity.z;
 	}
-	float get_yaw_vel(void){
+	float get_yaw_vel(void)
+	{
 		// return local_frame.z;
 		return InertialNav::velocity.yaw;
 	}
-	Vector3f get_vel_3f(void){
+	Vector3f get_vel_3f(void)
+	{
 		// return local_frame;
-		return {InertialNav::velocity.x,InertialNav::velocity.y,InertialNav::velocity.z};
+		return {InertialNav::velocity.x, InertialNav::velocity.y, InertialNav::velocity.z};
 	}
-	Vector4f get_vel_4f(void){
+	Vector4f get_vel_4f(void)
+	{
 		return InertialNav::velocity;
 	}
 	// float get_n_yaw(){
@@ -119,7 +136,8 @@ public:
 	// 	return quaternion.toRotationMatrix().eulerAngles(2, 1, 0).reverse()(2);
 	// }
 	// #define YAW_TOLERANCE 0.1
-	float get_yaw(void){
+	float get_yaw(void)
+	{
 		float w = InertialNav::orientation.yaw;
 		float x = InertialNav::orientation.x;
 		float y = InertialNav::orientation.y;
@@ -128,52 +146,92 @@ public:
 		float yaw = atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z));
 		// float pitch = asin(2.0 * (w * y - z * x));
 		// float roll = atan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x * x + y * y));
-		return yaw;//弧度制
+		return yaw; // 弧度制
 	}
-	Vector3f get_gps(void){
+	Vector3f get_gps(void)
+	{
 		return InertialNav::gps;
 	}
-	float get_lat(void){
+	float get_lat(void)
+	{
 		return InertialNav::gps.x;
 	}
-	float get_lon(void){
+	float get_lon(void)
+	{
 		return InertialNav::gps.y;
 	}
-	float get_alt(void){
+	float get_alt(void)
+	{
 		return InertialNav::gps.z;
 	}
-	bool get_armed(void){
+	bool get_armed(void)
+	{
 		return Motors::armed;
 	}
-	bool get_connected(void){
+	bool get_connected(void)
+	{
 		return Motors::connected;
 	}
-	bool get_guided(void){
+	bool get_guided(void)
+	{
 		return Motors::guided;
 	}
-	std::string get_mode(void){
+	std::string get_mode(void)
+	{
 		return Motors::mode;
 	}
-	std::string get_system_status(void){
+	std::string get_system_status(void)
+	{
 		return Motors::system_status;
 	}
-	float get_z_home_pos(){
+	float get_z_home_pos()
+	{
 		return Motors::home_position.z;
 	}
-	float get_cur_time(void){
-		return (this->get_clock()->now().nanoseconds() / 1000)/1000000.0 - timestamp_init;
+	float get_cur_time(void)
+	{
+		return (this->get_clock()->now().nanoseconds() / 1000) / 1000000.0 - timestamp_init;
 	}
+	int save_log(bool finish = false)
+	{
+		static bool is_first = true;
+		static auto start_time = std::chrono::steady_clock::now();
+		static std::ofstream outfile;
+		if (is_first)
+		{
+			outfile = std::ofstream("log.csv");
+			if (!outfile.is_open()) {
+				std::cerr << "Failed to open file for writing" << std::endl;
+				return 1;
+			}
+			is_first = false;
+		}
+		auto current_time = std::chrono::steady_clock::now();
+		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time);
+		double pos_x = get_x_pos();
+		double pos_y = get_y_pos();
+		double pos_z = get_z_pos();
+		outfile << duration.count() << "," << pos_x << "," << pos_y << "," << pos_z << std::endl;
+		if (finish)
+		{
+			outfile.close();
+			std::cout << "Log saved to log.csv" << std::endl;
+		}
+		return 0;
+	}
+
 private:
 	std::string ardupilot_namespace_copy_;
 	std::shared_ptr<YOLO> _yolo;
-    std::shared_ptr<ServoController> _servo_controller;
-    std::shared_ptr<InertialNav> _inav;
-    std::shared_ptr<Motors> _motors;
-    std::shared_ptr<PosControl> _pose_control;
+	std::shared_ptr<ServoController> _servo_controller;
+	std::shared_ptr<InertialNav> _inav;
+	std::shared_ptr<Motors> _motors;
+	std::shared_ptr<PosControl> _pose_control;
 
-	enum class FlyState{
+	enum class FlyState
+	{
 		init,
-		//request,
+		// request,
 		takeoff,
 		goto_shot_area,
 		findtarget,
@@ -182,7 +240,8 @@ private:
 		land,
 		end
 	} fly_state_;
-	class GlobalFrame{
+	class GlobalFrame
+	{
 	public:
 		float lat;
 		float lon;
@@ -203,18 +262,18 @@ private:
 	// Vector4f velocity;
 	// Vector4f position;
 	// GlobalFrame global_frame;
-    // // float heading;
-    // Eigen::Quaterniond quaternion;// 四元数
-    // Eigen::Vector3d euler;// 欧拉角
+	// // float heading;
+	// Eigen::Quaterniond quaternion;// 四元数
+	// Eigen::Vector3d euler;// 欧拉角
 	// float yaw; //偏转角 弧度制
 
 	// bool is_takeoff = false;
 
 	// bool armed;
-    // bool connected;
-    // bool guided;
-    // std::string mode;
-    // std::string system_status;
+	// bool connected;
+	// bool guided;
+	// std::string mode;
+	// std::string system_status;
 	// Vector3f home_position{DEFAULT_X_POS,0,0};
 	// Vector3f home_position_global;
 	// Eigen::Quaterniond home_quaternion;// 四元数
@@ -223,15 +282,14 @@ private:
 
 	// Vector4f start_temp{0,0,0,0};
 	// Vector4f end_temp={0,0,0,0};
-	//Vector3f end={0,0,0,0};
+	// Vector3f end={0,0,0,0};
 	// static Vector4f start;
 
-	GlobalFrame start_global{0,0,0};
+	GlobalFrame start_global{0, 0, 0};
 	// GlobalFrame start_global_temp{0,0,0};
 	// GlobalFrame end_global_temp={0,0,0};
-	//Vector3f end_global={0,0,0,0};
+	// Vector3f end_global={0,0,0,0};
 
-	
 	// float _D_max = 2; //位置环最大速度
 	// float _D = 1; //位置环比例系数
 
@@ -252,10 +310,8 @@ private:
 	// GlobalFrame shot_area_start{};
 	// GlobalFrame scout_area_start{};
 
-
-
 	rclcpp::TimerBase::SharedPtr timer_;
-	
+
 	// void set_pose(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
 	// void set_gps(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
 	// void set_velocity(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
@@ -269,25 +325,22 @@ private:
 	void set_state();
 	void set_home_position();
 
-
 	void timer_callback(void);
 	void FlyState_init(void);
 
-	//control.cpp
-	bool catch_target_bucket(bool &result);
+	// control.cpp
+	bool catch_target(bool &result, enum YOLO::TARGET_TYPE target);
 	bool surrounding_shot_area(void);
 	bool surrounding_scout_area(void);
-	bool trajectory_setpoint(float x,float y,float z,float yaw,double accuracy = DEFAULT_ACCURACY);
-	bool trajectory_setpoint_world(float x,float y,float z,float yaw,PID::Defaults defaults,double accuracy = DEFAULT_ACCURACY);
-	bool trajectory_setpoint_world(float x,float y,float z,float yaw,double accuracy = DEFAULT_ACCURACY);
-	bool publish_setpoint_world(float x,float y,float z,float yaw,double accuracy = DEFAULT_ACCURACY);
-	void send_velocity_command(float x,float y,float z,float yaw);
-	bool send_velocity_command_with_time(float x,float y,float z,float yaw,double time);
-	bool trajectory_circle(float a,float b,float height,float dt=0.05,float yaw = 0);
+	bool trajectory_setpoint(float x, float y, float z, float yaw, double accuracy = DEFAULT_ACCURACY);
+	bool trajectory_setpoint_world(float x, float y, float z, float yaw, PID::Defaults defaults, double accuracy = DEFAULT_ACCURACY);
+	bool trajectory_setpoint_world(float x, float y, float z, float yaw, double accuracy = DEFAULT_ACCURACY);
+	bool publish_setpoint_world(float x, float y, float z, float yaw, double accuracy = DEFAULT_ACCURACY);
+	void send_velocity_command(float x, float y, float z, float yaw);
+	bool send_velocity_command_with_time(float x, float y, float z, float yaw, double time);
+	bool trajectory_circle(float a, float b, float height, float dt = 0.05, float yaw = 0);
 	bool trajectory_generator_world(double speed_factor, std::array<double, 3> q_goal);
 	bool trajectory_generator(double speed_factor, std::array<double, 3> q_goal);
-	bool trajectory_generator_world_points(double speed_factor,const std::vector<std::array<double, 3>>& data, int data_length, bool init = false);
-
-
+	bool trajectory_generator_world_points(double speed_factor, const std::vector<std::array<double, 3>> &data, int data_length, bool init = false);
 };
 #endif // OFFBOARDCONTROL_H

@@ -3,15 +3,15 @@
 
 #include "ros2_interfaces/msg/coord.hpp"
 #include "sensor_msgs/msg/image.hpp"
-#include <opencv2/opencv.hpp>
-#include "cv_bridge/cv_bridge.h"
+//#include <opencv2/opencv.hpp>
+//#include "cv_bridge/cv_bridge.h"
 
 
 #define SET_CAP_FRAME_WIDTH 640
 #define SET_CAP_FRAME_HEIGHT 480
 
-using namespace cv;
-using namespace cv::dnn;
+// using namespace cv;
+// using namespace cv::dnn;
 class YOLO : public rclcpp::Node
 {
 public:
@@ -34,21 +34,51 @@ public:
         // cap.set(CAP_PROP_FRAME_WIDTH, SET_CAP_FRAME_HEIGHT);//图像的宽
         // cap.set(CAP_PROP_FRAME_HEIGHT, SET_CAP_FRAME_WIDTH);//图像的高
     }
-	float get_x(){
-		return x;
-	}
-	float get_y(){
-		return y;
-	}
-	float get_width(){
+    enum TARGET_TYPE{
+        CIRCLE, //0
+        H //+=1
+    };
+
+    bool is_get_target(enum TARGET_TYPE type){
+        if(type == CIRCLE){
+            return fabs(get_x(type)) < 0.0001 && fabs(get_y(type)) < 0.0001;
+        }
+        else if(type == H){
+            return fabs(get_x(type)) < 0.0001 && fabs(get_y(type)) < 0.0001;
+        }
+        return false;
+    }
+	float get_x(enum TARGET_TYPE type){
+        if(type == CIRCLE){
+            return x_circle;
+        }
+        else if(type == H){
+            return x_h;
+        }
+        return 0;
+    }
+    float get_y(enum TARGET_TYPE type){
+        if(type == CIRCLE){
+            return y_circle;
+        }
+        else if(type == H){
+            return y_h;
+        }
+        return 0;
+    }
+	float get_width(enum TARGET_TYPE type){
+        (void)type;
 		return 0;
 	}
-	float get_height(){
+	float get_height(enum TARGET_TYPE type){
+        (void)type;
 		return 0;
 	}
 private:
-	float x;
-	float y;
+	float x_circle;
+    float x_h;
+	float y_circle;
+    float y_h;
     // rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher_;
     rclcpp::Subscription<ros2_interfaces::msg::Coord>::SharedPtr subscriber_;
     rclcpp::TimerBase::SharedPtr timer_;
@@ -68,14 +98,17 @@ private:
 
     void coord_callback(const ros2_interfaces::msg::Coord::SharedPtr msg)
     {
-         x = msg->x;
-         y = msg->y;
+        x_circle = msg->x1;
+        y_circle = msg->y1;
+        x_h = msg->x2;
+        y_h = msg->y2;
         int flag = msg->flag_servo;
 		(void)flag;
         //RCLCPP_INFO(this->get_logger(), "收到坐标(%f, %f), flag_servo = %d", x, y, flag);
     }
     
 };
+
 
 
 // #define SET_CAP_FRAME_WIDTH 640

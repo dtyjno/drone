@@ -56,4 +56,5 @@ typedef Vector4<int32_t>                Vector4l;
 typedef Vector4<uint32_t>               Vector4ul;
 typedef Vector4<float>                  Vector4f;
 typedef Vector4<double>                 Vector4d;
+typedef Vector4<bool>                   Vector4b;
 #endif // VECTOR4_H

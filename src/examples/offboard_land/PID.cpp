@@ -80,6 +80,7 @@ void PID::set_gains(float kp, float ki, float kd)
     _ki = ki;
     _kd = kd;
 }
+
 #include <iostream>
 float PID::update_all(float measurement, float target, float dt, float limit, float velocity){
     // Calculate the error
@@ -97,7 +98,7 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
         _derivative = - velocity;
         _pid_info.D = velocity * _kd;
     }else{//timer_callback 250ms
-        _derivative = (_error - _pid_info.Dmod) / dt;
+        _derivative = (_pid_info.Dmod - _error) / dt;
         if(!is_equal(_derivative, 0.0f, 0.0001f)){
             _pid_info.D = _derivative * _kd;
         }
@@ -157,9 +158,7 @@ void PID::update_i(float dt, bool limit)
         if (!limit || ((is_positive(_integrator) && is_negative(_error)) || (is_negative(_integrator) && is_positive(_error)))) {
             _integrator += ((float)_error * _ki) * dt;
             _integrator = constrain_float(_integrator, _kimax, -_kimax);
-            std::cout <<_error <<" ((float)_error * _ki) * dt"
-            <<((float)_error * _ki) * dt<<" I:"
-            <<_integrator<<std::endl;
+            // std::cout <<_error <<" ((float)_error * _ki) * dt"<<((float)_error * _ki) * dt<<" I:"<<_integrator<<std::endl;
         }
         //
         //

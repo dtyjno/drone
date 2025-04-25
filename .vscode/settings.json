@@ -75,7 +75,8 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "*.ipp": "cpp",
-        "core": "cpp"
+        "core": "cpp",
+        "filesystem": "cpp"
     },
     "python.autoComplete.extraPaths": [
         "/home/linhao/ardupilot_ws/install/rviz_plugin_tutorial_msgs/local/lib/python3.10/dist-packages",

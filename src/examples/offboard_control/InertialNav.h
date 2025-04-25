@@ -1,5 +1,6 @@
 #ifndef INERTIALNAV_H
 #define INERTIALNAV_H
+
 #include "rclcpp/rclcpp.hpp"
 #include "OffboardControl_Base.h"
 

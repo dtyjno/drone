@@ -21,3 +21,7 @@ ros2 launch mavros apm.launch fcu_url:=udp://127.0.0.1:14550@14555;
 #gnome-terminal -t "mavproxy" -x bash -c "mavproxy.py --console --map --aircraft test --master=:14550"
 ```
 # drone
+
+
+source install/setup.bash
+valgrind --leak-check=full --track-origins=yes ./ros2_ws/ardupilot_ws/install/px4_ros_com/lib/px4_ros_com/offboard_control 

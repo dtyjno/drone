@@ -14,6 +14,9 @@
 #include "OffboardControl_Base.h"
 #include "PID.h"
 #include "TrajectoryGenerator.h"
+#include "Readyaml.h"
+#include "AutoTune.h"
+#include "FuzzyPID.h"
 
 //
  # define POSCONTROL_Z_P                    0.6f    // vertical velocity controller P gain default
@@ -24,9 +27,9 @@
  # define POSCONTROL_Z_FILT_P_HZ            0.3f    // vertical velocity controller input filter
  # define POSCONTROL_Z_FILT_D_HZ            0.01f    // vertical velocity controller input filter for D
  
- # define POSCONTROL_XY_P                   0.8f    // horizontal velocity controller P gain default 0.5
- # define POSCONTROL_XY_I                   0.0001f    // horizontal velocity controller I gain default 0.2
- # define POSCONTROL_XY_D                   0.0005f    // horizontal velocity controller D gain default 0.1
+ # define POSCONTROL_XY_P                   0.6f //0.5f  //0.8f  // horizontal velocity controller P gain default 0.5
+ # define POSCONTROL_XY_I                   0.1f    // horizontal velocity controller I gain default 0.2
+ # define POSCONTROL_XY_D                   0.05f    // horizontal velocity controller D gain default 0.1
  # define POSCONTROL_XY_IMAX                1.0f // horizontal velocity controller IMAX gain default
 
  # define POSCONTROL_VEL_XY_MAX                    2.0f    // horizontal acceleration controller max acceleration default
@@ -102,6 +105,52 @@ public:
 		// trajectory_publisher_=this->create_publisher<trajectory_msgs::msg::MultiDOFJointTrajectory>(ardupilot_namespace+"setpoint_trajectory/local", 5);
 		setpoint_accel_publisher_=node->create_publisher<geometry_msgs::msg::Vector3Stamped>(ardupilot_namespace+"setpoint_accel/accel", 5);
 		setpoint_raw_attitude_publisher_=node->create_publisher<mavros_msgs::msg::AttitudeTarget>(ardupilot_namespace+"setpoint_raw/attitude", 5);
+		// 默认的模糊规则库
+		float rule_base[][qf_default] = {
+			// delta kp 规则库
+			{PB, PB, PM, PM, PS, ZO, ZO},
+			{PB, PB, PM, PS, PS, ZO, NS},
+			{PM, PM, PM, PS, ZO, NS, NS},
+			{PM, PM, PS, ZO, NS, NM, NM},
+			{PS, PS, ZO, NS, NS, NM, NM},
+			{PS, ZO, NS, NM, NM, NM, NB},
+			{ZO, ZO, NM, NM, NM, NB, NB},
+			// delta ki 规则库
+			{NB, NB, NM, NM, NS, ZO, ZO},
+			{NB, NB, NM, NS, NS, ZO, ZO},
+			{NB, NM, NS, NS, ZO, PS, PS},
+			{NM, NM, NS, ZO, PS, PM, PM},
+			{NM, NS, ZO, PS, PS, PM, PB},
+			{ZO, ZO, PS, PS, PM, PB, PB},
+			{ZO, ZO, PS, PM, PM, PB, PB},
+			// delta kd 规则库
+			{PS, NS, NB, NB, NB, NM, PS},
+			{PS, NS, NB, NM, NM, NS, ZO},
+			{ZO, NS, NM, NM, NS, NS, ZO},
+			{ZO, NS, NS, NS, NS, NS, ZO},
+			{ZO, ZO, ZO, ZO, ZO, ZO, ZO},
+			{PB, PS, PS, PS, PS, PS, PB},
+			{PB, PM, PM, PM, PS, PS, PB}};
+		// 默认的模糊函数参数（membership function parameters）
+		float mf_params[4 * qf_default] = {-3, -3, -2, 0,
+										-3, -2, -1, 0,
+										-2, -1, 0, 0,
+										-1, 0, 1, 0,
+										0, 1, 2, 0,
+										1, 2, 3, 0,
+										2, 3, 3, 0};
+		struct FuzzyPID::Fuzzy_params fuzzy_params[8] = {
+			{4, 1, 0, mf_params, rule_base, POSCONTROL_VEL_XY_MAX, POSCONTROL_VEL_XY_MAX, 8},
+			{4, 1, 0, mf_params, rule_base, POSCONTROL_VEL_XY_MAX, POSCONTROL_VEL_XY_MAX, 8},
+			{4, 1, 0, mf_params, rule_base, POSCONTROL_VEL_Z_MAX, POSCONTROL_VEL_Z_MAX, 8},
+			{4, 1, 0, mf_params, rule_base, POSCONTROL_VEL_YAW_MAX, POSCONTROL_VEL_YAW_MAX, 8},
+			{4, 1, 0, mf_params, rule_base, POSCONTROL_VEL_XY_MAX, POSCONTROL_ACC_XY_MAX, 8},
+			{4, 1, 0, mf_params, rule_base, POSCONTROL_VEL_XY_MAX, POSCONTROL_ACC_XY_MAX, 8},
+			{4, 1, 0, mf_params, rule_base, POSCONTROL_VEL_Z_MAX, POSCONTROL_ACC_Z_MAX, 8},
+			{4, 1, 0, mf_params, rule_base, 100, 100, 8}
+		};
+
+		fuzzy_pid = FuzzyPID(fuzzy_params);
 		pid_x = PID(
 			POSCONTROL_XY_P,
 			POSCONTROL_XY_I,
@@ -210,7 +259,15 @@ public:
 		float accel_max_z = POSCONTROL_ACC_Z_MAX;
 		float accel_max_yaw = 0;
 	};
+	struct Limits_t readLimits(const std::string& filename, const std::string& section);
 	void set_limits(struct Limits_t limits);
+	void reset_limits();
+	void set_pid(PID& pid, PID::Defaults defaults);
+	void reset_pid();
+	void set_dt(float dt){
+		this->dt = dt;
+	}
+	bool auto_tune(Vector4f pos_now, Vector4f pos_target, uint32_t delayMsec, bool tune_x=true, bool tune_y=true, bool tune_z=true, bool tune_yaw=true);
 private:
 	std::string ardupilot_namespace;
 
@@ -226,6 +283,7 @@ private:
 	rclcpp::Publisher<mavros_msgs::msg::AttitudeTarget>::SharedPtr setpoint_raw_attitude_publisher_;
 	
 	//
+	FuzzyPID fuzzy_pid;
 	PID pid_x;
 	PID pid_y;
 	PID pid_z;
@@ -237,6 +295,19 @@ private:
 	PID pid_vx;
 	PID pid_vy;
 	PID pid_vz;
+	PID::Defaults
+		pid_x_defaults=PID::readPIDParameters("pos_config.yaml","pos_x"),
+		pid_y_defaults=PID::readPIDParameters("pos_config.yaml","pos_y"),
+		pid_z_defaults=PID::readPIDParameters("pos_config.yaml","pos_z"),
+		pid_yaw_defaults=PID::readPIDParameters("pos_config.yaml","pos_yaw"),
+		pid_px_defaults=PID::readPIDParameters("pos_config.yaml","pos_px"),
+		pid_py_defaults=PID::readPIDParameters("pos_config.yaml","pos_py"),
+		pid_pz_defaults=PID::readPIDParameters("pos_config.yaml","pos_pz"),
+		pid_vx_defaults=PID::readPIDParameters("pos_config.yaml","pos_vx"),
+		pid_vy_defaults=PID::readPIDParameters("pos_config.yaml","pos_vy"),
+		pid_vz_defaults=PID::readPIDParameters("pos_config.yaml","pos_vz");
+	Limits_t limit_defaults=readLimits("pos_config.yaml","limits");
+
 	std::unique_ptr<TrajectoryGenerator> _trajectory_generator;
 
 	float max_speed_xy = POSCONTROL_VEL_XY_MAX;
@@ -254,13 +325,16 @@ private:
 	float default_yaw = DEFAULT_YAW;
 	float dt = 1;
 	float dt_pid_p_v = 1;
-	Vector3f input_pos_xyz(Vector3f now, Vector3f target);
-	Vector4f input_pos_xyz_yaw(Vector4f now, Vector4f target);
+	Vector3f input_pos_xyz(Vector3f now, Vector3f target, bool fuzzy = false, Vector3b direction = {true, true, true});
+	Vector4f input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy = false, Vector4b direction = {true, true, true, true});
+	Vector4f input_pos_xyz_yaw_without_vel(Vector4f now, Vector4f target);
 	Vector4f input_pos_vel_1_xyz_yaw(Vector4f now, Vector4f target);
 	Vector4f input_pos_vel_xyz_yaw(Vector4f now, Vector4f target);
 
 
 	Vector4f _pos_target;
 	Vector4f _pos_desired;
+	TUNE_ID_t get_autotuneID();
+	float autotuneWORKCycle(float feedbackVal, TUNE_ID_t tune_id, bool& result, uint32_t delayMsec);
 };
 #endif  // POSCONTROL_H

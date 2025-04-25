@@ -3,14 +3,33 @@
 
 // #include "Eigen/Eigen"
 #include <cmath>
+#include "math_utils.h"
 #include "Vector4.h"
 #include "Vector3.h"
+#include "Vector2.h"
+// #include "Location.h"
+// #include "vectorN.h"
 
 // #define PI 3.1415
 
-bool is_zero(float _ki);
-bool is_positive(float dt);
-bool is_negative(float _error);
+// bool is_zero(float _ki);
+// bool is_positive(float dt);
+// bool is_negative(float _error);
+
+#undef MIN
+template<typename A, typename B>
+static inline auto MIN(const A &one, const B &two) -> decltype(one < two ? one : two)
+{
+    return one < two ? one : two;
+}
+
+#undef MAX
+template<typename A, typename B>
+static inline auto MAX(const A &one, const B &two) -> decltype(one > two ? one : two)
+{
+    return one > two ? one : two;
+}
+
 template <typename T>
 T min(T a, T b) {
     return a < b ? a : b;
@@ -39,5 +58,44 @@ void rotate_xy(T &x,T &y,float rotation_rad)
     y = ry;
 }
 
+float kinematic_limit(Vector3f direction, float max_xy, float max_z_pos, float max_z_neg);
 
+
+typedef float ftype;
+template<typename T>
+ftype sq(const T val)
+{
+    ftype v = static_cast<ftype>(val);
+    return v*v;
+}
+static inline constexpr float sq(const float val)
+{
+    return val*val;
+}
+
+/*
+ * A variant of sqrt() that checks the input ranges and ensures a valid value
+ * as output. If a negative number is given then 0 is returned.  The reasoning
+ * is that a negative number for sqrt() in our code is usually caused by small
+ * numerical rounding errors, so the real input should have been zero
+ */
+template <typename T>
+float safe_sqrt(const T v);
+
+template <typename T>
+T norm(const T& x, const T& y, const T& z) {
+    return sqrt(x*x + y*y + z*z);
+}
+template <typename T>
+T norm(const T& x, const T& y) {
+    return sqrt(x*x + y*y);
+}
+
+/* Return nonzero value if X is not +-Inf or NaN.  */
+# if (__GNUC_PREREQ (4,4) && !defined __SUPPORT_SNAN__) \
+     || __glibc_clang_prereq (2,8)
+#  define isfinite(x) __builtin_isfinite (x)
+# else
+#  define isfinite(x) __MATH_TG ((x), __finite, (x))
+# endif
 #endif // MATH_H

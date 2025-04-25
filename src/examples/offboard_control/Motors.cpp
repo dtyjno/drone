@@ -58,7 +58,7 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude){
 		//arm_motors(true);			
 		if(local_frame_z - home_position.z < 2){
 			command_takeoff_or_land("TAKEOFF",takeoff_altitude);
-			rclcpp::sleep_for(1s);
+			rclcpp::sleep_for(300ms);
 			
 		}else{
 			is_takeoff = true;

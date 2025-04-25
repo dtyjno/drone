@@ -102,6 +102,28 @@ public:
 	static float altitude;
 	static Vector3f linear_acceleration;
 	static Vector3f angular_velocity;
+
+	static Vector3f get_position(){
+		return position;
+	}
+	static bool get_position(Vector3f& position){
+		position = InertialNav::position;
+		return position.is_zero();
+	}
+	static Vector3f get_velocity(){
+		return {velocity.x,velocity.y,velocity.z};
+	}
+	static bool get_forward_speed(float & velocity){
+		Vector2f _velocity = {InertialNav::velocity.x,InertialNav::velocity.y};
+		velocity = _velocity.length();
+		return _velocity.is_zero();	
+	}
+	static Vector2f groundspeed_vector(){
+		return {velocity.x,velocity.y};
+	}
+	// float get_time(void){
+	// 	return (node->get_clock()->now().nanoseconds() / 1000)/1000000.0;
+	// }
 private:
 	OffboardControl_Base* node;
 	
