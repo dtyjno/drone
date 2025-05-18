@@ -1,0 +1,77 @@
+pos_x:
+  p: 0.4
+  i: 0.1
+  d: 0.05
+  ff: 0
+  dff: 0
+  imax: 10
+pos_y:
+  p: 0.4
+  i: 0.1
+  d: 0.05
+  ff: 0
+  dff: 0
+  imax: 10
+pos_z:
+  p: 0.6
+  i: 0.1
+  d: 0.05
+  ff: 0
+  dff: 0
+  imax: 10
+pos_yaw:
+  p: 0.8
+  i: 0.1
+  d: 0.05
+  ff: 0
+  dff: 0
+  imax: 10
+pos_px:
+  p: 1
+  i: 0
+  d: 0
+  ff: 0
+  dff: 0
+  imax: 10
+pos_py:
+  p: 1
+  i: 0
+  d: 0
+  ff: 0
+  dff: 0
+  imax: 10
+pos_pz:
+  p: 1
+  i: 0
+  d: 0
+  ff: 0
+  dff: 0
+  imax: 10
+pos_vx:
+  p: 1.35
+  i: 1.15
+  d: 0.85
+  ff: 0
+  dff: 0
+  imax: 10
+pos_vy:
+  p: 1.35
+  i: 1.15
+  d: 0.85
+  ff: 0
+  dff: 0
+  imax: 10
+pos_vz:
+  p: 1
+  i: 0
+  d: 0
+  ff: 0
+  dff: 0
+  imax: 10
+limits:
+  speed_max_xy: 2.0
+  speed_max_z: 1.0
+  speed_max_yaw: 0.3
+  accel_max_xy: 1.2
+  accel_max_z: 1.2
+  accel_max_yaw: 0.1
