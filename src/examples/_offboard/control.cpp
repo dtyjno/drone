@@ -21,7 +21,7 @@ bool OffboardControl::waypoint_goto_next(double x, double y, double length, doub
 				RCLCPP_INFO(this->get_logger(), "%s已经全部遍历", description.c_str());
 				count == nullptr? surround_cnt = 0 : *count = 0;
 				// start_.reset();
-				start_.set_start_time_to_default()
+				start_.set_start_time_to_default();
 				return true;
 		} else {
 			x_temp = x + (length * way_points[count == nullptr? surround_cnt : *count].x());

@@ -183,6 +183,14 @@ public:
 		_pose_control(std::make_shared<PosControl>(ardupilot_namespace_copy_, this)),
 		state_machine_(*this)  // 显式初始化 state_machine_
 	{
+		// Declare and get parameters
+		this->declare_parameter("sim_mode", false);
+		this->get_parameter("sim_mode", sim_mode_);
+		RCLCPP_INFO(this->get_logger(), "sim_mode: %s", sim_mode_ ? "true" : "false");
+		this->declare_parameter("mode_switch", false);
+		this->get_parameter("mode_switch", debug_mode_);
+		RCLCPP_INFO(this->get_logger(), "mode_switch: %s", debug_mode_ ? "true" : "false");
+
 		// RCLCPP_INFO(this->get_logger(), "Starting Offboard Control example with PX4 services");
 		RCLCPP_INFO(this->get_logger(), "开始使用APM服务的离线控制 OffboardControl");
 		RCLCPP_INFO(this->get_logger(), "初始化 OffboardControl， ardupilot_namespace: %s", ardupilot_namespace.c_str());
@@ -391,6 +399,8 @@ public:
 	}
 
 private:
+	bool sim_mode_ = false; // 是否为仿真模式
+	bool debug_mode_ = false; // 是否手动切换状态
 	std::string ardupilot_namespace_copy_;
 	std::shared_ptr<YOLO> _yolo;
 	std::shared_ptr<ServoController> _servo_controller;

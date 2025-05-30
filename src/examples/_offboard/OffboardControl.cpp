@@ -16,10 +16,10 @@
 
 void OffboardControl::timer_callback(void)
 {
-	RCLCPP_INFO(this->get_logger(), "当前时间：%lf", get_cur_time());
 	// 发布当前状态
 	publish_current_state();
-	RCLCPP_INFO(this->get_logger(), "收到坐标c(%f, %f) h(%f ,%f), flag_servo = %d", 
+	RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前时间：%f", get_cur_time());
+	RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "收到坐标c(%f, %f) h(%f ,%f), flag_servo = %d", 
 	_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), _yolo->get_y(YOLO::TARGET_TYPE::CIRCLE) ,
 	_yolo->get_x(YOLO::TARGET_TYPE::H), _yolo->get_y(YOLO::TARGET_TYPE::H) ,
 	_yolo->get_servo_flag());
@@ -230,7 +230,7 @@ void OffboardControl::StateMachine::handle_state<FlyState::Doshot>() {
 		static Timer doshot_start([]{}, false);  // 全程计时器
 		static bool arrive = false;   // 投弹结束标志
 		static int counter = 0; // 航点计数器
-		if (doshot_start.elapsed() > 600) // 超时 60 秒
+		if (doshot_start.elapsed() > 60) // 超时 60 秒
 		{
 			RCLCPP_INFO(parent_.get_logger(), "超时");
 			arrive = true;
