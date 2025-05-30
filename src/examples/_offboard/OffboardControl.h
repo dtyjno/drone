@@ -8,7 +8,7 @@
 // #include <iostream>
 // #include <string>
 // #include <cmath>
-
+#include "MYPID.h"
 #include "Yolo.h"
 #include "ServoController.h"
 #include "InertialNav.h"
@@ -61,7 +61,7 @@ enum class FlyState
 	Goto_scoutpoint,
 	Surround_see,
 	Doland,
-	//
+	MYPID,
 	Print_Info,
 } ;
 
@@ -181,6 +181,7 @@ public:
 		_inav(std::make_shared<InertialNav>(ardupilot_namespace_copy_, this)),
 		_motors(std::make_shared<Motors>(ardupilot_namespace_copy_, this)),
 		_pose_control(std::make_shared<PosControl>(ardupilot_namespace_copy_, this)),
+		mypid(),
 		state_machine_(*this)  // 显式初始化 state_machine_
 	{
 		// Declare and get parameters
@@ -194,6 +195,8 @@ public:
 		// RCLCPP_INFO(this->get_logger(), "Starting Offboard Control example with PX4 services");
 		RCLCPP_INFO(this->get_logger(), "开始使用APM服务的离线控制 OffboardControl");
 		RCLCPP_INFO(this->get_logger(), "初始化 OffboardControl， ardupilot_namespace: %s", ardupilot_namespace.c_str());
+		mypid.readPIDParameters("pos_config.yaml","mypid");
+
 		// 读取罗盘数据
 		read_configs("OffboardControl.yaml");
 		// RCLCPP_INFO_STREAM(geometry_msgs::msg::PoseStampedthis->get_logger(), "Waiting for " << px4_namespace << "vehicle_command service");
@@ -407,6 +410,11 @@ private:
 	std::shared_ptr<InertialNav> _inav;
 	std::shared_ptr<Motors> _motors;
 	std::shared_ptr<PosControl> _pose_control;
+	
+	// --- 定义的PID函数---
+	MYPID mypid;
+	// ------------------
+  
 
 	class StateMachine {
 	public:

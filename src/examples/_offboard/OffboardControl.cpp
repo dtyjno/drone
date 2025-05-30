@@ -25,6 +25,7 @@ void OffboardControl::timer_callback(void)
 	_yolo->get_servo_flag());
 
 	// 这里是定时器回调函数的实现
+
 	state_machine_.execute_dynamic_tasks();
 	state_machine_.process_states<
 		FlyState::init,
@@ -43,7 +44,9 @@ void OffboardControl::timer_callback(void)
 		FlyState::Surround_see,
 		FlyState::Doland,
 		//
+		FlyState::MYPID,
 		FlyState::Print_Info
+
 	>();
 }
 
@@ -122,7 +125,7 @@ void OffboardControl::StateMachine::handle_state<FlyState::takeoff>() {
 		if (parent_._motors->takeoff(parent_.get_z_pos())) {
 				RCLCPP_INFO_ONCE(parent_.get_logger(), "起飞成功");
 				// transition_to(FlyState::goto_shot_area);
-				transition_to(FlyState::Goto_shotpoint);
+				transition_to(FlyState::MYPID);
 		} else {
 				// RCLCPP_INFO(parent_.get_logger(), "起飞失败");
 		}
@@ -344,6 +347,33 @@ void OffboardControl::StateMachine::handle_state<FlyState::Print_Info>() {
 		RCLCPP_INFO_THROTTLE(parent_.get_logger(), *parent_.get_clock(), 500, "Current time: %f s,%ld nanos", now.seconds(), now.nanoseconds());
 	}
 }
+
+template<>
+ void OffboardControl::StateMachine::handle_state<FlyState::MYPID>() {
+ 	if (current_state_ == FlyState::MYPID
+ 	) {
+ 		parent_.mypid.readPIDParameters("pos_config.yaml","mypid");
+ 		parent_.dx_shot = parent_.mypid.read_goal("OffboardControl.yaml","dx_shot");
+ 	    parent_.dy_shot = parent_.mypid.read_goal("OffboardControl.yaml","dy_shot");
+ 		parent_.shot_halt = parent_.mypid.read_goal("OffboardControl.yaml","shot_halt");
+ 		printf("已进入MYPID状态,当前kp ki kd参数分别为：%lf %lf %lf,输出限制为： %lf,积分限制为： %lf\n",parent_.mypid.kp_,parent_.mypid.ki_,parent_.mypid.kd_,parent_.mypid.output_limit_,parent_.mypid.integral_limit);
+ 
+ 		parent_.mypid.velocity_x = parent_.get_x_vel();
+         parent_.mypid.velocity_y = parent_.get_y_vel();
+ 		parent_.mypid.velocity_z = parent_.get_z_vel();
+ 
+ 		printf("当前速度分别为：vx: %lf vy: %lf vz:%lf\n",parent_.mypid.velocity_x,parent_.mypid.velocity_y,parent_.mypid.velocity_z);
+ 		printf("当前位置为（ %lf , %lf , %lf ）\n",parent_.get_x_pos(),parent_.get_y_pos(),parent_.get_z_pos());
+ 		printf("目标位置为 （ %lf , %lf , %lf ）\n",parent_.dx_shot,parent_.dy_shot,parent_.shot_halt);
+ 		printf("PID输出分别为：（ %lf , %lf ,%lf）\n",parent_.mypid.compute(parent_.dx_shot,parent_.get_x_pos(),0.01),parent_.mypid.compute(parent_.dy_shot,parent_.get_y_pos(),0.01),
+                               parent_.mypid.compute(parent_.shot_halt,parent_.get_z_pos(),0.01));
+ 		
+ 		parent_.mypid.Mypid(parent_.dx_shot,parent_.dy_shot,parent_.shot_halt,parent_.get_x_pos(),parent_.get_y_pos(),parent_.get_z_pos(),0.01);
+ 		parent_.send_velocity_command(parent_.mypid.velocity_x,parent_.mypid.velocity_y,parent_.mypid.velocity_z,0);
+ 		//transition_to(FlyState::end);
+ 	}
+ }
+
 
 // Doshot,
 // Goto_scoutpoint,
