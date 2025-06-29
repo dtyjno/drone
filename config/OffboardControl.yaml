@@ -1,7 +1,7 @@
-headingangle_compass: 160.0
+headingangle_compass: 178.0
 dx_shot: 0.0
 dy_shot: 30.0
 dx_see: 0.0
 dy_see: 54.0
-shot_halt: 4.0
+shot_halt: 3.0
 see_halt: 3.0

@@ -44,6 +44,8 @@ using namespace std::chrono_literals;
 #include <fstream>
 #include <iostream>
 
+#include "CameraGimbal.h"
+
 #include "utils.h" // 包含自定义的工具函数
 
 enum class FlyState
@@ -103,6 +105,7 @@ public:
 		_inav(std::make_shared<InertialNav>(ardupilot_namespace_copy_, this)),
 		_motors(std::make_shared<Motors>(ardupilot_namespace_copy_, this)),
 		_pose_control(std::make_shared<PosControl>(ardupilot_namespace_copy_, this)),
+		_camera_gimbal(std::make_shared<CameraGimbal>(ardupilot_namespace_copy_, this)),
 		state_machine_(*this)  // 显式初始化 state_machine_
 	{
 		// Declare and get parameters
@@ -328,6 +331,7 @@ private:
 	std::shared_ptr<InertialNav> _inav;
 	std::shared_ptr<Motors> _motors;
 	std::shared_ptr<PosControl> _pose_control;
+	std::shared_ptr<CameraGimbal> _camera_gimbal;
 
 	class StateMachine {
 	public:
@@ -461,7 +465,7 @@ private:
 		ty_see = dy_see;
 	}
 	// control.cpp
-	Timer waypoint_goto_next_start_;         // 航点计时器
+	Timer state_timer_;         // 通用计时器1
 	bool waypoint_goto_next(double x, double y, double length, double width, double halt, vector<Vector2f> &way_points, double time, int *count = nullptr, const std::string &description = "");
 	// bool surround_shot_goto_next(double x, double y, double length, double width);
 	// bool surround_see(double x, double y, double length, double width);

@@ -12,15 +12,15 @@ bool OffboardControl::waypoint_goto_next(double x, double y, double length, doub
 	static std::vector<Vector2f>::size_type surround_cnt = 0; // 修改类型
 	double x_temp = 0.0, y_temp = 0.0;
 	if(count!=nullptr)
-		RCLCPP_INFO(this->get_logger(), "w_g_n,counter: %d, time=%lf", *count, waypoint_goto_next_start_.elapsed());
-	if (waypoint_goto_next_start_.elapsed() > time) 
+		RCLCPP_INFO(this->get_logger(), "w_g_n,counter: %d, time=%lf", *count, state_timer_.elapsed());
+	if (state_timer_.elapsed() > time) 
 	{
 		if (static_cast<std::vector<Vector2f>::size_type>(count == nullptr? surround_cnt : *count) >= way_points.size())
 		{
 				RCLCPP_INFO(this->get_logger(), "%s已经全部遍历", description.c_str());
 				count == nullptr? surround_cnt = 0 : *count = 0;
-				// waypoint_goto_next_start_.reset();
-				waypoint_goto_next_start_.set_start_time_to_default();
+				// state_timer_.reset();
+				state_timer_.set_start_time_to_default();
 				return true;
 		} else {
 			x_temp = x + (length * way_points[count == nullptr? surround_cnt : *count].x());
@@ -32,7 +32,7 @@ bool OffboardControl::waypoint_goto_next(double x, double y, double length, doub
 
 			send_local_setpoint_command(x_temp, y_temp, halt, default_yaw);
 			// RCLCPP_INFO(this->get_logger(), "前往下一点");
-			waypoint_goto_next_start_.reset();
+			state_timer_.reset();
 		}
 	}
 	return false;
@@ -193,8 +193,8 @@ bool OffboardControl::catch_target(bool &result, enum YOLO::TARGET_TYPE target)
 		float now_y = _yolo->get_cap_frame_height()-_yolo->get_y(target);
 		float tar_x = _yolo->get_cap_frame_width()-_yolo->get_cap_frame_width() / 2; // /10
 		float tar_y = _yolo->get_cap_frame_height()-_yolo->get_cap_frame_height() / 2; // /3
-		rotate_xy(now_x, now_y, (default_yaw + get_yaw()));
-		rotate_xy(tar_x, tar_y, (default_yaw + get_yaw()));
+		rotate_xy(now_x, now_y, (get_yaw() - default_yaw));
+		rotate_xy(tar_x, tar_y, (get_yaw() - default_yaw));
 		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x, now_y, tar_x, tar_y);
 		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x / _yolo->get_cap_frame_width(), now_y / _yolo->get_cap_frame_height(), (tar_x) / _yolo->get_cap_frame_width(), (tar_y) / _yolo->get_cap_frame_height());
 		// PID::Defaults defaults;
@@ -301,176 +301,6 @@ bool OffboardControl::catch_target(bool &result, enum YOLO::TARGET_TYPE target)
 	RCLCPP_INFO(this->get_logger(), "catch_target_bucket: end");
 	result = false;
 	return true;
-}
-
-// 环绕射击区域
-bool OffboardControl::surrounding_shot_area(void)
-{
-	static enum class SurState {
-		init,
-		set_point_x,
-		set_point_y,
-		fly_to_target_x,
-		fly_to_target_y,
-		end
-	} sur_state_;
-	static double time_find_start = get_cur_time();
-	if ((get_cur_time() - time_find_start) > 1200)
-	{ //>12s
-		return true;
-	}
-
-	// RCLCPP_INFO(this->get_logger(),"cur_time: %f , start_time: %f",get_cur_time(),time_find_start);
-
-	// std::cout<<"cur time: "<<get_cur_time()<<" find_start: "<<time_find_start<<std::endl;
-	bool arrive;
-	if (catch_target(arrive, YOLO::TARGET_TYPE::CIRCLE))
-	{
-		if (arrive)
-		{
-			return true;
-		}
-		return false;
-	}
-	/*bool result=false;
-	if(vehicle_local_position_msg.x>10 || vehicle_local_position_msg.x<-10 || vehicle_local_position_msg.y>10 || vehicle_local_position_msg.y<-10){
-		result=true;
-	}*/
-	// double time_now = get_cur_time();
-	// AtCheckPoint();
-
-	switch (sur_state_)
-	{
-	case SurState::init:
-		time_find_start = get_cur_time();
-		static double fx = 1, fy = 2;
-		sur_state_ = SurState::set_point_x;
-		break;
-	case SurState::set_point_x:
-		sur_state_ = SurState::fly_to_target_x;
-		break;
-	case SurState::set_point_y:
-		sur_state_ = SurState::fly_to_target_y;
-		break;
-	case SurState::fly_to_target_x:
-		if (trajectory_setpoint(fx, 0, 0, 0))
-		{
-			fx = (fx > 0) ? (-fx - 1) : (-fx + 1);
-			sur_state_ = SurState::set_point_y;
-		}
-		break;
-	case SurState::fly_to_target_y:
-		if (trajectory_setpoint(0, fy, 0, 0))
-		{
-			sur_state_ = SurState::set_point_x;
-			fy = (fy > 0) ? (-fy - 1) : (-fy + 1);
-		}
-		break;
-	case SurState::end:
-		sur_state_ = SurState::init;
-		fx = 1, fy = 2 * fx;
-		return true;
-		break;
-	default:
-		break;
-	}
-	return false;
-}
-// 环绕侦察区域
-bool OffboardControl::surrounding_scout_area(void)
-{
-	static enum class ScoState {
-		init,
-		first_path,
-		second_path,
-		third_path,
-		forth_path,
-		fifth_path,
-		sixth_path,
-		end
-	} sco_state_;
-	static double time_find_start = 0;
-	/*bool result=false;
-	if(vehicle_local_position_msg.x>10 || vehicle_local_position_msg.x<-10 || vehicle_local_position_msg.y>10 || vehicle_local_position_msg.y<-10){
-		result=true;
-	}*/
-	// double time_now = get_cur_time();
-	// AtCheckPoint();
-	switch (sco_state_)
-	{
-	case ScoState::init:
-		time_find_start = get_cur_time();
-		sco_state_ = ScoState::first_path;
-		break;
-	case ScoState::first_path:
-		if (trajectory_setpoint(2, 0, 0, -60))
-		{
-			sco_state_ = ScoState::second_path;
-		}
-		if ((get_cur_time() - time_find_start) > 12)
-		{ //>12s
-			sco_state_ = ScoState::end;
-		}
-		break;
-	case ScoState::second_path:
-		if (trajectory_setpoint(-2, 2.5, 0, -60))
-		{
-			sco_state_ = ScoState::third_path;
-		}
-		if ((get_cur_time() - time_find_start) > 12)
-		{ //>12s
-			sco_state_ = ScoState::end;
-		}
-		break;
-	case ScoState::third_path:
-		if (trajectory_setpoint(2, 0, 0, -60))
-		{
-			sco_state_ = ScoState::forth_path;
-		}
-		if ((get_cur_time() - time_find_start) > 12)
-		{ //>12s
-			sco_state_ = ScoState::end;
-		}
-		break;
-	case ScoState::forth_path:
-		if (trajectory_setpoint(-2, 2.5, 0, -60))
-		{
-			sco_state_ = ScoState::fifth_path;
-		}
-		if ((get_cur_time() - time_find_start) > 12)
-		{ //>12s
-			sco_state_ = ScoState::end;
-		}
-		break;
-	case ScoState::fifth_path:
-		if (trajectory_setpoint(2, 0, 0, -60))
-		{
-			sco_state_ = ScoState::sixth_path;
-		}
-		if ((get_cur_time() - time_find_start) > 12)
-		{ //>12s
-			sco_state_ = ScoState::end;
-		}
-		break;
-	case ScoState::sixth_path:
-		if (trajectory_setpoint(-1, -2.5, 0, -90))
-		{
-			sco_state_ = ScoState::end;
-		}
-		if ((get_cur_time() - time_find_start) > 12)
-		{ //>12s
-			sco_state_ = ScoState::end;
-		}
-		break;
-	case ScoState::end:
-		sco_state_ = ScoState::init;
-		RCLCPP_INFO(this->get_logger(), "end scouting: %f", (get_cur_time() - time_find_start) / 1000000.0);
-		return true;
-		break;
-	default:
-		break;
-	}
-	return false;
 }
 
 void OffboardControl::send_local_setpoint_command(float x, float y, float z, float yaw){

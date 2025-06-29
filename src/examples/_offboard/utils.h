@@ -65,41 +65,13 @@ void rotate_angle(T &x,T &y, float angle) {
 class Timer {
 public:
     Timer() 
-        : start_time_(std::chrono::steady_clock::now()), 
-          allow_single_reset_(true) {}
+        : start_time_(std::chrono::steady_clock::now()) {}
 
-		Timer(std::function<void()> callback) 
-				: start_time_(std::chrono::steady_clock::now()), 
-				allow_single_reset_(false) {
-          callback_ = callback;
-          if (callback) {
-            callback();
-          }
-        }
-		
-		Timer(std::function<void()> callback, bool allow_single_reset) 
-		: start_time_(std::chrono::steady_clock::now()), 
-			allow_single_reset_(allow_single_reset) {
-				callback_ = callback;
-				if (callback) {
-					callback();
-				}
-			}
-			
     /// @brief 无条件重置计时器
     void reset() {
         start_time_ = std::chrono::steady_clock::now();
     }
 
-    /// @brief 单次重置（仅在允许状态下生效）
-    void reset_once() {
-		  if (allow_single_reset_) {
-					callback_();
-					allow_single_reset_ = false;
-			}
-      start_time_ = std::chrono::steady_clock::now();
-		}
-    
     /// @brief 获取自计时开始经过的时间（秒）
     double elapsed() {
         if (start_time_ == std::chrono::steady_clock::time_point()) {
@@ -107,23 +79,15 @@ public:
             start_time_ = std::chrono::steady_clock::now(); // 更新为当前时间
             return 0.0;
         }
-        if (!allow_single_reset_){
-          callback_();
-        }
         const auto end_time = std::chrono::steady_clock::now();
         return std::chrono::duration<double>(end_time - start_time_).count();
-    }
-
-    /// @brief 启用单次重置功能
-    void enable_single_reset() {
-				start_time_ = std::chrono::steady_clock::time_point();
-        allow_single_reset_ = true;
     }
 
 		// 标记当前时间
 		void set_timepoint(){
 			time_point_ = std::chrono::steady_clock::now();
 		}
+
 		// 距上次标记经过时间（秒）
 		double get_timepoint_elapsed(){
 			const auto end_time = std::chrono::steady_clock::now();
@@ -137,8 +101,6 @@ public:
 private:
     std::chrono::steady_clock::time_point start_time_;
     std::chrono::steady_clock::time_point time_point_;
-    std::function<void()> callback_; // 回调函数
-		bool allow_single_reset_;
 };
 
 
