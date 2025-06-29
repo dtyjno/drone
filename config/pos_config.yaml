@@ -1,77 +1,85 @@
-pos_x:
-  p: 0.4
-  i: 0.1
-  d: 0.05
-  ff: 0
-  dff: 0
-  imax: 10
-pos_y:
-  p: 0.4
-  i: 0.1
-  d: 0.05
-  ff: 0
-  dff: 0
-  imax: 10
-pos_z:
-  p: 0.6
-  i: 0.1
-  d: 0.05
-  ff: 0
-  dff: 0
-  imax: 10
-pos_yaw:
-  p: 0.8
-  i: 0.1
-  d: 0.05
-  ff: 0
-  dff: 0
-  imax: 10
-pos_px:
-  p: 1
-  i: 0
-  d: 0
-  ff: 0
-  dff: 0
-  imax: 10
-pos_py:
-  p: 1
-  i: 0
-  d: 0
-  ff: 0
-  dff: 0
-  imax: 10
-pos_pz:
-  p: 1
-  i: 0
-  d: 0
-  ff: 0
-  dff: 0
-  imax: 10
-pos_vx:
-  p: 1.35
-  i: 1.15
-  d: 0.85
-  ff: 0
-  dff: 0
-  imax: 10
-pos_vy:
-  p: 1.35
-  i: 1.15
-  d: 0.85
-  ff: 0
-  dff: 0
-  imax: 10
-pos_vz:
-  p: 1
-  i: 0
-  d: 0
-  ff: 0
-  dff: 0
-  imax: 10
 limits:
-  speed_max_xy: 2.0
-  speed_max_z: 1.0
-  speed_max_yaw: 0.3
   accel_max_xy: 1.2
-  accel_max_z: 1.2
   accel_max_yaw: 0.1
+  accel_max_z: 1.2
+  speed_max_xy: 2.0
+  speed_max_yaw: 0.3
+  speed_max_z: 1.0
+mypid:
+  d: 0.0054
+  dff: 0
+  ff: 0
+  i: 0.1196
+  integrallimit: 1.3859
+  outputlimit: 2.0217
+  p: 0.5109
+pos_px:
+  d: 0
+  dff: 0
+  ff: 0
+  i: 0
+  imax: 10
+  p: 1
+pos_py:
+  d: 0
+  dff: 0
+  ff: 0
+  i: 0
+  imax: 10
+  p: 1
+pos_pz:
+  d: 0
+  dff: 0
+  ff: 0
+  i: 0
+  imax: 10
+  p: 1
+pos_vx:
+  d: 0.85
+  dff: 0
+  ff: 0
+  i: 1.15
+  imax: 10
+  p: 1.35
+pos_vy:
+  d: 0.85
+  dff: 0
+  ff: 0
+  i: 1.15
+  imax: 10
+  p: 1.35
+pos_vz:
+  d: 0
+  dff: 0
+  ff: 0
+  i: 0
+  imax: 10
+  p: 1
+pos_x:
+  d: 0.05
+  dff: 0
+  ff: 0
+  i: 0.1
+  imax: 10
+  p: 0.4
+pos_y:
+  d: 0.05
+  dff: 0
+  ff: 0
+  i: 0.1
+  imax: 10
+  p: 0.4
+pos_yaw:
+  d: 0.05
+  dff: 0
+  ff: 0
+  i: 0.1
+  imax: 10
+  p: 0.8
+pos_z:
+  d: 0.05
+  dff: 0
+  ff: 0
+  i: 0.1
+  imax: 10
+  p: 0.6

@@ -25,6 +25,7 @@ void OffboardControl::timer_callback(void)
 	_yolo->get_servo_flag(), get_yaw());
 
 	// 这里是定时器回调函数的实现
+
 	state_machine_.execute_dynamic_tasks();
 	state_machine_.process_states<
 		FlyState::init,
@@ -41,6 +42,8 @@ void OffboardControl::timer_callback(void)
 		FlyState::Termial_Control,
 		FlyState::Print_Info,
 		FlyState::Reflush_config
+		FlyState::MYPID,
+
 	>();
 }
 
@@ -122,6 +125,66 @@ void OffboardControl::StateMachine::handle_state<FlyState::takeoff>() {
 		if (parent_._motors->takeoff(parent_.get_z_pos())) {
 				RCLCPP_INFO_ONCE(parent_.get_logger(), "起飞成功");
 				transition_to(FlyState::Goto_shotpoint);
+				// transition_to(FlyState::goto_shot_area);
+		} else {
+				// RCLCPP_INFO(parent_.get_logger(), "起飞失败");
+		}
+	}
+}
+
+template<>
+void OffboardControl::StateMachine::handle_state<FlyState::goto_shot_area>() {
+	if (current_state_ == FlyState::goto_shot_area) {
+		RCLCPP_INFO_ONCE(parent_.get_logger(), "开始前往投弹区域");
+		if (parent_.trajectory_setpoint(parent_.dx_shot, parent_.dy_shot, parent_.shot_halt, parent_.default_yaw)) {
+			RCLCPP_INFO_ONCE(parent_.get_logger(), "到达投弹区域");
+			transition_to(FlyState::findtarget);
+		}
+	}
+}
+
+template<>
+void OffboardControl::StateMachine::handle_state<FlyState::findtarget>() {
+	if (current_state_ == FlyState::findtarget) {
+		RCLCPP_INFO_ONCE(parent_.get_logger(), "开始寻找目标");
+		if (parent_.trajectory_circle(0.6,1.0,5,0.08)) {
+			RCLCPP_INFO_ONCE(parent_.get_logger(), "找到目标");
+			transition_to(FlyState::goto_scout_area);
+		}
+	}
+}
+
+template<>
+void OffboardControl::StateMachine::handle_state<FlyState::goto_scout_area>() {
+	if (current_state_ == FlyState::goto_scout_area) {
+		RCLCPP_INFO_ONCE(parent_.get_logger(), "开始前往侦查区域");
+		if (parent_.trajectory_setpoint(parent_.dx_see, parent_.dy_see, parent_.get_z_pos(), parent_.default_yaw)) {
+			RCLCPP_INFO_ONCE(parent_.get_logger(), "到达侦查区域");
+			transition_to(FlyState::scout);
+		}
+	}
+}
+
+template<>
+void OffboardControl::StateMachine::handle_state<FlyState::scout>() {
+	if (current_state_ == FlyState::scout) {
+		RCLCPP_INFO_ONCE(parent_.get_logger(), "开始侦查");
+		if (parent_.surrounding_scout_area()) {
+			RCLCPP_INFO_ONCE(parent_.get_logger(), "侦查完成");
+			transition_to(FlyState::land);
+		}
+	}
+}
+
+template<>
+void OffboardControl::StateMachine::handle_state<FlyState::land>() {
+	if (current_state_ == FlyState::land) {
+		if (parent_.trajectory_setpoint_world(parent_.start.x(), parent_.start.y(), parent_.start.z(), parent_.default_yaw, 0.1)){
+			RCLCPP_INFO_ONCE(parent_.get_logger(), "开始降落");
+			parent_._motors->command_takeoff_or_land("LAND");
+			parent_._motors->command_takeoff_or_land("LAND");
+			RCLCPP_INFO_ONCE(parent_.get_logger(), "降落成功");
+			transition_to(FlyState::end);
 		}
 	}
 }
@@ -275,6 +338,33 @@ void OffboardControl::StateMachine::handle_state<FlyState::Print_Info>() {
 		RCLCPP_INFO_THROTTLE(parent_.get_logger(), *parent_.get_clock(), 500, "Current time: %f s,%ld nanos", now.seconds(), now.nanoseconds());
 	}
 }
+
+template<>
+ void OffboardControl::StateMachine::handle_state<FlyState::MYPID>() {
+ 	if (current_state_ == FlyState::MYPID
+ 	) {
+ 		parent_.mypid.readPIDParameters("pos_config.yaml","mypid");
+ 		parent_.dx_shot = parent_.mypid.read_goal("OffboardControl.yaml","dx_shot");
+ 	    parent_.dy_shot = parent_.mypid.read_goal("OffboardControl.yaml","dy_shot");
+ 		parent_.shot_halt = parent_.mypid.read_goal("OffboardControl.yaml","shot_halt");
+ 		printf("已进入MYPID状态,当前kp ki kd参数分别为：%lf %lf %lf,输出限制为： %lf,积分限制为： %lf\n",parent_.mypid.kp_,parent_.mypid.ki_,parent_.mypid.kd_,parent_.mypid.output_limit_,parent_.mypid.integral_limit);
+ 
+ 		parent_.mypid.velocity_x = parent_.get_x_vel();
+         parent_.mypid.velocity_y = parent_.get_y_vel();
+ 		parent_.mypid.velocity_z = parent_.get_z_vel();
+ 
+ 		printf("当前速度分别为：vx: %lf vy: %lf vz:%lf\n",parent_.mypid.velocity_x,parent_.mypid.velocity_y,parent_.mypid.velocity_z);
+ 		printf("当前位置为（ %lf , %lf , %lf ）\n",parent_.get_x_pos(),parent_.get_y_pos(),parent_.get_z_pos());
+ 		printf("目标位置为 （ %lf , %lf , %lf ）\n",parent_.dx_shot,parent_.dy_shot,parent_.shot_halt);
+ 		printf("PID输出分别为：（ %lf , %lf ,%lf）\n",parent_.mypid.compute(parent_.dx_shot,parent_.get_x_pos(),0.01),parent_.mypid.compute(parent_.dy_shot,parent_.get_y_pos(),0.01),
+                               parent_.mypid.compute(parent_.shot_halt,parent_.get_z_pos(),0.01));
+ 		
+ 		parent_.mypid.Mypid(parent_.dx_shot,parent_.dy_shot,parent_.shot_halt,parent_.get_x_pos(),parent_.get_y_pos(),parent_.get_z_pos(),0.01);
+ 		parent_.send_velocity_command(parent_.mypid.velocity_x,parent_.mypid.velocity_y,parent_.mypid.velocity_z,0);
+ 		//transition_to(FlyState::end);
+ 	}
+ }
+
 
 template<>
 void OffboardControl::StateMachine::handle_state<FlyState::Reflush_config>() {
