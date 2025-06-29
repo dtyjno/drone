@@ -75,6 +75,7 @@ inline const std::map<std::string, FlyState> FlyStateMap = {
 	{"GOTO_SCOUTPOINT", FlyState::Goto_scoutpoint},
 	{"SURROUND_SEE", FlyState::Surround_see},
 	{"DOLAND", FlyState::Doland},
+	{"MYPID", FlyState::MYPID},
 	{"PRINT_INFO", FlyState::Print_Info},
 	{"TERMINAL_CONTROL", FlyState::Termial_Control},
 	{"REFLUSH_CONFIG", FlyState::Reflush_config},
