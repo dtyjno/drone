@@ -106,6 +106,8 @@ public:
 		_inav(std::make_shared<InertialNav>(ardupilot_namespace_copy_, this)),
 		_motors(std::make_shared<Motors>(ardupilot_namespace_copy_, this)),
 		_pose_control(std::make_shared<PosControl>(ardupilot_namespace_copy_, this)),
+		_camera_gimbal(std::make_shared<CameraGimbal>(ardupilot_namespace_copy_, this)),
+		mypid(),
 		state_machine_(*this)  // 显式初始化 state_machine_
 	{
 		// Declare and get parameters
@@ -333,7 +335,12 @@ private:
 	std::shared_ptr<InertialNav> _inav;
 	std::shared_ptr<Motors> _motors;
 	std::shared_ptr<PosControl> _pose_control;
+	std::shared_ptr<CameraGimbal> _camera_gimbal;
+	
+	// --- 定义的PID函数---
 	MYPID mypid;
+	// ------------------
+  
 
 	class StateMachine {
 	public:
