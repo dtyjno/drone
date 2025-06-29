@@ -9,28 +9,30 @@
 // x，y为中心位置，length，width为航点的长宽，halt为高度，way_points为航点集合，description为航点描述
 bool OffboardControl::waypoint_goto_next(double x, double y, double length, double width, double halt, vector<Vector2f> &way_points, double time, int *count, const std::string &description)
 {
-	static Timer start_(true);         // 航点计时器，true表明实例化后发送航点
 	static std::vector<Vector2f>::size_type surround_cnt = 0; // 修改类型
 	double x_temp = 0.0, y_temp = 0.0;
 	if(count!=nullptr)
-		RCLCPP_INFO(this->get_logger(), "w_g_n,counter: %d, time=%lf", *count, start_.elapsed());
-	if (start_.elapsed() > time) 
+		RCLCPP_INFO(this->get_logger(), "w_g_n,counter: %d, time=%lf", *count, waypoint_goto_next_start_.elapsed());
+	if (waypoint_goto_next_start_.elapsed() > time) 
 	{
 		if (static_cast<std::vector<Vector2f>::size_type>(count == nullptr? surround_cnt : *count) >= way_points.size())
 		{
 				RCLCPP_INFO(this->get_logger(), "%s已经全部遍历", description.c_str());
 				count == nullptr? surround_cnt = 0 : *count = 0;
-				// start_.reset();
-				start_.set_start_time_to_default();
+				// waypoint_goto_next_start_.reset();
+				waypoint_goto_next_start_.set_start_time_to_default();
 				return true;
 		} else {
 			x_temp = x + (length * way_points[count == nullptr? surround_cnt : *count].x());
 			y_temp = y + (width * way_points[count == nullptr? surround_cnt : *count].y());
 			count == nullptr? surround_cnt++ : (*count)++;
 			RCLCPP_INFO(this->get_logger(), "%s点位%zu x: %lf   y: %lf", description.c_str(), count == nullptr? surround_cnt : *count, x_temp, y_temp);
-			send_local_setpoint_command(x_temp, y_temp, halt, start.w());
+
+			rotate_global2stand(x_temp, y_temp, x_temp, y_temp);
+
+			send_local_setpoint_command(x_temp, y_temp, halt, default_yaw);
 			// RCLCPP_INFO(this->get_logger(), "前往下一点");
-			start_.reset();
+			waypoint_goto_next_start_.reset();
 		}
 	}
 	return false;
@@ -56,13 +58,11 @@ bool OffboardControl::Doland()
 		PosControl::Limits_t limits = _pose_control->readLimits("land_config.yaml", "limits");
 		_pose_control->set_limits(limits);
     RCLCPP_INFO(this->get_logger(), "Doland");
-		x_home = 0.0, y_home = 0.0;
-		rotate2global(x_home, y_home);
+		rotate_global2stand(0.0, 0.0, x_home, y_home);
     RCLCPP_INFO(this->get_logger(), "返回降落准备点 x: %lf   y: %lf    angle: %lf", x_home, y_home, headingangle_compass);
     send_local_setpoint_command(x_home, y_home, 4, headingangle_compass);
     rclcpp::sleep_for(std::chrono::seconds(6));
-		x_home = 0.0, y_home = 0.3;
-		rotate2global(x_home, y_home);
+		rotate_global2stand(0.0, 0.3, x_home, y_home);
     RCLCPP_INFO(this->get_logger(), "返回降落点 x: %lf   y: %lf    angle: %lf", x_home, y_home, headingangle_compass);
     send_local_setpoint_command(x_home, y_home, 4, headingangle_compass);
 		timer_.reset();
@@ -82,9 +82,7 @@ bool OffboardControl::Doland()
 			if (timer_.get_timepoint_elapsed() > 1.5)
 			{
 					RCLCPP_INFO(this->get_logger(), "surround_land = %d", surround_land);
-					x_home = surround_land;
-					y_home = 0;
-					rotate2global(x_home, y_home);
+					rotate_global2stand(static_cast<double>(surround_land) * 1.0, 0.0, x_home, y_home);
 					RCLCPP_INFO(this->get_logger(), "land点 x: %lf   y: %lf    angle: %lf", x_home, y_home, headingangle_compass);
 					send_local_setpoint_command(x_home, y_home, shot_halt, headingangle_compass);
 					timer_.set_timepoint();
@@ -476,12 +474,10 @@ bool OffboardControl::surrounding_scout_area(void)
 }
 
 void OffboardControl::send_local_setpoint_command(float x, float y, float z, float yaw){
-	rotate2global(x, y);
 	_pose_control->send_local_setpoint_command(x, y, z, yaw);
 }
 
 bool OffboardControl::local_setpoint_command(float x, float y, float z, float yaw, double accuracy){
-	rotate2global(x, y);
 	return _pose_control->local_setpoint_command(
 		Vector4f{get_x_pos(), get_y_pos(), get_z_pos(), get_yaw()},
 		Vector4f{x, y, z, static_cast<float>(yaw + default_yaw)},
@@ -490,7 +486,6 @@ bool OffboardControl::local_setpoint_command(float x, float y, float z, float ya
 
 bool OffboardControl::trajectory_setpoint(float x, float y, float z, float yaw, double accuracy)
 {
-	rotate2global(x, y);
 	RCLCPP_INFO_ONCE(this->get_logger(), "trajectory_setpoint转换后目标位置：%f %f", x, y);
 	return _pose_control->trajectory_setpoint(
 			Vector4f{get_x_pos(), get_y_pos(), get_z_pos(), get_yaw()},
@@ -499,7 +494,6 @@ bool OffboardControl::trajectory_setpoint(float x, float y, float z, float yaw, 
 }
 bool OffboardControl::trajectory_setpoint_world(float x, float y, float z, float yaw, PID::Defaults defaults, double accuracy)
 {
-	rotate2global(x, y);
 	return _pose_control->trajectory_setpoint_world(
 			Vector4f{get_x_pos(), get_y_pos(), get_z_pos(), get_yaw()},
 			Vector4f{x, y, z, static_cast<float>(yaw + default_yaw)},
@@ -508,7 +502,6 @@ bool OffboardControl::trajectory_setpoint_world(float x, float y, float z, float
 }
 bool OffboardControl::trajectory_setpoint_world(float x, float y, float z, float yaw, double accuracy)
 {
-	rotate2global(x, y);
 	return _pose_control->trajectory_setpoint_world(
 			Vector4f{get_x_pos(), get_y_pos(), get_z_pos(), get_yaw()},
 			Vector4f{x, y, z, static_cast<float>(yaw + default_yaw)},
@@ -517,7 +510,6 @@ bool OffboardControl::trajectory_setpoint_world(float x, float y, float z, float
 
 bool OffboardControl::publish_setpoint_world(float x, float y, float z, float yaw, double accuracy)
 {
-	rotate2global(x, y);
 	return _pose_control->publish_setpoint_world(
 			Vector4f{get_x_pos(), get_y_pos(), get_z_pos(), get_yaw()},
 			Vector4f{x, y, z, static_cast<float>(yaw + default_yaw)},
@@ -526,13 +518,11 @@ bool OffboardControl::publish_setpoint_world(float x, float y, float z, float ya
 
 void OffboardControl::send_velocity_command(float x, float y, float z, float yaw)
 {
-	rotate2global(x, y);
 	return _pose_control->send_velocity_command(
 			Vector4f{x, y, z, yaw});
 }
 bool OffboardControl::send_velocity_command_with_time(float x, float y, float z, float yaw, double time)
 {
-	rotate2global(x, y);
 	return _pose_control->send_velocity_command_with_time(
 			Vector4f{x, y, z, yaw},
 			time);
@@ -549,7 +539,6 @@ bool OffboardControl::trajectory_circle(float a, float b, float height, float dt
 }
 bool OffboardControl::trajectory_generator_world(double speed_factor, std::array<double, 3> q_goal)
 {
-	rotate2global(q_goal[0], q_goal[1]);
 	return _pose_control->trajectory_generator_world(
 			speed_factor,
 			q_goal);
@@ -575,15 +564,16 @@ bool OffboardControl::trajectory_generator_world_points(double speed_factor, con
 	// std::cout<<"data: "<<<<std::endl;
 
 	std::array<double, 3> q_goal = data[data.size() - data_length_];
-	rotate2global(q_goal[0], q_goal[1]);
-	std::cout << "q_goal: " << q_goal[0] << " " << q_goal[1] << " " << q_goal[2] << std::endl;
+	double global_x, global_y;
+	rotate_global2stand(q_goal[0], q_goal[1], global_x, global_y);
+	std::cout << "q_goal: " << global_x << " " << global_y << " " << q_goal[2] << std::endl;
 	// Vector3f max_vel = {__MAX_FLT__, __MAX_FLT__, __MAX_FLT__};
 	// Vector3f max_acc = {__MAX_FLT__, __MAX_FLT__, __MAX_FLT__};
 	// if(data_length_ != data.size()){}
 	// if(data_length_ != 1){}
 	if (_pose_control->trajectory_generator_world(
 					speed_factor,
-					{q_goal[0], q_goal[1], q_goal[2]}))
+					{global_x, global_y, q_goal[2]}))
 	{
 		data_length_--;
 	}

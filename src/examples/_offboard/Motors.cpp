@@ -2,56 +2,6 @@
 #include <chrono>
 #include "math.h" // 连接Eigen库，使用Eigen命名空间，添加cmath头文件和自定义数学函数
 
-#ifdef WIN32
-#include <conio.h>
-#else
-#include <termios.h>
-#include <unistd.h>
-#include <fcntl.h>
-
-// 模拟 _kbhit() 功能
-int _kbhit() {
-    struct termios oldt, newt;
-    int ch;
-    int oldf;
-
-    tcgetattr(STDIN_FILENO, &oldt); // 获取终端属性
-    newt = oldt;
-    newt.c_lflag &= ~(ICANON | ECHO); // 设置非规范模式，不回显
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
-    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
-
-    ch = getchar();
-
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt); // 恢复终端属性
-    fcntl(STDIN_FILENO, F_SETFL, oldf);
-
-    if (ch != EOF) {
-        ungetc(ch, stdin); // 将字符放回输入流
-        return 1;
-    }
-
-    return 0;
-}
-
-// 模拟 _getch() 功能
-char _getch() {
-    struct termios oldt, newt;
-    char ch;
-
-    tcgetattr(STDIN_FILENO, &oldt); // 获取终端属性
-    newt = oldt;
-    newt.c_lflag &= ~(ICANON | ECHO); // 设置非规范模式，不回显
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-
-    ch = getchar();
-
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt); // 恢复终端属性
-    return ch;
-}
-#endif
-
 using namespace std::chrono_literals;
 
 bool Motors::armed;
@@ -74,7 +24,6 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude){
 	(void)local_frame_z;
 	static bool is_takeoff = false;
 	static uint8_t num_of_steps = 0;
-	char key = 0;
 	switch (state_)
 	{
 	case State::init :
@@ -82,34 +31,15 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude){
 		set_home_position();
 		RCLCPP_INFO_ONCE(node->get_logger(), "Entered guided mode");
 		switch_mode("GUIDED");
-		state_ = State::send_geo_grigin;
+		state_ = State::wait_for_takeoff_command;
 		break;
-	case State::send_geo_grigin :
+	case State::wait_for_takeoff_command :
 		RCLCPP_INFO_ONCE(node->get_logger(), "解锁前所有准备已完成，按下回车解锁无人机");
-		if (_kbhit()) // 检查是否有按键输入
-		{
-			key = _getch(); // 获取按键输入
-		}
-		else
-		{
-			key = 0;
-		}
-		if (key == '\n') // 检查是否按下回车键
-		{
+		if(takeoff_command == true) {
 			RCLCPP_INFO(node->get_logger(), "开始解锁");
 			arm_motors(true);
-			key = 0;
 			state_ = State::wait_for_stable_offboard_mode;	
 		}
-		else if (key == 'q') // 检查是否按下q键
-		{
-			RCLCPP_INFO(node->get_logger(), "退出程序");
-			exit(0);
-		}
-		else if (key != 0)
-		{
-			RCLCPP_INFO(node->get_logger(), "无效输入，请按回车键解锁无人机或按q键退出程序");
-		}			
 		break;
 	case State::wait_for_stable_offboard_mode :
 		if (++num_of_steps>10){
@@ -138,7 +68,7 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude){
 		}else{
 			is_takeoff = true;
 			RCLCPP_INFO(node->get_logger(), "takeoff done");
-			state_ = State::autotune_mode;
+			state_ = State::init;
 		}
 		break;
 	case State::autotune_mode:
@@ -344,7 +274,7 @@ void Motors::set_home_position(double lat, double lon, double alt)
 			RCLCPP_ERROR(node->get_logger(), "Interrupted while waiting for the service. Exiting.");
 			return;
 		}
-		RCLCPP_INFO(node->get_logger(), "service not available, waiting again...");
+		RCLCPP_INFO(node->get_logger(), " available, waiting again...");
 	}
 	RCLCPP_INFO(node->get_logger(), "set home command send");
     OffboardControl_Base* node = this->node;

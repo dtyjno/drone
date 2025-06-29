@@ -89,12 +89,12 @@ void PosControl::send_local_setpoint_command(double x, double y, double z, doubl
 	msg.pose.position.z = z;
 	//旋转四元数
 	
-	double radians_angle = yaw * M_PI / 180.0;
+	double radians_angle = yaw;
 	msg.pose.orientation.x = 0;
 	msg.pose.orientation.y = 0;
 	msg.pose.orientation.z = sin(radians_angle / 2);
 	msg.pose.orientation.w = cos(radians_angle / 2);
-
+	RCLCPP_INFO(node->get_logger(), "Publishing local setpoint: x=%f, y=%f, z=%f, yaw=%f", x, y, z, yaw);
 	local_setpoint_publisher_->publish(msg);
 }
 

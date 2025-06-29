@@ -44,37 +44,44 @@ using namespace std::chrono_literals;
 #include <fstream>
 #include <iostream>
 
+#include "utils.h" // 包含自定义的工具函数
+
 enum class FlyState
 {
 	init,
 	// request,
 	takeoff,
-	goto_shot_area,
-	findtarget,
-	goto_scout_area,
-	scout,
-	land,
 	end,
-	// 以下为老代码实现
 	Goto_shotpoint, 
 	Doshot,
 	Goto_scoutpoint,
 	Surround_see,
 	Doland,
-	//
 	Print_Info,
+	Termial_Control, // 终端控制
+	Reflush_config,
 } ;
+
+inline const std::map<std::string, FlyState> FlyStateMap = {
+	{"INIT", FlyState::init},
+	// {"REQUEST", FlyState::request},
+	{"TAKEOFF", FlyState::takeoff},
+	{"END", FlyState::end},
+	{"GOTO_SHOTPOINT", FlyState::Goto_shotpoint},
+	{"DOSHOT", FlyState::Doshot},
+	{"GOTO_SCOUTPOINT", FlyState::Goto_scoutpoint},
+	{"SURROUND_SEE", FlyState::Surround_see},
+	{"DOLAND", FlyState::Doland},
+	{"PRINT_INFO", FlyState::Print_Info},
+	{"TERMINAL_CONTROL", FlyState::Termial_Control},
+	{"REFLUSH_CONFIG", FlyState::Reflush_config},
+};
 
 // 将当前状态发布到currentstate 1=circle:shot/sco 2=h:land
 inline int fly_state_to_int(FlyState state) {
   switch (state) {
     case FlyState::init: return 1;
     case FlyState::takeoff: return 1;
-    case FlyState::goto_shot_area: return 1;
-    case FlyState::findtarget: return 0;
-    case FlyState::goto_scout_area: return 1;
-    case FlyState::scout: return 3;
-    case FlyState::land: return 4;
     case FlyState::end: return 2;
     case FlyState::Goto_shotpoint: return 1;
     case FlyState::Doshot: return 0;
@@ -85,91 +92,6 @@ inline int fly_state_to_int(FlyState state) {
     default: return 1;
   }
 }
-
-#include <chrono>
-
-class Timer {
-public:
-    Timer() 
-        : start_time_(std::chrono::steady_clock::now()), 
-          allow_single_reset_(true) {}
-
-		Timer(std::function<void()> callback) 
-				: start_time_(std::chrono::steady_clock::now()), 
-				allow_single_reset_(true) {
-					callback();
-				}
-		
-		Timer(std::function<void()> callback, bool allow_single_reset) 
-		: start_time_(std::chrono::steady_clock::now()), 
-			allow_single_reset_(allow_single_reset) {
-				callback();
-			}
-		
-		/// @brief  将 start_time_ 初始化为默认时间点： (elapsed()当前时间-start开始时间 > 任意时间)=true
-		Timer(bool trigger_once)
-		{
-			if (trigger_once)
-			{
-				start_time_ = std::chrono::steady_clock::time_point(); // 默认时间点
-			}
-			else
-			{
-				start_time_ = std::chrono::steady_clock::now();
-			}
-		}
-			
-    /// @brief 无条件重置计时器
-    void reset() {
-        start_time_ = std::chrono::steady_clock::now();
-    }
-
-    /// @brief 单次重置（仅在允许状态下生效）
-    void reset_once() {
-        if (allow_single_reset_) {
-            start_time_ = std::chrono::steady_clock::now();
-            allow_single_reset_ = false;
-        }
-    }
-
-    void reset_once(std::function<void()> callback) {
-		if (allow_single_reset_) {
-					callback();
-					start_time_ = std::chrono::steady_clock::now();
-					allow_single_reset_ = false;
-			}
-		}
-    /// @brief 获取自计时开始经过的时间（秒）
-    double elapsed() const {
-        const auto end_time = std::chrono::steady_clock::now();
-        return std::chrono::duration<double>(end_time - start_time_).count();
-    }
-
-    /// @brief 启用单次重置功能
-    void enable_single_reset() {
-				start_time_ = std::chrono::steady_clock::now();
-        allow_single_reset_ = true;
-    }
-
-		// 标记当前时间
-		void set_timepoint(){
-			time_point_ = std::chrono::steady_clock::now();
-		}
-		// 距上次标记经过时间（秒）
-		double get_timepoint_elapsed(){
-			const auto end_time = std::chrono::steady_clock::now();
-			return std::chrono::duration<double>(end_time - time_point_).count();
-		}
-
-		void set_start_time_to_default(){
-			// 将计时器的开始时间设置为默认时间点
-			start_time_ = std::chrono::steady_clock::time_point();
-		}
-private:
-    std::chrono::steady_clock::time_point start_time_;
-    std::chrono::steady_clock::time_point time_point_;
-		bool allow_single_reset_;
-};
 
 class OffboardControl : public OffboardControl_Base
 {
@@ -347,27 +269,26 @@ public:
 		return now.seconds() - timestamp_init;  // 直接计算时间差并转为秒
 	}
 
-	// 先旋转到飞机坐标系当前机头朝向角度
+	// 顺时针旋转
 	template <typename T>
-	void rotate2yaw(T x,T y,T &x_t, T &y_t) {
-		const T cs = cos(get_yaw() - start.w());
-		const T sn = sin(get_yaw() - start.w());
-		T rx = x * cs - y * sn;
-		T ry = x * sn + y * cs;
-		x_t = rx;
-		y_t = ry;
+	void rotate_global2stand(T in_x,T in_y, T &out_x, T &out_y) {
+		rotate_angle(in_x, in_y, headingangle_compass);
+		out_x = in_x;
+		out_y = in_y;
 	}
 
-	// 所有位置控制均旋转到世界坐标系的默认机头朝向
 	template <typename T>
-	void rotate2global(T &x,T &y) {
-		// 顺时针旋转180度
-		const T cs = cos(default_yaw + M_PI_2);
-		const T sn = sin(default_yaw + M_PI_2);
-		T rx = x * cs - y * sn;
-		T ry = x * sn + y * cs;
-		x = rx;
-		y = ry;
+	void rotate_2start(T in_x, T in_y, T &out_x, T &out_y) {
+		rotate_angle(in_x, in_y, -start.w());
+		out_x = in_x;
+		out_y = in_y;
+	}
+	
+	template <typename T>
+	void rotate_2local(T in_x, T in_y, T &out_x, T &out_y) {
+		rotate_angle(in_x, in_y, -get_yaw());
+		out_x = in_x;
+		out_y = in_y;
 	}
 
 	int save_log(bool finish = false)
@@ -422,6 +343,7 @@ private:
 	private:
 		OffboardControl& parent_;
 		FlyState current_state_;
+		FlyState previous_state_;
 		std::vector<std::function<void()>> dynamic_tasks_;
 		std::mutex task_mutex_;
 
@@ -463,7 +385,6 @@ private:
 
 	// 定义航点
 	vector<Vector2f> surround_shot_points{
-		{0.0, 0.0}, // 首次执行默认触发
 		{0.0, 1.0}, // 开始
 		{-0.16667, 0.66667}, 
 		{-0.16667, 0.33333}, 
@@ -475,12 +396,11 @@ private:
 		{-0.33333, 0.1}, 
 		{0.33333, 0.1}, 
 		{0.33333, 0.9}, 
-		// {0.0, 1.5}, 
-		// {1.5, 1}
-		{1.0, 0.0}
+		{0.0, 0.9}, 
+		{0.0, 0.5}
 	};
+	
 	vector<Vector2f> surround_see_points{
-		{0.0, 0.0}, // 首次执行默认触发
 		{0.0, 1.0}, 
 		{-0.5, 0.0}, 
 		{-0.5, 1.0}, 
@@ -496,80 +416,16 @@ private:
 		float lon;
 		float alt;
 	};
-	// uint8_t service_result_;
-	// bool service_done_;
 
-	// '''定义一个全局变量'''
-	// float _rngfnd_distance;
 	double timestamp_init = 0;
-	// float heading=0;
-	// const float default_heading=default_yaw;//初始偏转角
-
-	// std_msgs::msg::Header header;
-
-	// Vector3f local_frame{DEFAULT_X_POS,0,0};
-	// Vector4f velocity;
-	// Vector4f position;
-	// GlobalFrame global_frame;
-	// // float heading;
-	// Eigen::Quaterniond quaternion;// 四元数
-	// Eigen::Vector3d euler;// 欧拉角
-	// float yaw; //偏转角 弧度制
-
-	// bool is_takeoff = false;
-
-	// bool armed;
-	// bool connected;
-	// bool guided;
-	// std::string mode;
-	// std::string system_status;
-	// Vector3f home_position{DEFAULT_X_POS,0,0};
-	// Vector3f home_position_global;
-	// Eigen::Quaterniond home_quaternion;// 四元数
-
-	// int yaw_n = 0;
-
-	// Vector4f start_temp{0,0,0,0};
-	// Vector4f end_temp={0,0,0,0};
-	// Vector3f end={0,0,0,0};
-	// static Vector4f start;
 
 	GlobalFrame start_global{0, 0, 0};
-	// GlobalFrame start_global_temp{0,0,0};
-	// GlobalFrame end_global_temp={0,0,0};
-	// Vector3f end_global={0,0,0,0};
-
-	// float _D_max = 2; //位置环最大速度
-	// float _D = 1; //位置环比例系数
-
-	// float k=0.002;//控制vx和vy
-	// // 初始化PID控制器
-	// float dt=0.1;
-	// float kp = 0.41;  // 比例参数
-	// float ki = 0.06;  // 积分参数
-	// float kd = 0.28;  // 微分参数
-	// float kp_yaw = 0.20;  // 比例参数
-	// float ki_yaw = 0.04;  // 积分参数
-	// float kd_yaw = 0.04;  // 微分参数
-	// float max_vx=2; //前后方向最大速度
-	// float max_vy=2; //左右方向最大速度
-	// float max_vz=1; //上下方向最大速度
-	// float max_yaw=10; //最大角速度(°/s)
-
-	// GlobalFrame shot_area_start{};
-	// GlobalFrame scout_area_start{};
 
 	rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr state_publisher_;
   void publish_current_state();
 
 	rclcpp::TimerBase::SharedPtr timer_;
 
-	// void set_pose(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
-	// void set_gps(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
-	// void set_velocity(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
-	// void set_altitude(const mavros_msgs::msg::Altitude::SharedPtr msg);
-	// void set_state(const mavros_msgs::msg::State::SharedPtr msg);
-	// void set_home_position(const mavros_msgs::msg::HomePosition::SharedPtr msg);
 	void set_pose();
 	void set_gps();
 	void set_velocity();
@@ -586,12 +442,13 @@ private:
 		headingangle_compass = config["headingangle_compass"].as<float>();
 		// 1. 航向角转换：指南针角度 → 数学标准角度（东为0°，逆时针）
 		default_yaw = fmod(90.0 - headingangle_compass + 360.0, 360.0);
+		headingangle_compass = fmod(360.0 - headingangle_compass, 360.0);
 		RCLCPP_INFO(this->get_logger(), "读取罗盘角度: %f，默认旋转角：%f", headingangle_compass, default_yaw);
 		headingangle_compass = headingangle_compass * M_PI / 180.0; // 弧度制
 		default_yaw = default_yaw * M_PI / 180.0; // 弧度制
 		dx_shot = config["dx_shot"].as<float>();
 		dy_shot = config["dy_shot"].as<float>();
-		dx_see = config["dx_see"].as<float>();
+		dx_see = config["dx_see"].as<float>(); 
 		dy_see = config["dy_see"].as<float>();
 		shot_halt = config["shot_halt"].as<float>();
 		see_halt = config["see_halt"].as<float>();
@@ -604,6 +461,7 @@ private:
 		ty_see = dy_see;
 	}
 	// control.cpp
+	Timer waypoint_goto_next_start_;         // 航点计时器
 	bool waypoint_goto_next(double x, double y, double length, double width, double halt, vector<Vector2f> &way_points, double time, int *count = nullptr, const std::string &description = "");
 	// bool surround_shot_goto_next(double x, double y, double length, double width);
 	// bool surround_see(double x, double y, double length, double width);

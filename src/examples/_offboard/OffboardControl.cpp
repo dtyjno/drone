@@ -1,28 +1,28 @@
 #include "OffboardControl.h"
 /*
-    南              180    -1.5 -90
-		180             3.14    |y+
-西     x+ 东  <=> ---- x+____|______x-  0 0
-270  y+   90        -3.14    |
-    北              -180    |y-
-	360|0                    1.5 90
+    北360|0偏航角            
+		  y+                       |y+
+西       x+ 东  <=> ---- x-____|______x+  0
+270       90                   |
+                               |y+
+	  南180                      90
 
  世界坐标系(东北天)    飞机坐标系(base_link)
- -> aircraft_deg = 90.0 - world_deg
+ -> g2l_location
+    aircraft_deg = 90 - world_deg
     aircraft_deg %= 360.0
 
-		180 -> -90/270
 */
 
 void OffboardControl::timer_callback(void)
 {
 	// 发布当前状态
 	publish_current_state();
-	RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前时间：%f", get_cur_time());
-	RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "收到坐标c(%f, %f) h(%f ,%f), flag_servo = %d", 
+	// RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前时间：%f", get_cur_time());
+	RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "收到坐标c(%f, %f) h(%f ,%f), flag_servo = %d yaw=%f", 
 	_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), _yolo->get_y(YOLO::TARGET_TYPE::CIRCLE) ,
 	_yolo->get_x(YOLO::TARGET_TYPE::H), _yolo->get_y(YOLO::TARGET_TYPE::H) ,
-	_yolo->get_servo_flag());
+	_yolo->get_servo_flag(), get_yaw());
 
 	// 这里是定时器回调函数的实现
 	state_machine_.execute_dynamic_tasks();
@@ -30,11 +30,6 @@ void OffboardControl::timer_callback(void)
 		FlyState::init,
 		FlyState::takeoff,
 
-		// FlyState::goto_shot_area,
-		// FlyState::findtarget,
-		// FlyState::goto_scout_area,
-		// FlyState::scout,
-		// FlyState::land,
 		// FlyState::end,
 		// 
 		FlyState::Goto_shotpoint,
@@ -43,13 +38,25 @@ void OffboardControl::timer_callback(void)
 		FlyState::Surround_see,
 		FlyState::Doland,
 		//
-		FlyState::Print_Info
+		FlyState::Termial_Control,
+		FlyState::Print_Info,
+		FlyState::Reflush_config
 	>();
 }
 
 
 void OffboardControl::FlyState_init()
 {
+		// while (!mode_switch_client_->wait_for_service(std::chrono::seconds(1)))
+		// {
+		// 	if (!rclcpp::ok() || is_equal(get_x_pos(), DEFAULT_X_POS))
+		// 	{
+		// 		RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. 停止");
+		// 		return;
+		// 	}
+		// 	RCLCPP_INFO(this->get_logger(), "模式切换服务未准备好, 正在等待...");
+		// 	// rate.sleep();
+		// }
 		// 读取到配置文件中的投弹区和侦查区坐标
 		// headingangle_compass为罗盘读数
     // angle为四元数的角度，
@@ -60,20 +67,23 @@ void OffboardControl::FlyState_init()
 		// float tx_see = dx_see;
 		// float ty_see = dy_see;
 		// 旋转到飞机坐标系当前机头朝向角度
-		float x_shot = tx_shot, y_shot = ty_shot, x_see = tx_see, y_see = ty_see;
-		rotate2global(x_shot, y_shot);
-		rotate2global(x_see, y_see);
+		float x_shot, y_shot, x_see, y_see;
+		rotate_global2stand(tx_shot, ty_shot, x_shot, y_shot);
+		rotate_global2stand(tx_see, ty_see, x_see, y_see);
 		RCLCPP_INFO(this->get_logger(), "默认方向下角度：%f", default_yaw);
-		RCLCPP_INFO(this->get_logger(), "投弹区起点 x: %f   y: %f    angle: %f", x_shot, y_shot, default_yaw);
-    RCLCPP_INFO(this->get_logger(), "侦查起点 x: %f   y: %f    angle: %f", x_see, y_see, default_yaw);
-		// 旋转到全局坐标系
-		float x_shot_temp, y_shot_temp, x_see_temp, y_see_temp;
-		rotate2yaw(tx_shot, ty_shot, x_shot_temp, y_shot_temp);
-		rotate2yaw(tx_see, ty_see, x_see_temp, y_see_temp);
-		RCLCPP_INFO(this->get_logger(), "飞机方向下追加角度：%f", get_yaw());
-		RCLCPP_INFO(this->get_logger(), "投弹区起点 x: %f   y: %f    angle: %f", x_shot, y_shot, default_yaw);
-    RCLCPP_INFO(this->get_logger(), "侦查起点 x: %f   y: %f    angle: %f", x_see, y_see, default_yaw);
-
+		RCLCPP_INFO(this->get_logger(), "起始点投弹区起点 x: %f   y: %f    angle: %f", x_shot, y_shot, default_yaw);
+    RCLCPP_INFO(this->get_logger(), "起始点侦查起点 x: %f   y: %f    angle: %f", x_see, y_see, default_yaw);
+		rotate_2start(tx_shot, ty_shot, x_shot, y_shot);
+		rotate_2start(tx_see, ty_see, x_see, y_see);
+		RCLCPP_INFO(this->get_logger(), "飞机坐标投弹区起点 x: %f   y: %f    angle: %f", x_shot, y_shot, default_yaw);
+    RCLCPP_INFO(this->get_logger(), "飞机坐标侦查起点 x: %f   y: %f    angle: %f", x_see, y_see, default_yaw);
+		rotate_2local(tx_shot, ty_shot, x_shot, y_shot);
+		rotate_2local(tx_see, ty_see, x_see, y_see);
+		RCLCPP_INFO(this->get_logger(), "当前朝向投弹区起点 x: %f   y: %f    angle: %f", x_shot, y_shot, default_yaw);
+    RCLCPP_INFO(this->get_logger(), "当前朝向侦查起点 x: %f   y: %f    angle: %f", x_see, y_see, default_yaw);
+		
+		
+	 
 	// RCLCPP_INFO(this->get_logger(), "开始初始化舵机");
 	// 初始化舵机操作 等待舵机初始化
 	// while (!_servo_controller.client_->wait_for_service(std::chrono::seconds(1)))
@@ -121,67 +131,9 @@ void OffboardControl::StateMachine::handle_state<FlyState::takeoff>() {
 
 		if (parent_._motors->takeoff(parent_.get_z_pos())) {
 				RCLCPP_INFO_ONCE(parent_.get_logger(), "起飞成功");
-				// transition_to(FlyState::goto_shot_area);
 				transition_to(FlyState::Goto_shotpoint);
 		} else {
 				// RCLCPP_INFO(parent_.get_logger(), "起飞失败");
-		}
-	}
-}
-
-template<>
-void OffboardControl::StateMachine::handle_state<FlyState::goto_shot_area>() {
-	if (current_state_ == FlyState::goto_shot_area) {
-		RCLCPP_INFO_ONCE(parent_.get_logger(), "开始前往投弹区域");
-		if (parent_.trajectory_setpoint(parent_.dx_shot, parent_.dy_shot, parent_.shot_halt, parent_.default_yaw)) {
-			RCLCPP_INFO_ONCE(parent_.get_logger(), "到达投弹区域");
-			transition_to(FlyState::findtarget);
-		}
-	}
-}
-
-template<>
-void OffboardControl::StateMachine::handle_state<FlyState::findtarget>() {
-	if (current_state_ == FlyState::findtarget) {
-		RCLCPP_INFO_ONCE(parent_.get_logger(), "开始寻找目标");
-		if (parent_.trajectory_circle(0.6,1.0,5,0.08)) {
-			RCLCPP_INFO_ONCE(parent_.get_logger(), "找到目标");
-			transition_to(FlyState::goto_scout_area);
-		}
-	}
-}
-
-template<>
-void OffboardControl::StateMachine::handle_state<FlyState::goto_scout_area>() {
-	if (current_state_ == FlyState::goto_scout_area) {
-		RCLCPP_INFO_ONCE(parent_.get_logger(), "开始前往侦查区域");
-		if (parent_.trajectory_setpoint(parent_.dx_see, parent_.dy_see, parent_.get_z_pos(), parent_.default_yaw)) {
-			RCLCPP_INFO_ONCE(parent_.get_logger(), "到达侦查区域");
-			transition_to(FlyState::scout);
-		}
-	}
-}
-
-template<>
-void OffboardControl::StateMachine::handle_state<FlyState::scout>() {
-	if (current_state_ == FlyState::scout) {
-		RCLCPP_INFO_ONCE(parent_.get_logger(), "开始侦查");
-		if (parent_.surrounding_scout_area()) {
-			RCLCPP_INFO_ONCE(parent_.get_logger(), "侦查完成");
-			transition_to(FlyState::land);
-		}
-	}
-}
-
-template<>
-void OffboardControl::StateMachine::handle_state<FlyState::land>() {
-	if (current_state_ == FlyState::land) {
-		if (parent_.trajectory_setpoint_world(parent_.start.x(), parent_.start.y(), parent_.start.z(), parent_.default_yaw, 0.1)){
-			RCLCPP_INFO_ONCE(parent_.get_logger(), "开始降落");
-			parent_._motors->command_takeoff_or_land("LAND");
-			parent_._motors->command_takeoff_or_land("LAND");
-			RCLCPP_INFO_ONCE(parent_.get_logger(), "降落成功");
-			transition_to(FlyState::end);
 		}
 	}
 }
@@ -197,28 +149,21 @@ void OffboardControl::StateMachine::handle_state<FlyState::end>() {
 
 template<>
 void OffboardControl::StateMachine::handle_state<FlyState::Goto_shotpoint>() {
-	// static float wait_time = sqrt(
-	// 	pow(parent_.tx_shot - parent_.get_x_pos(), 2) + 
-	// 	pow(parent_.ty_shot - parent_.get_y_pos(), 2)
-	// ) / POSCONTROL_VEL_XY_MAX;
 	if (current_state_ == FlyState::Goto_shotpoint) {
-			RCLCPP_INFO_ONCE(parent_.get_logger(), "开始前往投弹区起点");
-			
-			static Timer time_([&](){parent_.send_local_setpoint_command(
-					parent_.tx_shot, parent_.ty_shot, parent_.shot_halt, parent_.default_yaw
-				);
-			});
-			RCLCPP_INFO_THROTTLE(parent_.get_logger(), *parent_.get_clock(), 3000, "前往投弹区中...%f", time_.elapsed());
-			if(time_.elapsed() > 12)
-			{
-				time_.enable_single_reset();
-				RCLCPP_INFO_ONCE(parent_.get_logger(), "到达投弹区起点");
-				transition_to(FlyState::Doshot);
-			}
-			// if(local_setpoint_command(parent_.tx_shot, parent_.ty_shot, parent_.shot_halt, parent_.default_yaw, 0.3)){
-			// 	RCLCPP_INFO_ONCE(parent_.get_logger(), "到达投弹区起点");
-			// 	transition_to(FlyState::Doshot);
-			// }
+		RCLCPP_INFO_ONCE(parent_.get_logger(), "开始前往投弹区起点");
+		float x_shot, y_shot;
+		parent_.rotate_global2stand(parent_.tx_shot, parent_.ty_shot, x_shot, y_shot);
+		static Timer time_([&](){parent_.send_local_setpoint_command(
+				x_shot, y_shot, parent_.shot_halt, parent_.default_yaw
+			);
+		});
+		RCLCPP_INFO_THROTTLE(parent_.get_logger(), *parent_.get_clock(), 3000, "前往投弹区中...%f", time_.elapsed());
+		if(time_.elapsed() > 12)
+		{
+			time_.set_start_time_to_default();
+			RCLCPP_INFO(parent_.get_logger(), "到达投弹区起点");
+			transition_to(FlyState::Doshot);
+		}
 	}
 }
 
@@ -274,21 +219,19 @@ void OffboardControl::StateMachine::handle_state<FlyState::Doshot>() {
 
 template<>
 void OffboardControl::StateMachine::handle_state<FlyState::Goto_scoutpoint>() {
-	// static float wait_time = sqrt(
-	// 	pow(parent_.tx_shot - parent_.get_x_pos(), 2) + 
-	// 	pow(parent_.ty_shot - parent_.get_y_pos(), 2)
-	// ) / POSCONTROL_VEL_XY_MAX;
 	if (current_state_ == FlyState::Goto_scoutpoint) {
 		RCLCPP_INFO_ONCE(parent_.get_logger(), "开始前往侦查起点");
+		float x_see, y_see;
+		parent_.rotate_global2stand(parent_.tx_see, parent_.ty_see, x_see, y_see);
 		static Timer time_([&](){parent_.send_local_setpoint_command(
-				parent_.tx_see, parent_.ty_see, parent_.see_halt, parent_.default_yaw
+				x_see, y_see, parent_.see_halt, parent_.default_yaw
 			);
 		});
-		RCLCPP_INFO_THROTTLE(parent_.get_logger(), *parent_.get_clock(), 3000, "前往投弹区中...%f", time_.elapsed());
-		if(time_.elapsed() > 11)
+		RCLCPP_INFO_THROTTLE(parent_.get_logger(), *parent_.get_clock(), 3000, "前往侦查区中...%f", time_.elapsed());
+		if(time_.elapsed() > 12)
 		{
-			time_.enable_single_reset();
-			RCLCPP_INFO_ONCE(parent_.get_logger(), "到达投弹区起点");
+			time_.set_start_time_to_default();
+			RCLCPP_INFO(parent_.get_logger(), "到达侦查区起点");
 			transition_to(FlyState::Surround_see);
 		}
 	}
@@ -345,10 +288,95 @@ void OffboardControl::StateMachine::handle_state<FlyState::Print_Info>() {
 	}
 }
 
-// Doshot,
-// Goto_scoutpoint,
-// Surround_see
-// Print_Info
+template<>
+void OffboardControl::StateMachine::handle_state<FlyState::Reflush_config>() {
+	if (current_state_ == FlyState::Reflush_config) {
+		RCLCPP_INFO_ONCE(parent_.get_logger(), "开始刷新配置");
+		// 读取配置文件
+		parent_.read_configs("OffboardControl.yaml");
+		parent_._pose_control->pid_x_defaults = PID::readPIDParameters("pos_config.yaml","pos_x");
+		parent_._pose_control->pid_y_defaults = PID::readPIDParameters("pos_config.yaml","pos_y");
+		parent_._pose_control->pid_z_defaults = PID::readPIDParameters("pos_config.yaml","pos_z");
+		parent_._pose_control->pid_yaw_defaults = PID::readPIDParameters("pos_config.yaml","pos_yaw");
+		parent_._pose_control->pid_px_defaults = PID::readPIDParameters("pos_config.yaml","pos_px");
+		parent_._pose_control->pid_py_defaults = PID::readPIDParameters("pos_config.yaml","pos_py");
+		parent_._pose_control->pid_pz_defaults = PID::readPIDParameters("pos_config.yaml","pos_pz");
+		parent_._pose_control->pid_vx_defaults = PID::readPIDParameters("pos_config.yaml","pos_vx");
+		parent_._pose_control->pid_vy_defaults = PID::readPIDParameters("pos_config.yaml","pos_vy");
+		parent_._pose_control->pid_vz_defaults = PID::readPIDParameters("pos_config.yaml","pos_vz");
+		parent_._pose_control->limit_defaults = parent_._pose_control->readLimits("pos_config.yaml","limits");
+		// 重新设置PID参数
+		parent_._pose_control->reset_pid();
+		parent_._pose_control->set_limits(parent_._pose_control->limit_defaults);
+
+		RCLCPP_INFO_ONCE(parent_.get_logger(), "配置刷新完成");
+		transition_to(previous_state_); // 切换回上一个状态
+	}
+}
+
+// 始终开启
+template<>
+void OffboardControl::StateMachine::handle_state<FlyState::Termial_Control>() {
+  char key = 0;
+	static std::string input = "";
+
+  if (_kbhit()) // 检查是否有按键输入
+	{
+		key = _getch(); // 获取按键输入
+		// 特殊状态处理（起飞解锁前）
+		if (parent_._motors->state_ == (Motors::State::wait_for_takeoff_command)){
+			if (key == '\n') // 检查是否按下回车键
+			{
+				parent_._motors->takeoff_command = true; // 设置起飞命令
+			}
+			else if (key == 'q') // 检查是否按下q键
+			{
+				RCLCPP_INFO(parent_.get_logger(), "退出程序");
+				transition_to(FlyState::end); // 切换到结束状态
+			}
+			else if (key != 0)
+			{
+				RCLCPP_INFO(parent_.get_logger(), "无效输入，请按回车键解锁无人机或按q键退出程序");
+			}
+			return;
+		}
+    // 处理多字符输入
+    if (key == '\n' || key == '\r') { // 按下回车，尝试解析命令
+      std::string upperInput = input;
+      std::transform(upperInput.begin(), upperInput.end(), upperInput.begin(), ::toupper);
+      auto it = FlyStateMap.find(upperInput);
+      if (it != FlyStateMap.end()) {
+        transition_to(it->second);
+        RCLCPP_INFO(parent_.get_logger(), "切换到状态: %s", upperInput.c_str());
+      } else {
+        RCLCPP_INFO(parent_.get_logger(), "无效指令: %s", input.c_str());
+      }
+      input.clear();
+    } else if (key == '\b' && !input.empty()) { // 处理退格
+      input.pop_back();
+		} else if (key == '\t') { // Tab键自动补全
+			std::string upperInput = input;
+			std::transform(upperInput.begin(), upperInput.end(), upperInput.begin(), ::toupper);
+			std::vector<std::string> candidates;
+			for (const auto& kv : FlyStateMap) {
+					if (kv.first.find(upperInput) == 0) { // 前缀匹配
+							candidates.push_back(kv.first);
+					}
+			}
+			if (candidates.size() == 1) {
+					input = candidates[0];
+					RCLCPP_INFO(parent_.get_logger(), "自动补全: %s", input.c_str());
+			} else if (candidates.size() > 1) {
+					std::string msg = "可选项: ";
+					for (const auto& s : candidates) msg += s + " ";
+					RCLCPP_INFO(parent_.get_logger(), "%s", msg.c_str());
+			}
+    } else if (key != 0) {
+      input += key; // 将按键添加到输入字符串中
+    }
+	}
+}
+
 // 状态机动态任务管理
 void OffboardControl::StateMachine::add_dynamic_task(std::function<void()> task) {
 	std::lock_guard<std::mutex> lock(task_mutex_);
@@ -374,9 +402,17 @@ void OffboardControl::StateMachine::process_states() {
 
 // 状态转移
 void OffboardControl::StateMachine::transition_to(FlyState new_state) {
-	RCLCPP_INFO(parent_.get_logger(), "State transition: %d -> %d", 
+	RCLCPP_INFO(parent_.get_logger(), "状态转换: %d -> %d", 
 						 static_cast<int>(current_state_), 
 						 static_cast<int>(new_state));
+	
+	parent_.waypoint_goto_next_start_.reset(); // 重置航点计时器
+
+	if (new_state == current_state_) {
+		RCLCPP_INFO(parent_.get_logger(), "状态未改变，保持当前状态: %d", static_cast<int>(current_state_));
+		return;
+	}
+	previous_state_ = current_state_;
 	current_state_ = new_state;
 }
 
