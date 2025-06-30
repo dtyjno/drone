@@ -41,8 +41,8 @@ void OffboardControl::timer_callback(void)
 		//
 		FlyState::Termial_Control,
 		FlyState::Print_Info,
-		FlyState::Reflush_config
-		FlyState::MYPID,
+		FlyState::Reflush_config,
+		FlyState::MYPID
 
 	>();
 }
@@ -125,66 +125,8 @@ void OffboardControl::StateMachine::handle_state<FlyState::takeoff>() {
 		if (parent_._motors->takeoff(parent_.get_z_pos())) {
 				RCLCPP_INFO_ONCE(parent_.get_logger(), "起飞成功");
 				transition_to(FlyState::Goto_shotpoint);
-				// transition_to(FlyState::goto_shot_area);
 		} else {
 				// RCLCPP_INFO(parent_.get_logger(), "起飞失败");
-		}
-	}
-}
-
-template<>
-void OffboardControl::StateMachine::handle_state<FlyState::goto_shot_area>() {
-	if (current_state_ == FlyState::goto_shot_area) {
-		RCLCPP_INFO_ONCE(parent_.get_logger(), "开始前往投弹区域");
-		if (parent_.trajectory_setpoint(parent_.dx_shot, parent_.dy_shot, parent_.shot_halt, parent_.default_yaw)) {
-			RCLCPP_INFO_ONCE(parent_.get_logger(), "到达投弹区域");
-			transition_to(FlyState::findtarget);
-		}
-	}
-}
-
-template<>
-void OffboardControl::StateMachine::handle_state<FlyState::findtarget>() {
-	if (current_state_ == FlyState::findtarget) {
-		RCLCPP_INFO_ONCE(parent_.get_logger(), "开始寻找目标");
-		if (parent_.trajectory_circle(0.6,1.0,5,0.08)) {
-			RCLCPP_INFO_ONCE(parent_.get_logger(), "找到目标");
-			transition_to(FlyState::goto_scout_area);
-		}
-	}
-}
-
-template<>
-void OffboardControl::StateMachine::handle_state<FlyState::goto_scout_area>() {
-	if (current_state_ == FlyState::goto_scout_area) {
-		RCLCPP_INFO_ONCE(parent_.get_logger(), "开始前往侦查区域");
-		if (parent_.trajectory_setpoint(parent_.dx_see, parent_.dy_see, parent_.get_z_pos(), parent_.default_yaw)) {
-			RCLCPP_INFO_ONCE(parent_.get_logger(), "到达侦查区域");
-			transition_to(FlyState::scout);
-		}
-	}
-}
-
-template<>
-void OffboardControl::StateMachine::handle_state<FlyState::scout>() {
-	if (current_state_ == FlyState::scout) {
-		RCLCPP_INFO_ONCE(parent_.get_logger(), "开始侦查");
-		if (parent_.surrounding_scout_area()) {
-			RCLCPP_INFO_ONCE(parent_.get_logger(), "侦查完成");
-			transition_to(FlyState::land);
-		}
-	}
-}
-
-template<>
-void OffboardControl::StateMachine::handle_state<FlyState::land>() {
-	if (current_state_ == FlyState::land) {
-		if (parent_.trajectory_setpoint_world(parent_.start.x(), parent_.start.y(), parent_.start.z(), parent_.default_yaw, 0.1)){
-			RCLCPP_INFO_ONCE(parent_.get_logger(), "开始降落");
-			parent_._motors->command_takeoff_or_land("LAND");
-			parent_._motors->command_takeoff_or_land("LAND");
-			RCLCPP_INFO_ONCE(parent_.get_logger(), "降落成功");
-			transition_to(FlyState::end);
 		}
 	}
 }
@@ -255,7 +197,8 @@ void OffboardControl::StateMachine::handle_state<FlyState::Doshot>() {
 		{
 			RCLCPP_INFO(parent_.get_logger(), "投弹!!投弹!!，总用时：%f", doshot_start.elapsed());
 			// 设置舵机位置
-			parent_._servo_controller->set_servo(12, 1800);
+			parent_._servo_controller->set_servo(9, 1800);
+			parent_._servo_controller->set_servo(10, 1800);
 			doshot_start.set_start_time_to_default();
 			counter = 0;
 			arrive = false;

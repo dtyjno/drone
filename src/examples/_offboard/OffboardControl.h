@@ -483,6 +483,7 @@ private:
 	void PID_rtl(double now_x, double now_y, double now_z, double target_x, double target_y, bool &is_land);
 
 	bool catch_target(bool &result, enum YOLO::TARGET_TYPE target);
+	bool autotune(bool &result, enum YOLO::TARGET_TYPE target);
 	bool surrounding_shot_area(void);
 	bool surrounding_scout_area(void);
 	void send_local_setpoint_command(float x, float y, float z, float yaw);
