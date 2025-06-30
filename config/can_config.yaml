@@ -1,7 +1,7 @@
 pid_bucket:
-  p: 0.04
-  i: 0.02
-  d: 0.015
+  p: 0.4
+  i: 0.2
+  d: 0.15
   ff: 0
   dff: 0
   imax: 10
@@ -17,7 +17,7 @@ tar_y: 0.0
 tar_z: 1.2
 x_flip: false
 y_flip: false # true
-  # pid_bucket:
+# pid_bucket:
   # p: 0.40
   # i: 0.40
   # d: 0.15

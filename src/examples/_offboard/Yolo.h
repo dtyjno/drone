@@ -37,7 +37,6 @@ public:
         H //+=1
     };
 
-
     bool is_get_target(enum TARGET_TYPE type){
         if(type == CIRCLE){
             return fabs(get_x(type)) < 0.0001 && fabs(get_y(type)) < 0.0001;

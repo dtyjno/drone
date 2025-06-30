@@ -14,10 +14,12 @@ float InertialNav::rangefinder_height;
 
 
 // 接收位置数据
-void InertialNav::pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) 
+void InertialNav::status_callback(const nav_msgs::msg::Odometry::SharedPtr msg) 
 {
-	position = Vector3f(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
-	orientation = Quaternionf(msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w);
+	position = Vector3f(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z);
+	orientation = Quaternionf(msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z, msg->pose.pose.orientation.w);
+	velocity = Vector4f(msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z, msg->twist.twist.angular.z);
+
 	// node->set_pose();
 	// quaternion.w() = msg->pose.orientation.w;
 	// quaternion.x() = msg->pose.orientation.x;
@@ -53,20 +55,6 @@ void InertialNav::gps_callback(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
 	// RCLCPP_INFO(node->get_logger(), "Longitude: %f", (*msg).longitude);
 	// RCLCPP_INFO(node->get_logger(), "Altitude: %f", (*msg).altitude);
 
-}
-// 接收速度数据
-void InertialNav::velocity_callback(const geometry_msgs::msg::TwistStamped::SharedPtr msg) 
-{
-	velocity = Vector4f(msg->twist.linear.x, msg->twist.linear.y, msg->twist.linear.z, msg->twist.angular.z);
-
-	// node->set_velocity();
-	// RCLCPP_INFO(this->get_logger(), "Received velocity data");
-	// RCLCPP_INFO(this->get_logger(), "Linear x: %f", msg->twist.linear.x);
-	// RCLCPP_INFO(this->get_logger(), "Linear y: %f", msg->twist.linear.y);
-	// RCLCPP_INFO(this->get_logger(), "Linear z: %f", msg->twist.linear.z);
-	// RCLCPP_INFO(this->get_logger(), "Angular x: %f", msg->twist.angular.x);
-	// RCLCPP_INFO(this->get_logger(), "Angular y: %f", msg->twist.angular.y);
-	// RCLCPP_INFO(this->get_logger(), "Angular z: %f", msg->twist.angular.z);
 }
 // 接收高度数据=0
 void InertialNav::altitude_callback(const mavros_msgs::msg::Altitude::SharedPtr msg) 

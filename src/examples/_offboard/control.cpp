@@ -141,7 +141,6 @@ bool OffboardControl::catch_target(bool &result, enum YOLO::TARGET_TYPE target)
 	// 读取PID参数
 	PID::Defaults defaults = PID::readPIDParameters("can_config.yaml", "pid_bucket");
 	PosControl::Limits_t limits = _pose_control->readLimits("can_config.yaml", "limits");
-
 	_pose_control->set_limits(limits);
 	// 读取距离目标一定范围内退出的距离
 	YAML::Node config = Readyaml::readYAML("can_config.yaml");

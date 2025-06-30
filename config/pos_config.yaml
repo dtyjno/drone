@@ -9,10 +9,10 @@ mypid:
   d: 0.0054
   dff: 0
   ff: 0
-  i: 0.1196
+  i: 0.1875
   integrallimit: 1.3859
   outputlimit: 2.0217
-  p: 0.5109
+  p: 0.6277
 pos_px:
   d: 0
   dff: 0

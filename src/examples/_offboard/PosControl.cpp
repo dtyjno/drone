@@ -63,9 +63,7 @@ void PosControl::publish_setpoint_raw_global(double latitude, double longitude, 
 	msg.velocity.x = 0;
 	msg.velocity.y = 0;
 	msg.velocity.z = 0;
-	msg.yaw_rate = 0;
-	msg.acceleration_or_force.x = 0;
-	msg.acceleration_or_force.y = 0;
+
 	msg.acceleration_or_force.z = 0;
 
 	msg.header.stamp = node->now();
@@ -489,7 +487,7 @@ bool PosControl::publish_setpoint_world(Vector4f now, Vector4f target, double ac
 	// 	pid_vy.update_all(InertialNav::velocity.y,pos.y,dt_pid_p_v,max_speed_xy),//,InertialNav::linear_acceleration.y);
 	// 	pid_vz.update_all(InertialNav::velocity.z(),pos.z(),dt_pid_p_v,max_speed_z),//,InertialNav::linear_acceleration.z()-9.80665);
 	// 	0
-	// };
+	// };(*objectname) [1ms]
 	Vector4f pos = {
 			pid_px.update_all(now.x(), target.x(), 0, 2 * max_speed_xy, InertialNav::velocity.x()),
 			pid_py.update_all(now.y(), target.y(), 0, 2 * max_speed_xy, InertialNav::velocity.y()),

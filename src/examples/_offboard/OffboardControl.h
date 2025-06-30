@@ -144,7 +144,6 @@ public:
 			RCLCPP_INFO(this->get_logger(), "模式切换服务未准备好, 正在等待...");
 			// rate.sleep();
 		}
-
 		timestamp_init = get_cur_time();
 		timer_ = this->create_wall_timer(100ms, std::bind(&OffboardControl::timer_callback, this));
 	}
