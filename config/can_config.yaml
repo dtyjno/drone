@@ -1,7 +1,13 @@
 pid_bucket:
+<<<<<<< HEAD
   p: 0.4
   i: 0.2
   d: 0.15
+=======
+  p: 0.04
+  i: 0.02
+  d: 0.015
+>>>>>>> a65625c36abb3fe40998778ed62788f1eddf865f
   ff: 0
   dff: 0
   imax: 10
@@ -12,6 +18,14 @@ limits:
   accel_max_xy: 0.5
   accel_max_z: 0.1
 accuracy: 0.1
+<<<<<<< HEAD
+=======
+tar_x: 0.0 # 目标x坐标，单位：px  0使用默认值
+tar_y: 0.0
+tar_z: 1.2
+x_flip: false
+y_flip: true
+>>>>>>> a65625c36abb3fe40998778ed62788f1eddf865f
   # pid_bucket:
   # p: 0.40
   # i: 0.40

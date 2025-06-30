@@ -9,10 +9,17 @@ mypid:
   d: 0.0054
   dff: 0
   ff: 0
+<<<<<<< HEAD
   i: 0.1875
   integrallimit: 1.3859
   outputlimit: 2.0217
   p: 0.6277
+=======
+  i: 0.1196
+  integrallimit: 1.3859
+  outputlimit: 2.0217
+  p: 0.5109
+>>>>>>> a65625c36abb3fe40998778ed62788f1eddf865f
 pos_px:
   d: 0
   dff: 0
@@ -77,9 +84,16 @@ pos_yaw:
   imax: 10
   p: 0.8
 pos_z:
+<<<<<<< HEAD
   d: 0.1
   dff: 0
   ff: 0
   i: 0.05
+=======
+  d: 0.05
+  dff: 0
+  ff: 0
+  i: 0.1
+>>>>>>> a65625c36abb3fe40998778ed62788f1eddf865f
   imax: 10
   p: 0.6

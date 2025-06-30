@@ -60,6 +60,17 @@ public:
 
 	bool takeoff(float local_frame_z ,float takeoff_altitude = 5.0);
 	
+	bool takeoff_command = false;
+	bool _arm_done; //arm_motor's reply
+	enum class State{
+		init,
+		wait_for_takeoff_command,
+		wait_for_stable_offboard_mode,
+		arm_requested,
+		takeoff,
+		autotune_mode,
+		
+	} state_;
 	static bool armed;
 	static bool connected;
 	static bool guided;
@@ -73,7 +84,6 @@ private:
 	std::string ardupilot_namespace;
 	// rclcpp::Node::SharedPtr node;
 
-	bool _arm_done; //arm_motor's reply
 
 	rclcpp::Subscription<mavros_msgs::msg::State>::SharedPtr state_subscription_;
 	rclcpp::Subscription<mavros_msgs::msg::HomePosition>::SharedPtr home_position_subscription_;
@@ -86,13 +96,4 @@ private:
 // /mavros/time_reference (sensor_msgs/TimeReference)
     
 
-	enum class State{
-		init,
-		send_geo_grigin,
-		wait_for_stable_offboard_mode,
-		arm_requested,
-		takeoff,
-		autotune_mode,
-		
-	} state_;
 };

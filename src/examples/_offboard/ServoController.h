@@ -9,6 +9,18 @@
 
 using namespace std::chrono_literals; // 使用 chrono 字面量
 
+// ros2 service call /mavros/cmd/command mavros_msgs/srv/CommandLong "request:
+//   broadcast: false
+//   command: 183  # DO_SET_SERVO
+//   confirmation: 0
+//   param1: 1     # 舵机编号
+//   param2: 1500  # 舵机位置
+//   param3: 0.0
+//   param4: 0.0
+//   param5: 0.0
+//   param6: 0.0
+//   param7: 0.0"
+
 class ServoController {
 public:
     ServoController(const std::string ardupilot_namespace, OffboardControl_Base* node) 

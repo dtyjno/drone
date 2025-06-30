@@ -33,10 +33,8 @@ public:
 		// topic /mavros/local_position/odom/ msg nav_msgs/msg/Odometry
 
 		//ros2 topic echo /mavros/local_position/pose geometry_msgs/msg/PoseStamped
-		pose_subscription_ = node->create_subscription<nav_msgs::msg::Odometry>("/mavros/local_position/odom", qos,
-		std::bind(&InertialNav::pose_callback, this, std::placeholders::_1),sub_opt);
-		velocity_subscription_ = node->create_subscription<nav_msgs::msg::Odometry>("/mavros/local_position/odom", qos ,
-		std::bind(&InertialNav::velocity_callback, this, std::placeholders::_1),sub_opt);
+		status_subscription_ = node->create_subscription<nav_msgs::msg::Odometry>("/mavros/local_position/odom", qos,
+		std::bind(&InertialNav::status_callback, this, std::placeholders::_1),sub_opt);
 		//ros2 topic echo /mavros/global_position/global sensor_msgs/msg/NavSatFix
 		gps_subscription_ = node->create_subscription<sensor_msgs::msg::NavSatFix>(ardupilot_namespace+"global_position/global", qos,
 		std::bind(&InertialNav::gps_callback, this, std::placeholders::_1),sub_opt);
@@ -117,15 +115,13 @@ private:
 	OffboardControl_Base* node;
 	
 	rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gps_subscription_;
-	rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr pose_subscription_;
-	rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr velocity_subscription_;
+	rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr status_subscription_;
 	rclcpp::Subscription<mavros_msgs::msg::Altitude>::SharedPtr altitude_subscription_;
 	rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_data_subscription_;
 	rclcpp::Subscription<sensor_msgs::msg::Range>::SharedPtr rangefinder_subscription_; // 激光雷达高度
 
-	void pose_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
+	void status_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
 	void gps_callback(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
-	void velocity_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
 	void altitude_callback(const mavros_msgs::msg::Altitude::SharedPtr msg);
 	void imu_data_callback(const sensor_msgs::msg::Imu::SharedPtr msg);
 	void rangefinder_callback(const sensor_msgs::msg::Range::SharedPtr msg);

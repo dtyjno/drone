@@ -62,10 +62,8 @@ void PosControl::publish_setpoint_raw_global(double latitude, double longitude, 
 	msg.yaw = yaw;
 	msg.velocity.x = 0;
 	msg.velocity.y = 0;
-	msg.velocity.z = 0;
-	msg.yaw_rate = 0;
-	msg.acceleration_or_force.x = 0;
-	msg.acceleration_or_force.y = 0;
+	msg.velocity.z = 0;(*objectname) [1ms]
+
 	msg.acceleration_or_force.z = 0;
 
 	msg.header.stamp = node->now();
@@ -89,12 +87,12 @@ void PosControl::send_local_setpoint_command(double x, double y, double z, doubl
 	msg.pose.position.z = z;
 	//旋转四元数
 	
-	double radians_angle = yaw * M_PI / 180.0;
+	double radians_angle = yaw;
 	msg.pose.orientation.x = 0;
 	msg.pose.orientation.y = 0;
 	msg.pose.orientation.z = sin(radians_angle / 2);
 	msg.pose.orientation.w = cos(radians_angle / 2);
-
+	RCLCPP_INFO(node->get_logger(), "Publishing local setpoint: x=%f, y=%f, z=%f, yaw=%f", x, y, z, yaw);
 	local_setpoint_publisher_->publish(msg);
 }
 
@@ -489,10 +487,8 @@ bool PosControl::publish_setpoint_world(Vector4f now, Vector4f target, double ac
 	// 	pid_vy.update_all(InertialNav::velocity.y,pos.y,dt_pid_p_v,max_speed_xy),//,InertialNav::linear_acceleration.y);
 	// 	pid_vz.update_all(InertialNav::velocity.z(),pos.z(),dt_pid_p_v,max_speed_z),//,InertialNav::linear_acceleration.z()-9.80665);
 	// 	0
-	// };
-	Vector4f pos = {
-			pid_px.update_all(now.x(), target.x(), 0, 2 * max_speed_xy, InertialNav::velocity.x()),
-			pid_py.update_all(now.y(), target.y(), 0, 2 * max_speed_xy, InertialNav::velocity.y()),
+	// };(*objectname) [1ms]
+pid_py.update_all(now.y(), target.y(), 0, 2 * max_speed_xy, InertialNav::velocity.y()),
 			pid_pz.update_all(now.z(), target.z(), 0, 2 * max_speed_z, InertialNav::velocity.z()),
 			pid_yaw.update_all(now.w(), target.w(), dt, max_speed_yaw, InertialNav::velocity.w())};
 	Vector4f vel;

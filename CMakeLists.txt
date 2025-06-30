@@ -41,6 +41,7 @@ find_package(OpenCV REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(Curses REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(ros2_yolo_msgs REQUIRED)
 
 
 #################
@@ -100,6 +101,9 @@ file(GLOB SOURCES "src/examples/_offboard/*.cpp")
 add_executable(_offboard ${SOURCES}
     src/examples/_offboard/FuzzyPID.cpp)
 ament_target_dependencies(_offboard rclcpp mavros_msgs geometry_msgs nav_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs ros2_interfaces sensor_msgs OpenCV cv_bridge ament_index_cpp)
+
+ament_target_dependencies(_offboard rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs ros2_yolo_msgs sensor_msgs OpenCV cv_bridge ament_index_cpp)
+
 target_link_libraries(_offboard yaml-cpp)  
 install(TARGETS _offboard DESTINATION lib/${PROJECT_NAME})
 
