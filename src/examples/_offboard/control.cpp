@@ -203,7 +203,7 @@ bool OffboardControl::catch_target(bool &result, enum YOLO::TARGET_TYPE target)
 		last_time = get_cur_time();
 
 		// yolo返回值坐标系：x右y下（上），转换为飞机坐标系：x左y上
-		float now_x = x_flip * (_yolo->get_cap_frame_width()-_yolo->get_x(target)));
+		float now_x = x_flip * (_yolo->get_cap_frame_width()-_yolo->get_x(target));
 		float now_y = y_flip * (_yolo->get_cap_frame_height()-_yolo->get_y(target));
 		rotate_xy(now_x, now_y, (get_yaw() - default_yaw));
 		rotate_xy(tar_x, tar_y, (get_yaw() - default_yaw));
