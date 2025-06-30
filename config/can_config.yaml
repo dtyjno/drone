@@ -1,0 +1,26 @@
+pid_bucket:
+  p: 0.4
+  i: 0.2
+  d: 0.15
+  ff: 0
+  dff: 0
+  imax: 10
+limits:
+  speed_max_xy: 0.3
+  speed_max_z: 0.3
+  speed_max_yaw: 0.1
+  accel_max_xy: 0.5
+  accel_max_z: 0.1
+accuracy: 0.1
+  # pid_bucket:
+  # p: 0.40
+  # i: 0.40
+  # d: 0.15
+  # ff: 0
+  # dff: 0
+  # imax: 10
+  
+# p=1,v=0.3 Kp:1.658121 Ki:1500.000000 Kd:375.000000
+# 峰高和周期时间的方差: 0.009935 89.267853
+# p=1,v=0.1 Kp:0.826094 Ki:1500.000000 Kd:375.000000
+

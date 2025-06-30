@@ -21,6 +21,7 @@ find_package(builtin_interfaces REQUIRED)
 find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(geographic_msgs REQUIRED)
 find_package(mavros_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -59,12 +60,12 @@ target_include_directories(frame_transforms PUBLIC
 
 # examples/listeners/pose_subscriber
 add_executable(pose_subscriber src/examples/listeners/pose_subscriber.cpp)
-ament_target_dependencies(pose_subscriber rclcpp geometry_msgs )
+ament_target_dependencies(pose_subscriber rclcpp geometry_msgs nav_msgs)
 install(TARGETS pose_subscriber DESTINATION lib/${PROJECT_NAME})
 
 # examlles/listeners/yolo_subscriber
 add_executable(yolo_subscriber src/examples/listeners/yolo_subscriber.cpp)
-ament_target_dependencies(yolo_subscriber rclcpp sensor_msgs ros2_interfaces)
+ament_target_dependencies(yolo_subscriber rclcpp sensor_msgs nav_msgs ros2_interfaces)
 install(TARGETS yolo_subscriber DESTINATION lib/${PROJECT_NAME})
 
 # examlles/listeners/camera_image_subscriber
@@ -89,7 +90,7 @@ file(GLOB SOURCES "src/examples/offboard_control/*.cpp")
 #list(REMOVE_ITEM SOURCES "src/examples/drone1.0/offboard_control_srv.cpp")
 add_executable(offboard_control ${SOURCES}
     src/examples/offboard_control/FuzzyPID.cpp)
-ament_target_dependencies(offboard_control rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs ros2_interfaces sensor_msgs OpenCV cv_bridge ament_index_cpp)
+ament_target_dependencies(offboard_control rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs ros2_interfaces sensor_msgs nav_msgs OpenCV cv_bridge ament_index_cpp)
 target_link_libraries(offboard_control yaml-cpp)  
 install(TARGETS offboard_control DESTINATION lib/${PROJECT_NAME})
 
@@ -98,7 +99,7 @@ include_directories(src/examples/_offboard)
 file(GLOB SOURCES "src/examples/_offboard/*.cpp")
 add_executable(_offboard ${SOURCES}
     src/examples/_offboard/FuzzyPID.cpp)
-ament_target_dependencies(_offboard rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs ros2_interfaces sensor_msgs OpenCV cv_bridge ament_index_cpp)
+ament_target_dependencies(_offboard rclcpp mavros_msgs geometry_msgs nav_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs ros2_interfaces sensor_msgs OpenCV cv_bridge ament_index_cpp)
 target_link_libraries(_offboard yaml-cpp)  
 install(TARGETS _offboard DESTINATION lib/${PROJECT_NAME})
 
@@ -109,7 +110,7 @@ install(TARGETS _offboard DESTINATION lib/${PROJECT_NAME})
 # #list(REMOVE_ITEM SOURCES "src/examples/drone1.0/offboard_land_srv.cpp")
  add_executable(offboard_land ${SOURCES})
  target_link_libraries(offboard_land ${CURSES_LIBRARIES} yaml-cpp)
- ament_target_dependencies(offboard_land rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs ros2_interfaces sensor_msgs OpenCV cv_bridge ament_index_cpp)
+ ament_target_dependencies(offboard_land rclcpp mavros_msgs geometry_msgs nav_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs ros2_interfaces sensor_msgs OpenCV cv_bridge ament_index_cpp)
  install(TARGETS offboard_land DESTINATION lib/${PROJECT_NAME})
 
 # examples/offboard/offboard_sub
@@ -119,7 +120,7 @@ file(GLOB SOURCES "src/examples/offboard_sub/*.cpp")
 # #list(REMOVE_ITEM SOURCES "src/examples/drone1.0/offboard_sub_srv.cpp")
 add_executable(offboard_sub ${SOURCES})
 target_link_libraries(offboard_sub ${CURSES_LIBRARIES} yaml-cpp)
-ament_target_dependencies(offboard_sub rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs ros2_interfaces sensor_msgs OpenCV cv_bridge ament_index_cpp)
+ament_target_dependencies(offboard_sub rclcpp mavros_msgs geometry_msgs nav_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs ros2_interfaces sensor_msgs OpenCV cv_bridge ament_index_cpp)
 install(TARGETS offboard_sub DESTINATION lib/${PROJECT_NAME})
 
 ############
@@ -127,7 +128,7 @@ install(TARGETS offboard_sub DESTINATION lib/${PROJECT_NAME})
 ############
 
 # Export information to downstream packages
-ament_export_dependencies(ament_cmake rclcpp rosidl_default_runtime eigen3_cmake_module Eigen3 ardupilot_msgs geometry_msgs sensor_msgs)
+ament_export_dependencies(ament_cmake rclcpp rosidl_default_runtime eigen3_cmake_module Eigen3 ardupilot_msgs geometry_msgs sensor_msgs nav_msgs)
 
 ament_export_targets(export_frame_transforms HAS_LIBRARY_TARGET)
 
