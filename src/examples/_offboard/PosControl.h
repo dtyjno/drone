@@ -325,8 +325,8 @@ private:
 	float default_yaw = DEFAULT_YAW;
 	float dt = 1;
 	float dt_pid_p_v = 1;
-	Vector3f input_pos_xyz(Vector3f now, Vector3f target, bool fuzzy = false, Vector3b direction = {true, true, true});
-	Vector4f input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy = false, Vector4b direction = {true, true, true, true});
+	Vector3f input_pos_xyz(Vector3f now, Vector3f target, bool fuzzy = false);
+	Vector4f input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy = false);
 	Vector4f input_pos_xyz_yaw_without_vel(Vector4f now, Vector4f target);
 	Vector4f input_pos_vel_1_xyz_yaw(Vector4f now, Vector4f target);
 	Vector4f input_pos_vel_xyz_yaw(Vector4f now, Vector4f target);

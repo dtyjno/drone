@@ -13,6 +13,37 @@
     aircraft_deg %= 360.0
 
 */
+const std::map<std::string, FlyState> FlyStateMap = {
+	{"INIT", FlyState::init},
+	// {"REQUEST", FlyState::request},
+	{"TAKEOFF", FlyState::takeoff},
+	{"END", FlyState::end},
+	{"GOTO_SHOTPOINT", FlyState::Goto_shotpoint},
+	{"DOSHOT", FlyState::Doshot},
+	{"GOTO_SCOUTPOINT", FlyState::Goto_scoutpoint},
+	{"SURROUND_SEE", FlyState::Surround_see},
+	{"DOLAND", FlyState::Doland},
+	{"MYPID", FlyState::MYPID},
+	{"PRINT_INFO", FlyState::Print_Info},
+	{"TERMINAL_CONTROL", FlyState::Termial_Control},
+	{"REFLUSH_CONFIG", FlyState::Reflush_config},
+};
+
+// 将当前状态发布到currentstate 1=circle:shot/sco 2=h:land
+inline int fly_state_to_int(FlyState state) {
+  switch (state) {
+    case FlyState::init: return 1;
+    case FlyState::takeoff: return 1;
+    case FlyState::end: return 2;
+    case FlyState::Goto_shotpoint: return 1;
+    case FlyState::Doshot: return 0;
+    case FlyState::Goto_scoutpoint: return 1;
+    case FlyState::Surround_see: return 3;
+    case FlyState::Doland: return 4;
+    case FlyState::Print_Info: return 1;
+    default: return 1;
+  }
+}
 
 void OffboardControl::timer_callback(void)
 {
@@ -24,7 +55,20 @@ void OffboardControl::timer_callback(void)
 		_yolo->get_x(YOLO::TARGET_TYPE::H), _yolo->get_y(YOLO::TARGET_TYPE::H),
 		_yolo->get_servo_flag(), get_yaw());
 
-	// 这里是定时器回调函数的实现
+	CameraParams camera1;
+	camera1.position = Vector3d(get_x_pos(), get_y_pos(), get_z_pos());
+	camera1.rotation = Vector3d(0, -M_PI/2, 0);  // 俯仰角-90度(向下看)
+	camera1.focal_length = 1.0;
+ 	Vector2d image_point1(
+		_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE) / _yolo->get_cap_frame_width(),
+		_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE) / _yolo->get_cap_frame_height()
+	);
+
+  auto target1 = calculateWorldPosition(image_point1, camera1, 0.0, 2.0);
+    
+	// if (target1) {
+	// 		std::cout << "Example 1 - Target position: " << *target1 << std::endl;
+	// }
 
 	state_machine_.execute_dynamic_tasks();
 	state_machine_.process_states<

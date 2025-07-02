@@ -1,13 +1,13 @@
 pid_bucket:
-  p: 0.4
-  i: 0.2
-  d: 0.15
+  p: 0.2
+  i: 0.1
+  d: 0.06
   ff: 0
   dff: 0
   imax: 10
 limits:
-  speed_max_xy: 0.3
-  speed_max_z: 0.3
+  speed_max_xy: 0.15
+  speed_max_z: 0.1
   speed_max_yaw: 0.1
   accel_max_xy: 0.5
   accel_max_z: 0.1
@@ -15,8 +15,8 @@ accuracy: 0.1
 tar_x: 0.0 # 目标x坐标，单位：px  0使用默认值
 tar_y: 0.0
 tar_z: 1.2
-x_flip: false
-y_flip: false # true
+x_flip: false # 是否翻转x轴
+y_flip: false # 是否翻转y轴 true
 # pid_bucket:
   # p: 0.40
   # i: 0.40

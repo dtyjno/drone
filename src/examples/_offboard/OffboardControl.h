@@ -65,37 +65,8 @@ enum class FlyState
 	Reflush_config,
 } ;
 
-inline const std::map<std::string, FlyState> FlyStateMap = {
-	{"INIT", FlyState::init},
-	// {"REQUEST", FlyState::request},
-	{"TAKEOFF", FlyState::takeoff},
-	{"END", FlyState::end},
-	{"GOTO_SHOTPOINT", FlyState::Goto_shotpoint},
-	{"DOSHOT", FlyState::Doshot},
-	{"GOTO_SCOUTPOINT", FlyState::Goto_scoutpoint},
-	{"SURROUND_SEE", FlyState::Surround_see},
-	{"DOLAND", FlyState::Doland},
-	{"MYPID", FlyState::MYPID},
-	{"PRINT_INFO", FlyState::Print_Info},
-	{"TERMINAL_CONTROL", FlyState::Termial_Control},
-	{"REFLUSH_CONFIG", FlyState::Reflush_config},
-};
-
-// 将当前状态发布到currentstate 1=circle:shot/sco 2=h:land
-inline int fly_state_to_int(FlyState state) {
-  switch (state) {
-    case FlyState::init: return 1;
-    case FlyState::takeoff: return 1;
-    case FlyState::end: return 2;
-    case FlyState::Goto_shotpoint: return 1;
-    case FlyState::Doshot: return 0;
-    case FlyState::Goto_scoutpoint: return 1;
-    case FlyState::Surround_see: return 3;
-    case FlyState::Doland: return 4;
-    case FlyState::Print_Info: return 1;
-    default: return 1;
-  }
-}
+extern const std::map<std::string, FlyState> FlyStateMap;
+int fly_state_to_int(FlyState state);
 
 class OffboardControl : public OffboardControl_Base
 {
@@ -220,7 +191,8 @@ public:
 		float yaw = atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z));
 		// float pitch = asin(2.0 * (w * y - z * x));
 		// float roll = atan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x * x + y * y));
-		return yaw; // 弧度制
+		return fmod(M_PI - yaw + 2 * M_PI, 2 * M_PI); // 确保偏航角在0到2π之间
+		// return yaw;
 	}
 	float get_yaw_eigen() {
     // 直接从四元数提取偏航角
@@ -454,8 +426,9 @@ private:
 		YAML::Node config = Readyaml::readYAML(filename);
 		headingangle_compass = config["headingangle_compass"].as<float>();
 		// 1. 航向角转换：指南针角度 → 数学标准角度（东为0°，逆时针）
-		default_yaw = fmod(90.0 - headingangle_compass + 360.0, 360.0);
-		headingangle_compass = fmod(360.0 - headingangle_compass, 360.0);
+		default_yaw = fmod(90.0 - headingangle_compass + 720.0, 360.0);
+		// headingangle_compass = fmod(360.0 - headingangle_compass, 360.0);
+		default_yaw = headingangle_compass;
 		RCLCPP_INFO(this->get_logger(), "读取罗盘角度: %f，默认旋转角：%f", headingangle_compass, default_yaw);
 		headingangle_compass = headingangle_compass * M_PI / 180.0; // 弧度制
 		default_yaw = default_yaw * M_PI / 180.0; // 弧度制

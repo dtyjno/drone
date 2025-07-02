@@ -195,61 +195,11 @@ void PosControl::send_accel_command(Vector4f v)
 	msg.vector.z = v.z();
 	msg.header.stamp = node->now();
 	setpoint_accel_publisher_->publish(msg);
-
-	// mavros_msgs::msg::AttitudeTarget msg;
-	// msg.header.stamp = node->now();
-	// msg.header.frame_id = "base_link";
-	// msg.body_rate.x() ()= -v.y();
-	// msg.body_rate.y = v.x();
-	// msg.body_rate.z() = v.z();
-	// msg.type_mask = mavros_msgs::msg::AttitudeTarget::IGNORE_THRUST;
-	// msg.thrust = 1;
-	// msg.orientation.w =
-	// setpoint_raw_attitude_publisher_->publish(msg);
-
-	// 	 geometry_msgs::msg::TwistStamped msg1;
-	// 	msg1.twist.angular.x() = v.x();
-	// 	msg1.twist.angular.y() = v.y();
-	// // msg1.twist.linear.z()
-	// 	msg1.header.stamp = node->now();
-	// 	msg1.header.frame_id = "base_link";
-	// 	twist_stamped_publisher_->publish(msg1);
-
-	// RCLCPP_INFO(node->get_logger(), "Publishing setpoint: latitude=%f, longitude=%f, altitude=%f, yaw=%f", latitude, longitude, altitude, yaw);
-	// mavros_msgs::msg::PositionTarget msg;
-	// msg.coordinate_frame = mavros_msgs::msg::PositionTarget::FRAME_BODY_NED;
-	// //mavros_msgs::msg::GlobalPositionTarget::FRAME_GLOBAL_INT;
-	// msg.acceleration_or_force.x() = v.x();
-	// msg.acceleration_or_force.y() = v.y();
-	// msg.acceleration_or_force.z() = v.z();
-	// msg.type_mask = // mavros_msgs::msg::PositionTarget::IGNORE_AFX |
-	//                 // mavros_msgs::msg::PositionTarget::IGNORE_AFY |
-	//                 // mavros_msgs::msg::PositionTarget::IGNORE_AFZ |
-	//                 mavros_msgs::msg::PositionTarget::IGNORE_PX |
-	//                 mavros_msgs::msg::PositionTarget::IGNORE_PY |
-	//                 mavros_msgs::msg::PositionTarget::IGNORE_PZ |
-	//                 mavros_msgs::msg::PositionTarget::IGNORE_VX |
-	//                 mavros_msgs::msg::PositionTarget::IGNORE_VY |
-	//                 mavros_msgs::msg::PositionTarget::IGNORE_VZ |
-	//                 mavros_msgs::msg::PositionTarget::IGNORE_YAW |
-	//                 mavros_msgs::msg::PositionTarget::IGNORE_YAW_RATE;
-	// msg.header.stamp = node->now();
-	// msg.header.frame_id = "";
-	// setpoint_raw_local_publisher_->publish(msg);
 }
-// void PosControl::setYawRate(float yaw_rate) {
-//         // 创建并填充TwistStamped消息
-//         geometry_msgs::msg::TwistStamped twist_msg;
-//         twist_msg.header.stamp = node->now();
-//         twist_msg.twist.angular.z() = yaw_rate; // 设置偏航角速度，正值为顺时针，负值为逆时针
-
-//         // 发布消息
-//         twist_stamped_publisher_->publish(twist_msg);
-// }
 
 // 输入位置 pid控制速度
 // 初始时 now > target : direction = true 记为正方向 否则记为负方向
-Vector3f PosControl::input_pos_xyz(Vector3f now, Vector3f target, bool fuzzy, Vector3b direction)
+Vector3f PosControl::input_pos_xyz(Vector3f now, Vector3f target, bool fuzzy)
 {
 	if(fuzzy){
 		float delta_k = 2.0f;
@@ -257,16 +207,16 @@ Vector3f PosControl::input_pos_xyz(Vector3f now, Vector3f target, bool fuzzy, Ve
 		Vector3f f;
 		float kp = 0, ki = 0, kd = 0;
 
-        pid_x.get_pid(kp, ki, kd);
-        if (direction.x())
-            fuzzy_pid.fuzzy_pid_control(now.x(), target.x(), 0, kp, ki, kd, delta_k);
-        else
-            fuzzy_pid.fuzzy_pid_control(target.x(), now.x(), 0, kp, ki, kd, delta_k);
-        pid_x.set_gains(kp, ki, kd);
+		pid_x.get_pid(kp, ki, kd);
+		if (now.x() < target.x())
+			fuzzy_pid.fuzzy_pid_control(now.x(), target.x(), 0, kp, ki, kd, delta_k);
+		else
+			fuzzy_pid.fuzzy_pid_control(target.x(), now.x(), 0, kp, ki, kd, delta_k);
+		pid_x.set_gains(kp, ki, kd);
 		f.x() = pid_x.update_all(now.x(), target.x(), dt, max_speed_xy, InertialNav::velocity.x());
 
 		pid_y.get_pid(kp, ki, kd);
-		if (direction.y())
+		if (now.y() < target.y())
 			fuzzy_pid.fuzzy_pid_control(now.y(), target.y(), 1, kp, ki, kd, delta_k);
 		else
 			fuzzy_pid.fuzzy_pid_control(target.y(), now.y(), 1, kp, ki, kd, delta_k);
@@ -274,54 +224,28 @@ Vector3f PosControl::input_pos_xyz(Vector3f now, Vector3f target, bool fuzzy, Ve
 		f.y() = pid_y.update_all(now.y(), target.y(), dt, max_speed_xy, InertialNav::velocity.y());
 		
 		pid_z.get_pid(kp, ki, kd);
-		if (direction.z())
+		if (now.z() < target.z())
 			fuzzy_pid.fuzzy_pid_control(now.z(), target.z(), 2, kp, ki, kd, delta_k);
 		else
 			fuzzy_pid.fuzzy_pid_control(target.z(), now.z(), 2, kp, ki, kd, delta_k);
 		pid_z.set_gains(kp, ki, kd);
 		f.z() = pid_z.update_all(now.z(), target.z(), dt, max_speed_z, InertialNav::velocity.z());
+		
+		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz: x:%f y:%f z:%f", f.x(), f.y(), f.z());
 		return f;
-	}
-	else{
+	} else{
 		Vector3f f;
 		f.x() = pid_x.update_all(now.x(), target.x(), dt, max_speed_xy, InertialNav::velocity.x());
 		f.y() = pid_y.update_all(now.y(), target.y(), dt, max_speed_xy, InertialNav::velocity.y());
 		f.z() = pid_z.update_all(now.z(), target.z(), dt, max_speed_z, InertialNav::velocity.z());
+		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz: x:%f y:%f z:%f", f.x(), f.y(), f.z());
 		return f;
 	}
 }
+
 // 输入位置 pid控制速度
-Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy, Vector4b direction)
+Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy)
 {
-	if(fuzzy){
-		float delta_k = 2.0f;
-
-		Vector4f f;
-		float kp = 0, ki = 0, kd = 0;
-
-        pid_x.get_pid(kp, ki, kd);
-        if (direction.x())
-            fuzzy_pid.fuzzy_pid_control(now.x(), target.x(), 0, kp, ki, kd, delta_k);
-        else
-            fuzzy_pid.fuzzy_pid_control(target.x(), now.x(), 0, kp, ki, kd, delta_k);
-        pid_x.set_gains(kp, ki, kd);
-		f.x() = pid_x.update_all(now.x(), target.x(), dt, max_speed_xy, InertialNav::velocity.x());
-
-		pid_y.get_pid(kp, ki, kd);
-		if (direction.y())
-			fuzzy_pid.fuzzy_pid_control(now.y(), target.y(), 1, kp, ki, kd, delta_k);
-		else
-			fuzzy_pid.fuzzy_pid_control(target.y(), now.y(), 1, kp, ki, kd, delta_k);
-		pid_y.set_gains(kp, ki, kd);
-		f.y() = pid_y.update_all(now.y(), target.y(), dt, max_speed_xy, InertialNav::velocity.y());
-		
-		pid_z.get_pid(kp, ki, kd);
-		if (direction.z())
-			fuzzy_pid.fuzzy_pid_control(now.z(), target.z(), 2, kp, ki, kd, delta_k);
-		else
-			fuzzy_pid.fuzzy_pid_control(target.z(), now.z(), 2, kp, ki, kd, delta_k);
-		pid_z.set_gains(kp, ki, kd);
-		f.z() = pid_z.update_all(now.z(), target.z(), dt, max_speed_z, InertialNav::velocity.z());
 		// 处理yaw跨越点问题
 		static float yaw_diff_last = 0;
 		float yaw_diff = target.w() - now.w() + yaw_diff_last;
@@ -340,8 +264,38 @@ Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy
 			target.w() -= 2 * M_PI;
 		else if (target.w() < -M_PI)
 			target.w() += 2 * M_PI;
+	if(fuzzy){
+		float delta_k = 2.0f;
+
+		Vector4f f;
+		float kp = 0, ki = 0, kd = 0;
+
+		pid_x.get_pid(kp, ki, kd);
+		if (now.x() < target.x())
+				fuzzy_pid.fuzzy_pid_control(now.x(), target.x(), 0, kp, ki, kd, delta_k);
+		else
+				fuzzy_pid.fuzzy_pid_control(target.x(), now.x(), 0, kp, ki, kd, delta_k);
+		pid_x.set_gains(kp, ki, kd);
+		f.x() = pid_x.update_all(now.x(), target.x(), dt, max_speed_xy, InertialNav::velocity.x());
+
+		pid_y.get_pid(kp, ki, kd);
+		if (now.y() < target.y())
+			fuzzy_pid.fuzzy_pid_control(now.y(), target.y(), 1, kp, ki, kd, delta_k);
+		else
+			fuzzy_pid.fuzzy_pid_control(target.y(), now.y(), 1, kp, ki, kd, delta_k);
+		pid_y.set_gains(kp, ki, kd);
+		f.y() = pid_y.update_all(now.y(), target.y(), dt, max_speed_xy, InertialNav::velocity.y());
+		
+		pid_z.get_pid(kp, ki, kd);
+		if (now.z() < target.z())
+			fuzzy_pid.fuzzy_pid_control(now.z(), target.z(), 2, kp, ki, kd, delta_k);
+		else
+			fuzzy_pid.fuzzy_pid_control(target.z(), now.z(), 2, kp, ki, kd, delta_k);
+		pid_z.set_gains(kp, ki, kd);
+		f.z() = pid_z.update_all(now.z(), target.z(), dt, max_speed_z, InertialNav::velocity.z());
+		
 		pid_yaw.get_pid(kp, ki, kd);
-		if (direction.w())
+		if (now.w() < target.w())
 			fuzzy_pid.fuzzy_pid_control(now.w(), target.w(), 3, kp, ki, kd, delta_k);
 		else
 			fuzzy_pid.fuzzy_pid_control(target.w(), now.w(), 3, kp, ki, kd, delta_k);
@@ -349,35 +303,17 @@ Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy
 		f.w() = pid_yaw.update_all(now.w(), target.w(), dt, max_speed_yaw, InertialNav::velocity.w());
 		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: x:%f y:%f z:%f yaw:%f", f.x(), f.y(), f.z(), f.w());
 		return f;
-
 	} else{
 		Vector4f f;
 		f.x() = pid_x.update_all(now.x(), target.x(), dt, max_speed_xy, InertialNav::velocity.x());
 		f.y() = pid_y.update_all(now.y(), target.y(), dt, max_speed_xy, InertialNav::velocity.y());
 		f.z() = pid_z.update_all(now.z(), target.z(), dt, max_speed_z, InertialNav::velocity.z());
-		// 处理yaw跨越点问题
-		static float yaw_diff_last = 0;
-		float yaw_diff = target.w() - now.w() + yaw_diff_last;
-		// 检测并调整yaw差值，确保其在-π到π范围内
-		if (yaw_diff > M_PI)
-		{
-			yaw_diff -= 2 * M_PI; // 如果差值大于π，减去2π调整
-			yaw_diff_last -= -2 * M_PI;
-		}
-		else if (yaw_diff < -M_PI)
-		{
-			yaw_diff += 2 * M_PI; // 如果差值小于-π，加上2π调整
-			yaw_diff_last += 2 * M_PI;
-		}
-		if (target.w() > M_PI)
-			target.w() -= 2 * M_PI;
-		else if (target.w() < -M_PI)
-			target.w() += 2 * M_PI;
 		f.w() = pid_yaw.update_all(now.w(), target.w(), dt, max_speed_yaw, InertialNav::velocity.w());
 		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: x:%f y:%f z:%f yaw:%f", f.x(), f.y(), f.z(), f.w());
 		return f;
 	}
 }
+
 // 输入位置 pid控制速度
 Vector4f PosControl::input_pos_xyz_yaw_without_vel(Vector4f now, Vector4f target)
 {
@@ -404,7 +340,7 @@ Vector4f PosControl::input_pos_xyz_yaw_without_vel(Vector4f now, Vector4f target
 	else if (target.w() < -M_PI)
 		target.w() += 2 * M_PI;
 	f.w() = pid_yaw.update_all(now.w(), target.w(), dt, max_speed_yaw, InertialNav::velocity.w());
-	RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: x:%f y:%f z:%f", f.x(), f.y(), f.z());
+	RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: x:%f y:%f z:%f yaw:%f", f.x(), f.y(), f.z(), f.w());
 
 	return f;
 }
@@ -516,7 +452,6 @@ bool PosControl::trajectory_setpoint(Vector4f pos_now, Vector4f pos_target, doub
 	(void)yaw_accuracy;
 	static bool first = true;
 	static Vector4f pos_target_temp;
-	static Vector4b direction;
 	if (first)
 	{
 		// pos_target.rotate_xy(default_yaw);
@@ -529,13 +464,6 @@ bool PosControl::trajectory_setpoint(Vector4f pos_now, Vector4f pos_target, doub
 		// pid_z.set_pid_info();
 		// pid_yaw.set_pid_info();
 		
-		// direction = {pos_now.x() < _pos_target.x(), pos_now.y() < _pos_target.y(), pos_now.z() < _pos_target.z(), pos_now.w() < _pos_target.w()};
-		// Update the assignment
-		direction << (pos_now.x() < _pos_target.x()),
-								 (pos_now.y() < _pos_target.y()),
-								 (pos_now.z() < _pos_target.z()),
-								 (pos_now.w() < _pos_target.w());
-
 		first = false;
 	}
 	// if(pose_.header.stamp.sec == 0){
@@ -549,8 +477,8 @@ bool PosControl::trajectory_setpoint(Vector4f pos_now, Vector4f pos_target, doub
 		send_accel_command(input_pos_vel_xyz_yaw(pos_now, _pos_target));
 #endif
 #ifndef PID_P
-		// send_velocity_command_world(input_pos_xyz_yaw(pos_now, _pos_target));
-		send_velocity_command_world(input_pos_xyz_yaw(pos_now, _pos_target, true, direction));
+		send_velocity_command_world(input_pos_xyz_yaw(pos_now, _pos_target));
+		// send_velocity_command_world(input_pos_xyz_yaw(pos_now, _pos_target, true, direction));
 #endif
 	}
 	else
@@ -580,59 +508,37 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 {
 	(void)yaw_accuracy;
 	static bool first = true;
-	static Vector4f pos_target_temp;
-	static Vector4b direction;
-	if (first)
-	{
-		// pos_target.rotate_xy(default_yaw);
+	if (first) {
 		_pos_target = pos_target;
-		pos_target_temp = pos_target;
 		RCLCPP_INFO(node->get_logger(), "trajectory_setpoint: x:%f y:%f z:%f", _pos_target.x(), _pos_target.y(), _pos_target.z());
 		reset_pid();
-		// pid_x.set_pid_info();
-		// pid_y.set_pid_info();
-		// pid_z.set_pid_info();
-		// pid_yaw.set_pid_info();
-		direction = Vector4b(
-			pos_now.x() < _pos_target.x(),
-			pos_now.y() < _pos_target.y(),
-			pos_now.z() < _pos_target.z(),
-			pos_now.w() < _pos_target.w()
-		);
 		first = false;
 	}
-	// if(pose_.header.stamp.sec == 0){
-	// 	RCLCPP_INFO(this->get_logger(), "No pose data received yet");
-	// 	return;
-	// }
-	if (is_equal(pos_target, pos_target_temp, 0.1f))
-	{
+	if (is_equal(pos_target, _pos_target, 0.1f)) {
 #ifdef PID_P
 		// send_velocity_command_world(input_pos_vel_1_xyz_yaw(pos_now,_pos_target));
 		send_accel_command(input_pos_vel_xyz_yaw(pos_now, _pos_target));
 #endif
 #ifndef PID_P
 		// send_velocity_command_world(input_pos_xyz_yaw(pos_now, _pos_target));
-		send_velocity_command_world(input_pos_xyz_yaw(pos_now, _pos_target, true, direction));
+		send_velocity_command_world(input_pos_xyz_yaw(pos_now, _pos_target, true));
 #endif
 	}
-	else
-	{
+	else {
 		RCLCPP_INFO(node->get_logger(), "change point");
 		first = true;
 	}
 	if (abs(pos_now.x() - _pos_target.x()) <= accuracy &&
 			abs(pos_now.y() - _pos_target.y()) <= accuracy &&
 			abs(pos_now.z() - _pos_target.z()) <= accuracy
-			// && abs(pos_now.w() - _pos_target.w())<=yaw_accuracy
-	)
-	{
+	) {
 		RCLCPP_INFO(node->get_logger(), "at_check_point");
 		first = true;
 		return true;
 	}
 	return false;
 }
+
 // pid飞行到指定位置(闭环)，指定pid参数（相对于起飞点/世界坐标系）
 bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target, PID::Defaults defaults, double accuracy, double yaw_accuracy)
 {
@@ -642,8 +548,6 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 	static Vector4f pos_target_temp;
 	if (first)
 	{
-		// pos_target.rotate_xy(default_yaw);
-		// _pos_target = pos_target;
 		pos_target_temp = pos_target;
 		RCLCPP_INFO(node->get_logger(), "trajectory_setpoint: x:%f y:%f", pos_target.x(), pos_target.y());
 		// 设置pid参数
@@ -655,10 +559,6 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 		// pid_yaw.set_pid_info();
 		first = false;
 	}
-	// if(pose_.header.stamp.sec == 0){
-	// 	RCLCPP_INFO(this->get_logger(), "No pose data received yet");
-	// 	return;
-	// }
 	if (is_equal(pos_target, pos_target_temp, 0.1f))
 	{
 		// 运行时更新pid参数
@@ -735,7 +635,6 @@ bool PosControl::trajectory_generator_world(double speed_factor, std::array<doub
 	bool isFinished = false;
 	static Vector4f pos_start_temp;
 	static Vector4f pos_target_temp;
-	static Vector4b direction;
 
 	if (first)
 	{
@@ -754,10 +653,7 @@ bool PosControl::trajectory_generator_world(double speed_factor, std::array<doub
 		count = 0;
 		isFinished = false;
 		// direction = {InertialNav::position.x() < q_goal[0], InertialNav::position.y() < q_goal[1], InertialNav::position.z() < q_goal[2], false};
-		direction << (InertialNav::position.x() < q_goal[0]),
-                 (InertialNav::position.y() < q_goal[1]),
-             		 (InertialNav::position.z() < q_goal[2]),
-             		 false;
+
 		first = false; // Ensure that initialization block runs only once
 	}
 	if (is_equal(Vector4f(q_goal[0], q_goal[1], q_goal[2], 0), pos_target_temp, 0.1f))
@@ -799,7 +695,7 @@ bool PosControl::trajectory_generator_world(double speed_factor, std::array<doub
 		input_pos_xyz_yaw(
 			Vector4f(InertialNav::position.x() - pos_start_temp.x(), InertialNav::position.y() - pos_start_temp.y(), InertialNav::position.z() - pos_start_temp.z(), 0),
 			Vector4f(static_cast<float>(_trajectory_generator->delta_q_d[0]), static_cast<float>(_trajectory_generator->delta_q_d[1]), static_cast<float>(_trajectory_generator->delta_q_d[2]), 0),
-			true, direction)
+			true)
 	);
 	// send_accel_command(input_pos_vel_xyz_yaw(
 	// 		{InertialNav::position.x() - pos_start_temp.x(), InertialNav::position.y - pos_start_temp.y, InertialNav::position.z() - pos_start_temp.z(), 0},
@@ -835,17 +731,6 @@ float PosControl::get_jerk_max()
 {
 	return max_jerk;
 }
-// // / set limits
-// void PosControl::set_limits(float speed_max, float accel_max, float lat_accel_max, float jerk_max)
-// {
-//     max_speed_xy = MAX(speed_max, 0);
-//     max_accel_xy = MAX(accel_max, 0);
-// 	(void)lat_accel_max;
-//     // _lat_accel_max = MAX(lat_accel_max, 0);
-//     max_jerk = MAX(jerk_max, 0);
-// }
-// //
-// set limits
 
 struct PosControl::Limits_t PosControl::readLimits(const std::string &filename, const std::string &section)
 {
@@ -965,6 +850,7 @@ float PosControl::autotuneWORKCycle(float feedbackVal, TUNE_ID_t tune_id, bool &
 	}
 	// }
 }
+
 // PID自整定 x/y/z/yaw:是否自整定对应的轴 tune_x/y/z/yaw默认为true 
 // delayMsec:自整定周期
 // 返回值：是否自整定完成 false:未完成 true:完成
@@ -1017,164 +903,3 @@ bool PosControl::auto_tune(Vector4f pos_now, Vector4f pos_target, uint32_t delay
 	}
 	return false;
 }
-// }
-// {
-// 	static bool first = true, result_x = false, result_y = false, result_z = false, result_yaw = false;
-// 	static TUNE_ID_t id_x, id_y;
-// 	if (first)
-// 	{
-// 		result_x =
-// 		PID::Defaults pid_defaults = {0.5, 0.0, 0.0};
-// 		set_pid(pid_x, pid_defaults);
-// 		set_pid(pid_y, pid_defaults);
-// 		TUNE_Init();
-// 		id_x = get_autotuneID();
-// 		id_y = get_autotuneID();
-// 		printf("id_x:%d,id_y:%d\n", id_x, id_y);
-// 		// send_velocity_command_world((pos_target - pos_now));
-// 		first = false;
-// 	}
-// 	Vector4f feedbackVal = input_pos_xyz_yaw_without_vel(pos_now, pos_target);
-// 	Vector4f outputVel = {
-// 			autotuneWORKCycle(feedbackVal.x(), id_x, result_x),
-// 			autotuneWORKCycle(feedbackVal.y, id_y, result_y),
-// 			0,
-// 			0};
-// 	RCLCPP_INFO(node->get_logger(), "vx=%f,vy=%f", outputVel.x(), outputVel.y);
-// 	send_velocity_command_world(outputVel);
-// 	if (result_x && result_y)
-// 	{
-// 		reset_pid();
-// 		TUNE_Release(id_x);
-// 		TUNE_Release(id_y);
-// 		first = true;
-// 		return false;
-// 	}
-// 	return true;
-// }
-
-// // 定高悬停//定角度悬停
-// // vx=0:前后方向速度(m/s) vy=0:左右方向速度(m/s) z:高度(m) yaw:偏航角(°) time:持续时间(s) accuracy=DEFAULT_ACCURACY:精度(m)
-// // 返回值：是否到达规定时间
-// bool OffboardControl::alt_hold(double vx,double vy ,double z ,double yaw,double time,double accuracy){
-// 	static bool first=true;
-// 	static double vx1=0,vy1=0;
-// 	if(first){
-// 	get_target_location(&vx, &vy);
-// 	vx1=vx;
-// 	vy1=vy;
-// 	RCLCPP_INFO(this->get_logger(),"trajectory_setpoint_start: vx:%f vy:%f",vx,vy);
-// 	start_temp=end_temp;
-// 	set_target_point("base_link",0,0,z,yaw);
-// 	first=false;
-// 	}
-// 	if(pose_.header.stamp.sec == 0){
-// 		RCLCPP_INFO(this->get_logger(), "No pose data received yet");
-// 		return false;
-// 	}
-// 	z=end_temp.z()+z;
-// 	yaw=end_temp.w()+yaw;
-// 	if(
-// 		!set_time(time)
-// 	){
-// 		if(
-// 			//publish_trajectory_setpoint_yaw(&yaw)&
-// 			publish_trajectory_setpoint_z(&z,accuracy)
-// 		){
-// 			RCLCPP_INFO(this->get_logger(), "at_check_point");
-// 			return false;
-// 		}else{
-// 			RCLCPP_INFO(this->get_logger(), "alt_hold: z=%f,yaw=%f", z,yaw);
-// 		send_velocity_command(vx1, vy1, z, yaw);
-// 		return false;
-// 		}
-// 	}else{
-// 		first=true;
-// 		return true;
-// 	}
-// }
-
-// // //
-// // while True:
-// //     x=get_value(2)
-// //     y=get_value(3)
-// //     if x!=0 and y!=0:
-// //         dx=x
-// //         dy=y
-// //         PidRTL(dx,dy,frtl,vehicle)
-// //         frtl=get_value(1)
-// //     elif time.time()-time0>290:
-// //         vehicle.mode = VehicleMode("LAND")
-// //         time.sleep(10)
-// //         vehicle.armed = False
-// //         break
-// // print((time.time()-time0))
-// void OffboardControl::PidRTL(double x,double y,double frtl){
-// 	// PID控制
-// 	double Kp = 0.5;  // 比例系数 0.5/0.47
-// 	double Ki = 0.1;  // 积分系数 0.1
-// 	double Kd = 0.02;  // 微分系数
-// 	double target_X = 69;  // 目标X轴坐标/70
-// 	double current_X = 0;  // 当前X轴坐标
-// 	double target_Y = 51;  // 目标Y轴坐标/53
-// 	double current_Y = 0;  // 当前Y轴坐标
-// 	double error_priorX = 0;  // 上一次误差
-// 	double integralX = 0;  // 积分
-// 	double derivativeX = 0;  // 微分
-// 	double error_priorY = 0;  // 上一次误差
-// 	double integralY = 0;  // 积分
-// 	double derivativeY = 0;  // 微分
-// 	current_X=x/640*140; // 测量当前X坐标
-// 	current_Y=y/480*105; // 测量当前Y坐标
-// 	if (current_X<=67 || current_X>=71){
-// 		// 计算误差
-// 		double errorX = target_X - current_X;
-// 		// 计算积分
-// 		integralX = integralX + errorX;
-// 		// 计算微分
-// 		derivativeX = errorX - error_priorX;
-// 		// 计算控制量
-// 		double controlX = Kp * errorX + Ki * integralX + Kd * derivativeX;
-// 		// 更新上一次误差
-// 		error_priorX = errorX;
-// 		// 应用控制量到无人机
-// 		double vy=controlX*-0.01;
-// 		send_velocity_command(0,vy,0,0);
-// 	}
-// 	if (current_Y<=50 || current_Y>=52){
-// 		// 计算误差
-// 		double errorY = target_Y - current_Y;
-// 		// 计算积分
-// 		integralY = integralY + errorY;
-// 		// 计算微分
-// 		derivativeY = errorY - error_priorY;
-// 		// 计算控制量
-// 		double controlY = Kp * errorY + Ki * integralY + Kd * derivativeY;
-// 		// 更新上一次误差
-// 		error_priorY = errorY;
-// 		// 应用控制量到无人机
-// 		double vx=controlY*0.01;
-// 		send_velocity_command(vx,0,0,0);
-// 	}
-// 	if (location.local_frame.z()>=3.5){
-// 		double z = 3.2;
-// 		publish_trajectory_setpoint_z(&z,0.1);
-// 		send_velocity_command(0, 0, z, 0);
-// 	}
-// 	if (current_X>=67 && current_X<=71 && current_Y>=50 && current_Y<=52){// and vehicle.location.global_relative_frame.alt < 2.0):
-// 		frtl=frtl+1;
-// 		if(frtl>= 288){
-// 			send_velocity_command(0,0,0.8,0);
-// 			rclcpp::sleep_for(std::chrono::seconds(3));
-// 			command_takeoff_or_land("LAND");
-// 			rclcpp::sleep_for(std::chrono::seconds(5));
-// 			arm_motors(false);
-// 		}
-// 	}else if(location.local_frame.z()<=1.5){
-// 		send_velocity_command(0,0,0,0);
-// 		rclcpp::sleep_for(std::chrono::seconds(3));
-// 		command_takeoff_or_land("LAND");
-// 		rclcpp::sleep_for(std::chrono::seconds(10));
-// 		arm_motors(false);
-// 	}
-// }

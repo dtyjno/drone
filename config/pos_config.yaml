@@ -1,10 +1,10 @@
 limits:
   accel_max_xy: 1.2
   accel_max_yaw: 0.1
-  accel_max_z: 1.2
+  accel_max_z: 0.6
   speed_max_xy: 2.0
   speed_max_yaw: 0.3
-  speed_max_z: 1.0
+  speed_max_z: 0.5
 mypid:
   d: 0.0054
   dff: 0
@@ -70,10 +70,10 @@ pos_y:
   imax: 10
   p: 0.4
 pos_yaw:
-  d: 0.05
+  d: 0.005
   dff: 0
   ff: 0
-  i: 0.1
+  i: 0.01
   imax: 10
   p: 0.8
 pos_z:

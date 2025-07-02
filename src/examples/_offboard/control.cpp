@@ -133,10 +133,10 @@ bool OffboardControl::catch_target(bool &result, enum YOLO::TARGET_TYPE target)
 	static double time_find_start = 0; // 开始时间
 	static float tar_x = 0, tar_y = 0, tar_z = 1;		// 声明目标高度（m）未初始化
 	static float tar_yaw = 0; // 声明目标偏航角（rad）
-	static bool x_flip = false, y_flip = false; // 声明x，y翻转
 	static float dt = 0.1;									 // 声明执行周期（s）
 	static float last_time = get_cur_time(); // 声明上次执行时间
 	static float accuracy = 0.1; // 声明精度
+	static bool x_flip, y_flip; // 声明x,y翻转标志
 
 	// 读取PID参数
 	PID::Defaults defaults = PID::readPIDParameters("can_config.yaml", "pid_bucket");
@@ -150,13 +150,8 @@ bool OffboardControl::catch_target(bool &result, enum YOLO::TARGET_TYPE target)
 	tar_z = config["tar_z"].as<float>();
 	x_flip = config["x_flip"].as<bool>();
 	y_flip = config["y_flip"].as<bool>();
-	tar_x = (is_equal(tar_x, 0.0f)
-		? _yolo->get_cap_frame_width()-_yolo->get_cap_frame_width() / 2
-		: tar_x);
-	tar_y = (is_equal(tar_y, 0.0f)
-		? _yolo->get_cap_frame_height()-_yolo->get_cap_frame_height() / 2
-		: tar_y);
-	// tar_yaw = config["tar_yaw"].as<float>();
+	tar_x = (is_equal(tar_x, 0.0f) ? _yolo->get_cap_frame_width() / 2 : tar_x);
+	tar_y = (is_equal(tar_y, 0.0f) ? _yolo->get_cap_frame_height() / 2 : tar_y);
 
 	// yolo未识别到桶
 	if (is_equal(_yolo->get_x(target), (float)0) && is_equal(_yolo->get_y(target), (float)0))
@@ -180,7 +175,7 @@ bool OffboardControl::catch_target(bool &result, enum YOLO::TARGET_TYPE target)
 		time_find_start = get_cur_time();
 		last_time = get_cur_time();
 		tar_z = 1.5;								 // 设置目标高度（m）
-		tar_yaw = get_yaw();			 // 设置目标偏航角（rad）
+		tar_yaw = default_yaw;			 // 设置目标偏航角（rad）
 		dt = 0.25;								 // 设置执行周期（s）
 		_pose_control->set_dt(dt); // 设置执行周期（用于PID）
 		catch_state_ = CatchState::fly_to_target;
@@ -190,7 +185,7 @@ bool OffboardControl::catch_target(bool &result, enum YOLO::TARGET_TYPE target)
 	case CatchState::fly_to_target:
 	{
 		// 以 dt 为周期，执行一次 PID 控制
-		RCLCPP_INFO(this->get_logger(), "当前时间: %f, 上次时间: %f, 执行周期: %f, 是否执行: %d", get_cur_time(), last_time, dt, get_cur_time() - last_time < dt);
+		// RCLCPP_INFO(this->get_logger(), "当前时间: %f, 上次时间: %f, 执行周期: %f, 是否执行: %d", get_cur_time(), last_time, dt, get_cur_time() - last_time < dt);
 		if (get_cur_time() - last_time < dt)
 		{
 			result = false;
@@ -201,16 +196,18 @@ bool OffboardControl::catch_target(bool &result, enum YOLO::TARGET_TYPE target)
 
 		last_time = get_cur_time();
 
-		// yolo返回值坐标系：x右y下（上），转换为飞机坐标系：x左y上
-		float now_x = x_flip ? (_yolo->get_x(target)) : (_yolo->get_cap_frame_width()-_yolo->get_x(target));
-		float now_y = y_flip ? (_yolo->get_y(target)) : (_yolo->get_cap_frame_height()-_yolo->get_y(target));
-		rotate_xy(now_x, now_y, (get_yaw() - default_yaw));
-		rotate_xy(tar_x, tar_y, (get_yaw() - default_yaw));
+		// yolo返回值坐标系：x右y下，转换为飞机坐标系：x左y上
+		float now_x = x_flip ? _yolo->get_cap_frame_width() - _yolo->get_x(target) : -_yolo->get_x(target);
+		float now_y = y_flip ? -_yolo->get_cap_frame_height() + _yolo->get_y(target) : _yolo->get_y(target);
+		tar_x = x_flip ? _yolo->get_cap_frame_width() - tar_x : -tar_x; // 目标x坐标
+		tar_y = y_flip ? -_yolo->get_cap_frame_height() + tar_y : tar_y; // 目标y坐标
+		rotate_xy(now_x, now_y, headingangle_compass + get_yaw() - headingangle_compass); // 将目标坐标旋转到飞机坐标系
+		rotate_xy(tar_x, tar_y, headingangle_compass + get_yaw() - headingangle_compass); // 将目标坐标旋转到飞机坐标系
 		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x, now_y, tar_x, tar_y);
 		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x / _yolo->get_cap_frame_width(), now_y / _yolo->get_cap_frame_height(), (tar_x) / _yolo->get_cap_frame_width(), (tar_y) / _yolo->get_cap_frame_height());
 		
 		static float _t_time = get_cur_time();
-		if (!_pose_control->trajectory_setpoint_world(
+		if (_pose_control->trajectory_setpoint_world(
 						Vector4f{now_x / _yolo->get_cap_frame_width(), now_y / _yolo->get_cap_frame_height(), get_z_pos(), get_yaw()},
 						Vector4f{(tar_x) / _yolo->get_cap_frame_width(), (tar_y) / _yolo->get_cap_frame_height(), tar_z, tar_yaw},
 						// PID::Defaults{.p = 0.5,.i = 0.1,.d = 0.1,.imax = 10,._use_vel = false}  //c++20
@@ -226,20 +223,18 @@ bool OffboardControl::catch_target(bool &result, enum YOLO::TARGET_TYPE target)
 			double error_y = abs(now_y / _yolo->get_cap_frame_height() - tar_y / _yolo->get_cap_frame_height());
 			data_point.error += error_x + error_y;
 
-			// if(error_x<0.05 && error_y<0.05){
-			// 	// RCLCPP_INFO(this->get_logger(), "Arrive, catch_target_bucket");
-			// 	// catch_state_=CatchState::end;
-			// } else if(_t_time - get_cur_time()>3){
-			// 	// RCLCPP_INFO(this->get_logger(), "Approach, catch_target_bucket");
-			// 	// catch_state_=CatchState::end;
-			// }
+			RCLCPP_INFO(this->get_logger(), "Approach, catch_target_bucket, time = %f", get_cur_time() - _t_time);
+			if(error_x<0.05 && error_y<0.05){
+				// RCLCPP_INFO(this->get_logger(), "Arrive, catch_target_bucket");
+				// catch_state_=CatchState::end;
+			} else if(get_cur_time() - _t_time > 3){
+				// RCLCPP_INFO(this->get_logger(), "Approach, catch_target_bucket");
+				catch_state_=CatchState::end;
+			}
 		}
 		else
 		{
-			RCLCPP_INFO(this->get_logger(), "Arrive, catch_target_bucket, time = %f", get_cur_time() - _t_time);
-			data_point.time = _t_time - get_cur_time();
 			_t_time = get_cur_time();
-			catch_state_ = CatchState::end;
 		}
 		if (
 				get_cur_time() - time_find_start > 1200 //>1200s
@@ -264,9 +259,6 @@ bool OffboardControl::catch_target(bool &result, enum YOLO::TARGET_TYPE target)
     // 重置所有静态变量
     catch_state_ = CatchState::init;
     time_find_start = 0;
-    tar_z = 1.0;
-    tar_yaw = 0;
-    dt = 0.1;
     last_time = get_cur_time();
 
 		result = true;
