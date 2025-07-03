@@ -59,73 +59,27 @@ target_include_directories(frame_transforms PUBLIC
 )
 
 
-# examples/listeners/pose_subscriber
-add_executable(pose_subscriber src/examples/listeners/pose_subscriber.cpp)
+# listeners/pose_subscriber
+add_executable(pose_subscriber src/listeners/pose_subscriber.cpp)
 ament_target_dependencies(pose_subscriber rclcpp geometry_msgs nav_msgs)
 install(TARGETS pose_subscriber DESTINATION lib/${PROJECT_NAME})
 
-# examlles/listeners/yolo_subscriber
-add_executable(yolo_subscriber src/examples/listeners/yolo_subscriber.cpp)
+# listeners/yolo_subscriber
+add_executable(yolo_subscriber src/listeners/yolo_subscriber.cpp)
 ament_target_dependencies(yolo_subscriber rclcpp sensor_msgs nav_msgs ros2_interfaces)
 install(TARGETS yolo_subscriber DESTINATION lib/${PROJECT_NAME})
 
-# examlles/listeners/camera_image_subscriber
-#add_executable(camera_image_subscriber src/examples/listeners/camera_image_subscriber.cpp)
-#ament_target_dependencies(camera_image_subscriber rclcpp mavros_msgs OpenCV)
-#install(TARGETS camera_image_subscriber DESTINATION lib/${PROJECT_NAME})
-
-# examples/offboard/offboard_control_srv
-#
-# add_executable(offboard_control_srv src/examples/offboard/offboard_control_srv.cpp)
-# ament_target_dependencies(offboard_control_srv rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 GeographicLib vision_msgs ros2_interfaces sensor_msgs OpenCV cv_bridge)
-# install(TARGETS offboard_control_srv DESTINATION lib/${PROJECT_NAME})
-
-# # examples/offboard/offboard_control_gps
-# add_executable(offboard_control_gps src/examples/offboard/offboard_control_gps.cpp)
-# ament_target_dependencies(offboard_control_gps rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 GeographicLib vision_msgs)
-# install(TARGETS offboard_control_gps DESTINATION lib/${PROJECT_NAME})
-
-# examples/offboard/offboard_control
-include_directories(src/examples/offboard_control)
-file(GLOB SOURCES "src/examples/offboard_control/*.cpp")
-#list(REMOVE_ITEM SOURCES "src/examples/drone1.0/offboard_control_srv.cpp")
+# offboard/offboard_control
+include_directories(
+	src/offboard_control
+  ${Eigen3_INCLUDE_DIRS}  # Add Eigen include directories
+)
+file(GLOB SOURCES "src/offboard_control/*.cpp")
 add_executable(offboard_control ${SOURCES}
-    src/examples/offboard_control/FuzzyPID.cpp)
-ament_target_dependencies(offboard_control rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs ros2_interfaces sensor_msgs nav_msgs OpenCV cv_bridge ament_index_cpp)
+    src/offboard_control/FuzzyPID.cpp)
+ament_target_dependencies(offboard_control rclcpp mavros_msgs geometry_msgs nav_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs sensor_msgs OpenCV cv_bridge ament_index_cpp ros2_interfaces ros2_yolo_msgs)
 target_link_libraries(offboard_control yaml-cpp)  
 install(TARGETS offboard_control DESTINATION lib/${PROJECT_NAME})
-
-# examples/offboard/_offboard
-include_directories(src/examples/_offboard)
-file(GLOB SOURCES "src/examples/_offboard/*.cpp")
-add_executable(_offboard ${SOURCES}
-    src/examples/_offboard/FuzzyPID.cpp)
-ament_target_dependencies(_offboard rclcpp mavros_msgs geometry_msgs nav_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs ros2_interfaces sensor_msgs OpenCV cv_bridge ament_index_cpp)
-
-ament_target_dependencies(_offboard rclcpp mavros_msgs geometry_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs ros2_yolo_msgs sensor_msgs OpenCV cv_bridge ament_index_cpp)
-
-target_link_libraries(_offboard yaml-cpp)  
-install(TARGETS _offboard DESTINATION lib/${PROJECT_NAME})
-
-# examples/offboard/offboard_land
-
- include_directories(src/examples/offboard_land)
- file(GLOB SOURCES "src/examples/offboard_land/*.cpp")
-# #list(REMOVE_ITEM SOURCES "src/examples/drone1.0/offboard_land_srv.cpp")
- add_executable(offboard_land ${SOURCES})
- target_link_libraries(offboard_land ${CURSES_LIBRARIES} yaml-cpp)
- ament_target_dependencies(offboard_land rclcpp mavros_msgs geometry_msgs nav_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs ros2_interfaces sensor_msgs OpenCV cv_bridge ament_index_cpp)
- install(TARGETS offboard_land DESTINATION lib/${PROJECT_NAME})
-
-# examples/offboard/offboard_sub
-
-include_directories(src/examples/offboard_sub)
-file(GLOB SOURCES "src/examples/offboard_sub/*.cpp")
-# #list(REMOVE_ITEM SOURCES "src/examples/drone1.0/offboard_sub_srv.cpp")
-add_executable(offboard_sub ${SOURCES})
-target_link_libraries(offboard_sub ${CURSES_LIBRARIES} yaml-cpp)
-ament_target_dependencies(offboard_sub rclcpp mavros_msgs geometry_msgs nav_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs ros2_interfaces sensor_msgs OpenCV cv_bridge ament_index_cpp)
-install(TARGETS offboard_sub DESTINATION lib/${PROJECT_NAME})
 
 ############
 # Install ##
@@ -181,7 +135,7 @@ endif()
 
 # # Install Python executables
 # install(PROGRAMS
-#   src/examples/offboard_py/offboard_control.py
+#   src/offboard_py/offboard_control.py
 #   DESTINATION lib/${PROJECT_NAME}
 # )
 

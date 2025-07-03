@@ -6,9 +6,9 @@ pid_bucket:
   dff: 0
   imax: 10
 limits:
-  speed_max_xy: 0.15
+  speed_max_xy: 0.5
   speed_max_z: 0.1
-  speed_max_yaw: 0.1
+  speed_max_yaw: 0.05
   accel_max_xy: 0.5
   accel_max_z: 0.1
 accuracy: 0.1

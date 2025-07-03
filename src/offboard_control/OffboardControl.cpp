@@ -55,19 +55,26 @@ void OffboardControl::timer_callback(void)
 		_yolo->get_x(YOLO::TARGET_TYPE::H), _yolo->get_y(YOLO::TARGET_TYPE::H),
 		_yolo->get_servo_flag(), get_yaw());
 
-	CameraParams camera1;
-	camera1.position = Vector3d(get_x_pos(), get_y_pos(), get_z_pos());
-	camera1.rotation = Vector3d(0, -M_PI/2, 0);  // 俯仰角-90度(向下看)
-	camera1.focal_length = 1.0;
- 	Vector2d image_point1(
-		_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE) / _yolo->get_cap_frame_width(),
-		_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE) / _yolo->get_cap_frame_height()
-	);
-
-  auto target1 = calculateWorldPosition(image_point1, camera1, 0.0, 2.0);
-    
+	// CameraParams camera1;
+	// camera1.position = Vector3d(get_x_pos(), get_y_pos(), get_z_pos());
+	// camera1.rotation = Vector3d(0, -M_PI/2, 0);  // 俯仰角-90度(向下看)
+	// camera1.fx = 360;
+	// camera1.fy = 360;
+	// camera1.cx = 320;
+	// camera1.cy = 240;
+	// camera1.width = 640;
+	// camera1.height = 480;
+ 	// Vector2d image_point1(
+	// 	_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE),
+	// 	_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE)
+	// );
+	// std::cout << "Image width: " << camera1.width << ", height: " << camera1.height << std::endl;
+	// std::cout << "Image point 1: " << image_point1.transpose() << std::endl;
+	// std::cout << "Camera 1 position: " << camera1.position.transpose() << std::endl;
+  // auto target1 = calculateWorldPosition(image_point1, camera1, 0.0, 0.0);
 	// if (target1) {
-	// 		std::cout << "Example 1 - Target position: " << *target1 << std::endl;
+	// 		std::cout << "Example 1 - Target position: " << std::endl;
+	// 		std::cout << *target1 << std::endl;
 	// }
 
 	state_machine_.execute_dynamic_tasks();

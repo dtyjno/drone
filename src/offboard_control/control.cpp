@@ -196,24 +196,23 @@ bool OffboardControl::catch_target(bool &result, enum YOLO::TARGET_TYPE target)
 
 		last_time = get_cur_time();
 
-		// yolo返回值坐标系：x右y下，转换为飞机坐标系：x左y上
-		float now_x = x_flip ? _yolo->get_cap_frame_width() - _yolo->get_x(target) : -_yolo->get_x(target);
-		float now_y = y_flip ? -_yolo->get_cap_frame_height() + _yolo->get_y(target) : _yolo->get_y(target);
-		tar_x = x_flip ? _yolo->get_cap_frame_width() - tar_x : -tar_x; // 目标x坐标
-		tar_y = y_flip ? -_yolo->get_cap_frame_height() + tar_y : tar_y; // 目标y坐标
-		rotate_xy(now_x, now_y, headingangle_compass + get_yaw() - headingangle_compass); // 将目标坐标旋转到飞机坐标系
-		rotate_xy(tar_x, tar_y, headingangle_compass + get_yaw() - headingangle_compass); // 将目标坐标旋转到飞机坐标系
+		// yolo返回值坐标系：x右y下（x_flip|y_flip = false），转换为飞机坐标系：x右y上
+		float now_x = x_flip ? _yolo->get_cap_frame_width() - _yolo->get_x(target) : _yolo->get_x(target);
+		float now_y = y_flip ? _yolo->get_y(target) : _yolo->get_cap_frame_height() - _yolo->get_y(target);
+		tar_x = x_flip ? _yolo->get_cap_frame_width() - tar_x : tar_x; // 目标x坐标
+		tar_y = y_flip ? tar_y : _yolo->get_cap_frame_height() - tar_y; // 目标y坐标
+		rotate_xy(now_x, now_y, get_yaw()); // 将目标坐标旋转到世界坐标系 headingangle_compass
+		rotate_xy(tar_x, tar_y, get_yaw()); // 将目标坐标旋转到世界坐标系
+		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: yaw: %f, default_yaw: %f, headingangle_compass: %f", get_yaw(), default_yaw, headingangle_compass);
 		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x, now_y, tar_x, tar_y);
 		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x / _yolo->get_cap_frame_width(), now_y / _yolo->get_cap_frame_height(), (tar_x) / _yolo->get_cap_frame_width(), (tar_y) / _yolo->get_cap_frame_height());
-		
+		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_z: %f, tar_z: %f, now_yaw: %f, tar_yaw: %f", get_z_pos(), tar_z, get_yaw(), tar_yaw);
 		static float _t_time = get_cur_time();
 		if (_pose_control->trajectory_setpoint_world(
-						Vector4f{now_x / _yolo->get_cap_frame_width(), now_y / _yolo->get_cap_frame_height(), get_z_pos(), get_yaw()},
-						Vector4f{(tar_x) / _yolo->get_cap_frame_width(), (tar_y) / _yolo->get_cap_frame_height(), tar_z, tar_yaw},
-						// PID::Defaults{.p = 0.5,.i = 0.1,.d = 0.1,.imax = 10,._use_vel = false}  //c++20
-						// PID::Defaults{0.3,0.01,0.01,0,0,1},
+						Vector4f{tar_x / _yolo->get_cap_frame_width(), tar_y / _yolo->get_cap_frame_height(), get_z_pos(), get_yaw()}, // 当前坐标
+						Vector4f{now_x / _yolo->get_cap_frame_width(), now_y / _yolo->get_cap_frame_height(), tar_z, tar_yaw}, // 目标坐标
 						defaults,
-						accuracy // accuracy
+						accuracy
 					)
 				)
 		{
@@ -224,13 +223,13 @@ bool OffboardControl::catch_target(bool &result, enum YOLO::TARGET_TYPE target)
 			data_point.error += error_x + error_y;
 
 			RCLCPP_INFO(this->get_logger(), "Approach, catch_target_bucket, time = %f", get_cur_time() - _t_time);
-			if(error_x<0.05 && error_y<0.05){
-				// RCLCPP_INFO(this->get_logger(), "Arrive, catch_target_bucket");
-				// catch_state_=CatchState::end;
-			} else if(get_cur_time() - _t_time > 3){
-				// RCLCPP_INFO(this->get_logger(), "Approach, catch_target_bucket");
-				catch_state_=CatchState::end;
-			}
+			// if(error_x<0.05 && error_y<0.05){
+			// 	// RCLCPP_INFO(this->get_logger(), "Arrive, catch_target_bucket");
+			// 	// catch_state_=CatchState::end;
+			// } else if(get_cur_time() - _t_time > 3){
+			// 	// RCLCPP_INFO(this->get_logger(), "Approach, catch_target_bucket");
+			// 	catch_state_=CatchState::end;
+			// }
 		}
 		else
 		{
@@ -418,6 +417,7 @@ bool OffboardControl::autotune(bool &result, enum YOLO::TARGET_TYPE target)
 }
 
 void OffboardControl::send_local_setpoint_command(float x, float y, float z, float yaw){
+	yaw = fmod(M_PI / 2 - yaw + 2 * M_PI, 2 * M_PI);
 	_pose_control->send_local_setpoint_command(x, y, z, yaw);
 }
 
