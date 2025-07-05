@@ -40,6 +40,7 @@
 using namespace std::chrono_literals;
 
 #include "OffboardControl_Base.h"
+#include "StateMachine.h"
 
 #include <fstream>
 #include <iostream>
@@ -48,28 +49,11 @@ using namespace std::chrono_literals;
 
 #include "utils.h" // 包含自定义的工具函数
 
-enum class FlyState
-{
-	init,
-	// request,
-	takeoff,
-	end,
-	Goto_shotpoint, 
-	Doshot,
-	Goto_scoutpoint,
-	Surround_see,
-	Doland,
-	MYPID,
-	Print_Info,
-	Termial_Control, // 终端控制
-	Reflush_config,
-} ;
-
-extern const std::map<std::string, FlyState> FlyStateMap;
-int fly_state_to_int(FlyState state);
 
 class OffboardControl : public OffboardControl_Base
 {
+	friend class StateMachine;
+	
 public:
 	OffboardControl(const std::string ardupilot_namespace, std::shared_ptr<YOLO> yolo_) : OffboardControl_Base(ardupilot_namespace),
 		ardupilot_namespace_copy_{ardupilot_namespace},
@@ -80,7 +64,7 @@ public:
 		_pose_control(std::make_shared<PosControl>(ardupilot_namespace_copy_, this)),
 		_camera_gimbal(std::make_shared<CameraGimbal>(ardupilot_namespace_copy_, this)),
 		mypid(),
-		state_machine_(*this)  // 显式初始化 state_machine_
+		state_machine_(this)  // 显式初始化 state_machine_
 	{
 		// Declare and get parameters
 		this->declare_parameter("sim_mode", false);
@@ -312,34 +296,10 @@ private:
 	// --- 定义的PID函数---
 	MYPID mypid;
 	// ------------------
-  
-
-	class StateMachine {
-	public:
-		explicit StateMachine(OffboardControl& parent) 
-			: parent_(parent), current_state_(FlyState::init) {}
-
-		template<FlyState... States>
-		void process_states();
-
-		void add_dynamic_task(std::function<void()> task);
-		void execute_dynamic_tasks();
-		void transition_to(FlyState new_state);
-	private:
-		OffboardControl& parent_;
-		FlyState current_state_;
-		FlyState previous_state_;
-		std::vector<std::function<void()>> dynamic_tasks_;
-		std::mutex task_mutex_;
-
-		template<FlyState S>
-		void handle_state();
-
-    // 声明 OffboardControl 为友元类
-		friend class OffboardControl;
-	};
-
+	
+	// 状态机
 	StateMachine state_machine_;
+  
 
 
 
