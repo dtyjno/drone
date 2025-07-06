@@ -23,35 +23,44 @@ void OffboardControl::timer_callback(void)
 		_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), _yolo->get_y(YOLO::TARGET_TYPE::CIRCLE),
 		_yolo->get_x(YOLO::TARGET_TYPE::H), _yolo->get_y(YOLO::TARGET_TYPE::H),
 		_yolo->get_servo_flag(), get_yaw());
-
-	// CameraParams camera1;
-	// camera1.position = Vector3d(get_x_pos(), get_y_pos(), get_z_pos());
-	// camera1.rotation = Vector3d(0, -M_PI/2, 0);  // 俯仰角-90度(向下看)
-	// camera1.fx = 360;
-	// camera1.fy = 360;
-	// camera1.cx = 320;
-	// camera1.cy = 240;
-	// camera1.width = 640;
-	// camera1.height = 480;
- 	// Vector2d image_point1(
-	// 	_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE),
-	// 	_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE)
-	// );
+	RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前飞机位置 x: %f y: %f z: %f yaw: %f",
+		get_x_pos(), get_y_pos(), get_z_pos(), get_yaw());
+	
+	CameraParams camera1;
+	camera1.position = Vector3d(get_x_pos(), get_y_pos(), get_z_pos());
+	camera1.rotation = Vector3d(0, -M_PI/2, 0);  // 俯仰角-90度(向下看)
+	camera1.fx = 360;
+	camera1.fy = 360;
+	camera1.cx = 320;
+	camera1.cy = 240;
+	camera1.width = 640;
+	camera1.height = 480;
+ 	Vector2d image_point1(
+		_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE),
+		_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE)
+	);
 	// std::cout << "Image width: " << camera1.width << ", height: " << camera1.height << std::endl;
 	// std::cout << "Image point 1: " << image_point1.transpose() << std::endl;
 	// std::cout << "Camera 1 position: " << camera1.position.transpose() << std::endl;
-  // auto target1 = calculateWorldPosition(image_point1, camera1, 0.0, 0.0);
-	// if (target1) {
-	// 		std::cout << "Example 1 - Target position: " << std::endl;
-	// 		std::cout << *target1 << std::endl;
-	// }
+  	auto target1 = calculateWorldPosition(image_point1, camera1, 0.0, 0.0);
+	if (target1) {
+			std::cout << "Example 1 - Target position: " << std::endl;
+			std::cout << *target1 << std::endl;
+	}
+
+	if (_motors->mode == "LAND" && state_machine_.get_current_state() != FlyState::end)
+	{
+		RCLCPP_INFO(this->get_logger(), "飞行结束，进入结束状态");
+		state_machine_.transition_to(FlyState::end);
+		return;
+	}
 
 	state_machine_.execute_dynamic_tasks();
 	state_machine_.process_states<
 		FlyState::init,
 		FlyState::takeoff,
 
-		// FlyState::end,
+		FlyState::end,
 		// 
 		FlyState::Goto_shotpoint,
 		FlyState::Doshot,
@@ -114,12 +123,12 @@ void OffboardControl::FlyState_init()
   // RCLCPP_INFO(this->get_logger(), "结束初始化舵机");
 
 	// rclcpp::sleep_for(1s);
-	if (is_equal(get_x_pos(), DEFAULT_X_POS))
-	{
-		// THROTTLE表示节流的意思，以下代码节流时间间隔为 500 毫秒（即 5 秒）．
-		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "没有获取到位置数据，等待GPS信号...");
-		return;
-	}
+	// if (is_equal(get_x_pos(), DEFAULT_X_POS))
+	// {
+	// 	// THROTTLE表示节流的意思，以下代码节流时间间隔为 500 毫秒（即 5 秒）．
+	// 	RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "没有获取到位置数据，等待GPS信号...");
+	// 	return;
+	// }
 	// 飞控的扩展卡尔曼滤波器（EKF3）已经为IMU（惯性测量单元）0和IMU1设置了起点。
 	start = {get_x_pos(), get_y_pos(), get_z_pos(), get_yaw()}; 
 	// 飞控日志 AP: Field Elevation Set: 0m 设定当前位置的地面高度为0米，这对于高度控制和避免地面碰撞非常重要。

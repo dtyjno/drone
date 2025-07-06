@@ -12,7 +12,7 @@ bool OffboardControl::waypoint_goto_next(double x, double y, double length, doub
 	static std::vector<Vector2f>::size_type surround_cnt = 0; // 修改类型
 	double x_temp = 0.0, y_temp = 0.0;
 	if(count!=nullptr)
-		RCLCPP_INFO(this->get_logger(), "w_g_n,counter: %d, time=%lf", *count, state_timer_.elapsed());
+		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "w_g_n,counter: %d, time=%lf", *count, state_timer_.elapsed());
 	if (state_timer_.elapsed() > time) 
 	{
 		if (static_cast<std::vector<Vector2f>::size_type>(count == nullptr? surround_cnt : *count) >= way_points.size())
@@ -505,7 +505,14 @@ bool OffboardControl::trajectory_generator_world_points(double speed_factor, con
 	}
 	std::cout << "data.size(): " << data.size() << std::endl;
 	std::cout << "data_length: " << data_length_ << std::endl;
-	// std::cout<<"data: "<<<<std::endl;
+	
+	// 检查数据有效性，防止越界访问
+	if (data.empty() || data_length_ == 0 || data.size() < data_length_) {
+		std::cout << "数据无效或已完成，返回true" << std::endl;
+		data_length_ = 0;
+		first = true;
+		return true;
+	}
 
 	std::array<double, 3> q_goal = data[data.size() - data_length_];
 	double global_x, global_y;

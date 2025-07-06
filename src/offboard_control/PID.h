@@ -36,6 +36,13 @@ public:
         pidDefaults.ff = config[pid_name]["ff"].as<double>();
         pidDefaults.dff = config[pid_name]["dff"].as<double>();
         pidDefaults.imax = config[pid_name]["imax"].as<double>();
+        std::cout << "读取PID参数: " << pid_name << " p: " << pidDefaults.p
+                  << ", i: " << pidDefaults.i
+                  << ", d: " << pidDefaults.d
+                  << ", ff: " << pidDefaults.ff
+                  << ", dff: " << pidDefaults.dff
+                  << ", imax: " << pidDefaults.imax
+                  << std::endl;
         return pidDefaults;
     };
 #endif
@@ -47,6 +54,7 @@ public:
     void set_gains(const PID::Defaults &defaults);
     void set_gains(float kp, float ki, float kd);
     void set_pid(float kp, float ki, float kd);
+    void set_pid(const PID::Defaults &defaults);
     void get_pid(float &kp, float &ki, float &kd);
     float update_all(float measurement, float target, float dt, float limit, float velocity = DEFAULT_VELOCITY);
     void update_i(float dt, float limit);

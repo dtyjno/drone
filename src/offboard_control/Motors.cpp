@@ -38,7 +38,7 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude){
 		if(takeoff_command == true) {
 			RCLCPP_INFO(node->get_logger(), "开始解锁");
 			arm_motors(true);
-			state_ = State::wait_for_stable_offboard_mode;	
+			state_ = State::arm_requested;	
 		}
 		break;
 	case State::wait_for_stable_offboard_mode :
@@ -47,23 +47,22 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude){
 			state_ = State::arm_requested;
 		}
 		break;
-	case State::arm_requested :
+	case State::arm_requested : // skip
 		if(!armed){//_arm_done
-			rclcpp::sleep_for(200ms);
+			rclcpp::sleep_for(1000ms);
 			arm_motors(true);
 			// command_takeoff_or_land("TAKEOFF");
 		}
 		else{
 			//RCLCPP_INFO(this->get_logger(), "vehicle is armed");
+			command_takeoff_or_land("TAKEOFF",takeoff_altitude);
 			state_ = State::takeoff;
 		}
 		break;
 	case State::takeoff:
-		//RCLCPP_INFO(this->get_logger(), "vehicle is start");
-		//arm_motors(true);		
-		command_takeoff_or_land("TAKEOFF",takeoff_altitude);	
-		if(local_frame_z - home_position.z() < takeoff_altitude * 0.5){
-			rclcpp::sleep_for(300ms);
+		//RCLCPP_INFO(this->get_logger(), "vehicle is start");		
+		if(local_frame_z - home_position.z() < 0.5){
+			rclcpp::sleep_for(2000ms);
 			command_takeoff_or_land("TAKEOFF",takeoff_altitude);
 		}else{
 			is_takeoff = true;
@@ -93,6 +92,9 @@ void Motors::state_callback(const mavros_msgs::msg::State::SharedPtr msg)
 	guided = msg->guided;
 	mode = msg->mode;
 	system_status = msg->system_status;
+	// std::cout << "State: " << mode << ", Armed: " << armed 
+	// 		  << ", Connected: " << connected << ", Guided: " << guided 
+	// 		  << ", System Status: " << system_status << std::endl;
 	// node->set_state();
 }
 
@@ -344,67 +346,61 @@ void Motors::set_home_position()
 // #### Common type for GLOBAL Take Off and Landing
 void Motors::command_takeoff_or_land(std::string mode, double altitude)
 {
-	//RCLCPP_ERROR(this->get_logger(), ("Failed to call service "+ardupilot_namespace+"cmd/takeoff").c_str());
-	// service_done_ = false;
 	std::string mode_str(mode);
     OffboardControl_Base* node = this->node;
 
 	if(mode=="TAKEOFF"){
-	auto takeoff_client = node->create_client<mavros_msgs::srv::CommandTOL>(ardupilot_namespace+"cmd/takeoff");
-
-	auto takeoff_request = std::make_shared<mavros_msgs::srv::CommandTOL::Request>();
-	takeoff_request->min_pitch = 0.0;
-	takeoff_request->yaw = 0.0;
-	takeoff_request->latitude = 0.0;
-	takeoff_request->longitude = 0.0;
-	takeoff_request->altitude = altitude;
-	
-	auto takeoff_result_future = takeoff_client->async_send_request(takeoff_request,
-		[this,node](rclcpp::Client<mavros_msgs::srv::CommandTOL>::SharedFuture future) {
-			auto status = future.wait_for(0.5s);
-			if (status == std::future_status::ready) {
-				auto reply = future.get()->success;
-				RCLCPP_INFO(node->get_logger(), "TakeOff: %s", reply ? "success" : "failed");
-				if (reply == 1) {
-					// Code to execute if the future is successful
-					// service_done_ = true;
+		auto takeoff_request = std::make_shared<mavros_msgs::srv::CommandTOL::Request>();
+		takeoff_request->min_pitch = 0.0;
+		takeoff_request->yaw = 0.0;
+		takeoff_request->latitude = 0.0;
+		takeoff_request->longitude = 0.0;
+		takeoff_request->altitude = altitude;
+		
+		auto takeoff_result_future = takeoff_client_->async_send_request(takeoff_request,
+			[this,node](rclcpp::Client<mavros_msgs::srv::CommandTOL>::SharedFuture future) {
+				auto status = future.wait_for(3s);  // 增加超时时间到3秒
+				if (status == std::future_status::ready) {
+					auto reply = future.get()->success;
+					RCLCPP_INFO(node->get_logger(), "TakeOff: %s", reply ? "success" : "failed");
+					if (reply == 1) {
+						// Code to execute if the future is successful
+						// service_done_ = true;
+					}
+					else {
+						// Code to execute if the future is unsuccessful
+						RCLCPP_ERROR(node->get_logger(), ("Failed to call service "+ardupilot_namespace+"cmd/takeoff").c_str());
+					}
+				} else {
+					// Wait for the result.
+					RCLCPP_WARN(node->get_logger(), "TakeOff service timeout, continuing...");
 				}
-				else {
-					// Code to execute if the future is unsuccessful
-					RCLCPP_ERROR(node->get_logger(), ("Failed to call service "+ardupilot_namespace+"cmd/takeoff").c_str());
-				}
-			} else {
-				// Wait for the result.
-				RCLCPP_INFO(node->get_logger(), "Service In-Progress...");
-			}
-		});
+			});
 	} else if(mode=="LAND"){
-	auto land_client = node->create_client<mavros_msgs::srv::CommandTOL>(ardupilot_namespace+"cmd/land");
-	
-	auto land_request = std::make_shared<mavros_msgs::srv::CommandTOL::Request>();
-	land_request->yaw = 0.0;
-	land_request->latitude = 0.0;
-	land_request->longitude = 0.0;
-	land_request->altitude = 0.0;
+		auto land_request = std::make_shared<mavros_msgs::srv::CommandTOL::Request>();
+		land_request->yaw = 0.0;
+		land_request->latitude = 0.0;
+		land_request->longitude = 0.0;
+		land_request->altitude = 0.0;
 
-	auto land_result_future = land_client->async_send_request(land_request,
-		[this,node](rclcpp::Client<mavros_msgs::srv::CommandTOL>::SharedFuture future) {
-			auto status = future.wait_for(0.5s);
-			if (status == std::future_status::ready) {
-				auto reply = future.get()->success;
-				RCLCPP_INFO(node->get_logger(), "Land: %s", reply ? "success" : "failed");
-				if (reply == 1) {
-					// Code to execute if the future is successful
-					// service_done_ = true;
+		auto land_result_future = land_client_->async_send_request(land_request,
+			[this,node](rclcpp::Client<mavros_msgs::srv::CommandTOL>::SharedFuture future) {
+				auto status = future.wait_for(3s);  // 增加超时时间到3秒
+				if (status == std::future_status::ready) {
+					auto reply = future.get()->success;
+					RCLCPP_INFO(node->get_logger(), "Land: %s", reply ? "success" : "failed");
+					if (reply == 1) {
+						// Code to execute if the future is successful
+						// service_done_ = true;
+					}
+					else {
+						// Code to execute if the future is unsuccessful
+						RCLCPP_ERROR(node->get_logger(), ("Failed to call service "+ardupilot_namespace+"cmd/land").c_str());
+					}
+				} else {
+					// Wait for the result.
+					RCLCPP_WARN(node->get_logger(), "Land service timeout, continuing...");
 				}
-				else {
-					// Code to execute if the future is unsuccessful
-					RCLCPP_ERROR(node->get_logger(), ("Failed to call service "+ardupilot_namespace+"cmd/land").c_str());
-				}
-			} else {
-				// Wait for the result.
-				RCLCPP_INFO(node->get_logger(), "Service In-Progress...");
-			}
-		});
+			});
 	}
 }

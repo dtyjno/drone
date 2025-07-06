@@ -29,7 +29,7 @@ public:
     	// Everything assigned to one of them gets bundled into the same thread
 		auto sub_opt = rclcpp::SubscriptionOptions();
     	sub_opt.callback_group = callback_group_subscriber_;
-
+		
 		// topic /mavros/local_position/odom/ msg nav_msgs/msg/Odometry
 
 		//ros2 topic echo /mavros/local_position/pose geometry_msgs/msg/PoseStamped

@@ -224,6 +224,19 @@ public:
 			0,
 			0
 		);
+		pid_x_defaults=PID::readPIDParameters("pos_config.yaml","pos_x");
+		pid_y_defaults=PID::readPIDParameters("pos_config.yaml","pos_y");
+		pid_z_defaults=PID::readPIDParameters("pos_config.yaml","pos_z");
+		pid_yaw_defaults=PID::readPIDParameters("pos_config.yaml","pos_yaw");
+		pid_px_defaults=PID::readPIDParameters("pos_config.yaml","pos_px");
+		pid_py_defaults=PID::readPIDParameters("pos_config.yaml","pos_py");
+		pid_pz_defaults=PID::readPIDParameters("pos_config.yaml","pos_pz");
+		pid_vx_defaults=PID::readPIDParameters("pos_config.yaml","pos_vx");
+		pid_vy_defaults=PID::readPIDParameters("pos_config.yaml","pos_vy");
+		pid_vz_defaults=PID::readPIDParameters("pos_config.yaml","pos_vz");
+		limit_defaults=readLimits("pos_config.yaml","limits");
+		reset_pid();
+		reset_limits();
     }
 
 	OffboardControl_Base* node;
@@ -269,17 +282,17 @@ public:
 	}
 	bool auto_tune(Vector4f pos_now, Vector4f pos_target, uint32_t delayMsec, bool tune_x=true, bool tune_y=true, bool tune_z=true, bool tune_yaw=true);
 	PID::Defaults
-		pid_x_defaults=PID::readPIDParameters("pos_config.yaml","pos_x"),
-		pid_y_defaults=PID::readPIDParameters("pos_config.yaml","pos_y"),
-		pid_z_defaults=PID::readPIDParameters("pos_config.yaml","pos_z"),
-		pid_yaw_defaults=PID::readPIDParameters("pos_config.yaml","pos_yaw"),
-		pid_px_defaults=PID::readPIDParameters("pos_config.yaml","pos_px"),
-		pid_py_defaults=PID::readPIDParameters("pos_config.yaml","pos_py"),
-		pid_pz_defaults=PID::readPIDParameters("pos_config.yaml","pos_pz"),
-		pid_vx_defaults=PID::readPIDParameters("pos_config.yaml","pos_vx"),
-		pid_vy_defaults=PID::readPIDParameters("pos_config.yaml","pos_vy"),
-		pid_vz_defaults=PID::readPIDParameters("pos_config.yaml","pos_vz");
-	Limits_t limit_defaults=readLimits("pos_config.yaml","limits");
+		pid_x_defaults,
+		pid_y_defaults,
+		pid_z_defaults,
+		pid_yaw_defaults,
+		pid_px_defaults,
+		pid_py_defaults,
+		pid_pz_defaults,
+		pid_vx_defaults,
+		pid_vy_defaults,
+		pid_vz_defaults;
+	Limits_t limit_defaults;
 private:
 	std::string ardupilot_namespace;
 

@@ -92,7 +92,7 @@ void PosControl::send_local_setpoint_command(double x, double y, double z, doubl
 	msg.pose.orientation.y = 0;
 	msg.pose.orientation.z = sin(radians_angle / 2);
 	msg.pose.orientation.w = cos(radians_angle / 2);
-	RCLCPP_INFO(node->get_logger(), "Publishing local setpoint: x=%f, y=%f, z=%f, yaw=%f", x, y, z, yaw);
+	RCLCPP_INFO_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "Publishing local setpoint: x=%f, y=%f, z=%f, yaw=%f", x, y, z, yaw);
 	local_setpoint_publisher_->publish(msg);
 }
 
@@ -262,25 +262,37 @@ Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy
 		float kp = 0, ki = 0, kd = 0;
 
 		pid_x.get_pid(kp, ki, kd);
+		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: x   p:%f i:%f d:%f", 
+			kp, ki, kd);
 		fuzzy_pid.fuzzy_pid_control(now.x(), target.x(), 0, kp, ki, kd, delta_k);
 		pid_x.set_gains(kp, ki, kd);
 		f.x() = pid_x.update_all(now.x(), target.x(), dt, max_speed_xy, InertialNav::velocity.x());
-
+		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: x   p:%f i:%f d:%f", 
+			kp, ki, kd);
 		pid_y.get_pid(kp, ki, kd);
 		fuzzy_pid.fuzzy_pid_control(now.y(), target.y(), 1, kp, ki, kd, delta_k);
 		pid_y.set_gains(kp, ki, kd);
 		f.y() = pid_y.update_all(now.y(), target.y(), dt, max_speed_xy, InertialNav::velocity.y());
-		
+		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: y   p:%f i:%f d:%f", 
+			kp, ki, kd);		
 		pid_z.get_pid(kp, ki, kd);
 		fuzzy_pid.fuzzy_pid_control(now.z(), target.z(), 2, kp, ki, kd, delta_k);
 		pid_z.set_gains(kp, ki, kd);
 		f.z() = pid_z.update_all(now.z(), target.z(), dt, max_speed_z, InertialNav::velocity.z());
-		
+		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: z   p:%f i:%f d:%f", 
+			kp, ki, kd);
 		pid_yaw.get_pid(kp, ki, kd);
 		fuzzy_pid.fuzzy_pid_control(now.w(), target.w(), 3, kp, ki, kd, delta_k);
 		pid_yaw.set_gains(kp, ki, kd);
 		f.w() = pid_yaw.update_all(now.w(), target.w(), dt, max_speed_yaw, InertialNav::velocity.w());
-		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: x:%f y:%f z:%f yaw:%f", f.x(), f.y(), f.z(), f.w());
+		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: yaw p:%f i:%f d:%f", 
+			kp, ki, kd);
+		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: px:%f py:%f pz:%f pyaw:%f",
+			now.x(), now.y(), now.z(), now.w());
+		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: tx:%f ty:%f tz:%f tyaw:%f",
+			target.x(), target.y(), target.z(), target.w());
+		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: vx:%f vy:%f vz:%f vyaw:%f",
+			f.x(), f.y(), f.z(), f.w());
 		return f;
 	} else{
 		Vector4f f;
@@ -288,7 +300,7 @@ Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy
 		f.y() = pid_y.update_all(now.y(), target.y(), dt, max_speed_xy, InertialNav::velocity.y());
 		f.z() = pid_z.update_all(now.z(), target.z(), dt, max_speed_z, InertialNav::velocity.z());
 		f.w() = pid_yaw.update_all(now.w(), target.w(), dt, max_speed_yaw, InertialNav::velocity.w());
-		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: x:%f y:%f z:%f yaw:%f", f.x(), f.y(), f.z(), f.w());
+		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: vx:%f vy:%f vz:%f vyaw:%f", f.x(), f.y(), f.z(), f.w());
 		return f;
 	}
 }
@@ -602,7 +614,7 @@ bool PosControl::trajectory_circle(float a, float b, float height, float dt, flo
 		return false;
 	}
 }
-// 航点设置，s形速度规划？(开环)，飞行经过指定位置（相对于起飞点/世界坐标系）
+// 航点设置，s型速度规划(开环)，飞行经过指定位置（相对于起飞点/世界坐标系）
 bool PosControl::trajectory_generator_world(double speed_factor, std::array<double, 3> q_goal, Vector3f max_speed, Vector3f max_accel)
 {
 	static RobotState current_state;
@@ -634,6 +646,7 @@ bool PosControl::trajectory_generator_world(double speed_factor, std::array<doub
 	}
 	if (is_equal(Vector4f(q_goal[0], q_goal[1], q_goal[2], 0), pos_target_temp, 0.1f))
 	{
+		RCLCPP_INFO(node->get_logger(), "trajectory_generator: is_equal count:%ld", count);
 		if (!isFinished)
 		{
 			isFinished = (*_trajectory_generator)(current_state, count / 10.0);
@@ -755,21 +768,21 @@ void PosControl::reset_limits()
 
 void PosControl::set_pid(PID &pid, PID::Defaults defaults)
 {
-	pid.set_gains(defaults);
+	pid.set_pid(defaults);
 }
 
 void PosControl::reset_pid()
 {
-	pid_x.set_gains(pid_x_defaults);
-	pid_y.set_gains(pid_y_defaults);
-	pid_z.set_gains(pid_z_defaults);
-	pid_yaw.set_gains(pid_yaw_defaults);
-	pid_px.set_gains(pid_px_defaults);
-	pid_py.set_gains(pid_py_defaults);
-	pid_pz.set_gains(pid_pz_defaults);
-	pid_vx.set_gains(pid_vx_defaults);
-	pid_vy.set_gains(pid_vy_defaults);
-	pid_vz.set_gains(pid_vz_defaults);
+	pid_x.set_pid(pid_x_defaults);
+	pid_y.set_pid(pid_y_defaults);
+	pid_z.set_pid(pid_z_defaults);
+	pid_yaw.set_pid(pid_yaw_defaults);
+	pid_px.set_pid(pid_px_defaults);
+	pid_py.set_pid(pid_py_defaults);
+	pid_pz.set_pid(pid_pz_defaults);
+	pid_vx.set_pid(pid_vx_defaults);
+	pid_vy.set_pid(pid_vy_defaults);
+	pid_vz.set_pid(pid_vz_defaults);
 }
 
 TUNE_ID_t PosControl::get_autotuneID()

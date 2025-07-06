@@ -162,6 +162,17 @@ void PID::set_gains(float kp, float ki, float kd)
     // _pid_info.D = 0;
 }
 
+void PID::set_pid(const PID::Defaults &defaults)
+{
+    _kp = defaults.p;
+    _ki = defaults.i;
+    _kd = defaults.d;
+    _kff = defaults.ff;
+    _kdff = defaults.dff;
+    _kimax = defaults.imax;
+}
+
+
 void PID::set_pid(float kp, float ki, float kd)
 {
     _kp = kp;

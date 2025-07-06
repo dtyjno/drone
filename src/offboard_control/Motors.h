@@ -33,6 +33,8 @@ public:
 	    // mode_switch_client_ = node->create_client<mavros_msgs::srv::SetMode>(ardupilot_namespace+"set_mode");
 	    mode_switch_client_ = node->mode_switch_client_;
         set_home_client_ = node->create_client<mavros_msgs::srv::CommandHome>(ardupilot_namespace+"cmd/set_home");
+        takeoff_client_ = node->create_client<mavros_msgs::srv::CommandTOL>(ardupilot_namespace+"cmd/takeoff");
+        land_client_ = node->create_client<mavros_msgs::srv::CommandTOL>(ardupilot_namespace+"cmd/land");
         
         state_subscription_ = node->create_subscription<mavros_msgs::msg::State>(ardupilot_namespace+"state", qos,
 		    std::bind(&Motors::state_callback, this, std::placeholders::_1),sub_opt);
@@ -55,6 +57,10 @@ public:
 	void set_home_position(double lat, double lon, double alt);
 	void set_home_position();
 
+	auto get_set_home_client() {
+		return set_home_client_;
+	}
+
 	//"TAKEOFF" or "LAND"
 	void command_takeoff_or_land(std::string mode, double altitude = 5.0);
 
@@ -71,6 +77,10 @@ public:
 		autotune_mode,
 		
 	} state_;
+	// State: GUIDED, Armed: 0, Connected: 1, Guided: 1, System Status: 
+	// State: GUIDED, Armed: 1, Connected: 1, Guided: 1, System Status:
+	// State: RTL, Armed: 1, Connected: 1, Guided: 1, System Status:  
+	// State: LAND, Armed: 1, Connected: 1, Guided: 1, System Status:
 	static bool armed;
 	static bool connected;
 	static bool guided;
@@ -90,6 +100,8 @@ private:
  	rclcpp::Client<mavros_msgs::srv::CommandBool>::SharedPtr arm_motors_client_;
 	rclcpp::Client<mavros_msgs::srv::SetMode>::SharedPtr mode_switch_client_;
 	rclcpp::Client<mavros_msgs::srv::CommandHome>::SharedPtr set_home_client_;
+	rclcpp::Client<mavros_msgs::srv::CommandTOL>::SharedPtr takeoff_client_;
+	rclcpp::Client<mavros_msgs::srv::CommandTOL>::SharedPtr land_client_;
 // 	系统时间
 // 用于时间同步。
 // Time:

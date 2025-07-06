@@ -91,7 +91,7 @@ public:
 
 		while (!mode_switch_client_->wait_for_service(std::chrono::seconds(1)))
 		{
-			if (!rclcpp::ok() || is_equal(get_x_pos(), DEFAULT_X_POS))
+			if (!rclcpp::ok() || get_x_pos() == DEFAULT_X_POS)
 			{
 				RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. 停止");
 				return;
@@ -99,6 +99,17 @@ public:
 			RCLCPP_INFO(this->get_logger(), "模式切换服务未准备好, 正在等待...");
 			// rate.sleep();
 		}
+		while (!_motors->get_set_home_client()->wait_for_service(std::chrono::seconds(1)))
+		{
+			if (!rclcpp::ok())
+			{
+				RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. 停止");
+				return;
+			}
+			RCLCPP_INFO(this->get_logger(), "设置home位置服务未准备好, 正在等待...");
+			// rate.sleep();
+		}
+		
 		timestamp_init = get_cur_time();
 		timer_ = this->create_wall_timer(100ms, std::bind(&OffboardControl::timer_callback, this));
 	}
@@ -300,7 +311,13 @@ private:
 	// 状态机
 	StateMachine state_machine_;
   
-
+	enum class DoshotState
+	{
+		doshot_init,
+		doshot_scout,
+		doshot_halt,
+		doshot_end
+	} doshot_state_ = DoshotState::doshot_init;
 
 
 	float default_yaw = 0.0; // 默认偏转角 = 450 - headingangle_compass 角度
@@ -317,12 +334,12 @@ private:
 	const double see_width = 5.0;
 	// const double see_halt = 3.0;
 
-	// 定义投弹侦察点位
+	// 定义投弹侦察点位 原始数据
 	float dx_shot, dy_shot;
 	float dx_see, dy_see;
 	float shot_halt;
 	float see_halt;
-	// 坐标待旋转
+	// 坐标待旋转处理后坐标
 	float tx_shot;
 	float ty_shot;
 	float tx_see;

@@ -5,7 +5,6 @@
 #include <mutex>
 #include <rclcpp/rclcpp.hpp>
 #include <chrono>
-#include <algorithm>
 #include <string>
 #include "utils.h"
 
@@ -23,6 +22,7 @@ enum class FlyState
 	// request,
 	takeoff,
 	end,
+	stop,
 	Goto_shotpoint, 
 	Doshot,
 	Goto_scoutpoint,
@@ -40,6 +40,7 @@ const std::map<std::string, FlyState> FlyStateMap = {
 	// {"REQUEST", FlyState::request},
 	{"TAKEOFF", FlyState::takeoff},
 	{"END", FlyState::end},
+	{"STOP", FlyState::stop},
 	{"GOTO_SHOTPOINT", FlyState::Goto_shotpoint},
 	{"DOSHOT", FlyState::Doshot},
 	{"GOTO_SCOUTPOINT", FlyState::Goto_scoutpoint},
@@ -66,6 +67,7 @@ inline int fly_state_to_int(FlyState state) {
     default: return 1;
   }
 }
+
 class StateMachine {
 public:
 	explicit StateMachine(OffboardControl *owner) 

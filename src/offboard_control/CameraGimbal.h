@@ -116,14 +116,14 @@ inline std::optional<Vector3d> calculateWorldPosition(
         return std::nullopt;
     }
     
-    // // 2. 处理垂直向下特殊情况(俯仰角≈-90度)
-    // if (abs(camera.rotation[1] + M_PI/2) < 1e-4) {
-    //     Vector3d target_pos;
-    //     target_pos.x() = camera.position.x() + norm_point.x() * (camera.position.z() - ground_height);
-    //     target_pos.y() = camera.position.y() + norm_point.y() * (camera.position.z() - ground_height);
-    //     target_pos.z() = ground_height - object_height;
-    //     return target_pos;
-    // }
+    // 2. 处理垂直向下特殊情况(俯仰角≈-90度)
+    if (abs(camera.rotation[1] + M_PI/2) < 1e-4) {
+        Vector3d target_pos;
+        target_pos.x() = camera.position.x() + norm_point.x() * (camera.position.z() - ground_height);
+        target_pos.y() = camera.position.y() + norm_point.y() * (camera.position.z() - ground_height);
+        target_pos.z() = ground_height - object_height;
+        return target_pos;
+    }
     
     // 3. 创建相机外参矩阵
     Matrix3d R = eulerAnglesToRotationMatrix(camera.rotation);
