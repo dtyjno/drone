@@ -23,29 +23,50 @@ void OffboardControl::timer_callback(void)
 		_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), _yolo->get_y(YOLO::TARGET_TYPE::CIRCLE),
 		_yolo->get_x(YOLO::TARGET_TYPE::H), _yolo->get_y(YOLO::TARGET_TYPE::H),
 		_yolo->get_servo_flag(), get_yaw());
-	RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前飞机位置 x: %f y: %f z: %f yaw: %f",
-		get_x_pos(), get_y_pos(), get_z_pos(), get_yaw());
-	
+	// RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前飞机位置 x: %f y: %f z: %f yaw: %f",
+	// 	get_x_pos(), get_y_pos(), get_z_pos(), get_yaw());
+	// 桶1（1 -30） 2 (2 -30) 3 (-1 -29)
 	CameraParams camera1;
 	camera1.position = Vector3d(get_x_pos(), get_y_pos(), get_z_pos());
-	camera1.rotation = Vector3d(0, -M_PI/2, 0);  // 俯仰角-90度(向下看)
-	camera1.fx = 360;
-	camera1.fy = 360;
-	camera1.cx = 320;
-	camera1.cy = 240;
+	
+	// 相机坐标系：相对于飞机机体坐标系，向前旋转90度后垂直向下
+	// 飞机偏航角 + 相机相对偏航角(90度) + 俯仰角(-90度向下)
+	float roll, pitch, yaw;
+	get_rpy(roll, pitch, yaw);	
+	// RCLCPP_INFO(this->get_logger(), "飞机当前滚转角: %f 弧度 (%f°), 俯仰角: %f 弧度 (%f°), 偏航角: %f 弧度 (%f°)",
+		// roll, roll * 180.0 / M_PI, pitch, pitch * 180.0 / M_PI, yaw, yaw * 180.0 / M_PI);
+	
+	// 设置相机姿态：垂直向下看（pitch = -90°）
+	camera1.rotation = Vector3d(0, pitch - M_PI/2, 0);  // roll=0, pitch=-90°(垂直向下), yaw=0
+	
+	// std::cout << "相机旋转角度: roll=" << camera1.rotation[0] << " pitch=" << camera1.rotation[1] << " (" << camera1.rotation[1] * 180.0/M_PI << "°) yaw=" << camera1.rotation[2] << std::endl;
+	
+	// 设置正确的相机内参
+	camera1.fx = 360;  // 与配置文件一致
+	camera1.fy = 360;  // 与配置文件一致
+	camera1.cx = 320;  // 配置文件中的cx值
+	camera1.cy = 240;  // 配置文件中的cy值
 	camera1.width = 640;
 	camera1.height = 480;
+	
  	Vector2d image_point1(
 		_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE),
 		_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE)
 	);
-	// std::cout << "Image width: " << camera1.width << ", height: " << camera1.height << std::endl;
-	// std::cout << "Image point 1: " << image_point1.transpose() << std::endl;
-	// std::cout << "Camera 1 position: " << camera1.position.transpose() << std::endl;
-  	auto target1 = calculateWorldPosition(image_point1, camera1, 0.0, 0.0);
-	if (target1) {
-			std::cout << "Example 1 - Target position: " << std::endl;
-			std::cout << *target1 << std::endl;
+	
+	// 调试输出：像素坐标和相机位置
+	// std::cout << "检测到的像素坐标: (" << image_point1.x() << ", " << image_point1.y() << ")" << std::endl;
+	// std::cout << "飞机当前位置: (" << get_x_pos() << ", " << get_y_pos() << ", " << get_z_pos() << ")" << std::endl;
+	// std::cout << "相机旋转角度: roll=" << camera1.rotation[0] << " pitch=" << camera1.rotation[1] << " yaw=" << camera1.rotation[2] << std::endl;
+	// std::cout << "相机内参: fx=" << camera1.fx << " fy=" << camera1.fy << " cx=" << camera1.cx << " cy=" << camera1.cy << std::endl;
+	
+	if (_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE))
+	{
+		auto target1 = calculateWorldPosition(image_point1, camera1, 0.0, 0.3);
+		if (target1) {
+				std::cout << "Example 1 - Target position: " << std::endl;
+				std::cout << *target1 << std::endl;
+		}
 	}
 
 	if (_motors->mode == "LAND" && state_machine_.get_current_state() != FlyState::end)

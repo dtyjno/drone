@@ -39,10 +39,10 @@ public:
 
     bool is_get_target(enum TARGET_TYPE type){
         if(type == CIRCLE){
-            return fabs(get_x(type)) < 0.0001 && fabs(get_y(type)) < 0.0001;
+            return fabs(get_x(type)) > 0.0001 && fabs(get_y(type)) > 0.0001;
         }
         else if(type == H){
-            return fabs(get_x(type)) < 0.0001 && fabs(get_y(type)) < 0.0001;
+            return fabs(get_x(type)) > 0.0001 && fabs(get_y(type)) > 0.0001;
         }
         return false;
     }

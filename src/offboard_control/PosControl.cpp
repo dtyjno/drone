@@ -96,7 +96,7 @@ void PosControl::send_local_setpoint_command(double x, double y, double z, doubl
 	local_setpoint_publisher_->publish(msg);
 }
 
-// 发布本地位置控制指令
+// 发布本地位置控制指令 PID
 // send_local_setpoint_command(x, y, z, yaw); 飞行到	
 // 飞行到相对于世界坐标系的(x,y,z)位置
 bool PosControl::local_setpoint_command(Vector4f now, Vector4f target, double accuracy)
@@ -262,31 +262,31 @@ Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy
 		float kp = 0, ki = 0, kd = 0;
 
 		pid_x.get_pid(kp, ki, kd);
-		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: x   p:%f i:%f d:%f", 
-			kp, ki, kd);
+		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: x   p:%f i:%f d:%f", 
+		// 	kp, ki, kd);
 		fuzzy_pid.fuzzy_pid_control(now.x(), target.x(), 0, kp, ki, kd, delta_k);
 		pid_x.set_gains(kp, ki, kd);
 		f.x() = pid_x.update_all(now.x(), target.x(), dt, max_speed_xy, InertialNav::velocity.x());
-		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: x   p:%f i:%f d:%f", 
-			kp, ki, kd);
+		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: x   p:%f i:%f d:%f", 
+		// 	kp, ki, kd);
 		pid_y.get_pid(kp, ki, kd);
 		fuzzy_pid.fuzzy_pid_control(now.y(), target.y(), 1, kp, ki, kd, delta_k);
 		pid_y.set_gains(kp, ki, kd);
 		f.y() = pid_y.update_all(now.y(), target.y(), dt, max_speed_xy, InertialNav::velocity.y());
-		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: y   p:%f i:%f d:%f", 
-			kp, ki, kd);		
+		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: y   p:%f i:%f d:%f", 
+		// 	kp, ki, kd);		
 		pid_z.get_pid(kp, ki, kd);
 		fuzzy_pid.fuzzy_pid_control(now.z(), target.z(), 2, kp, ki, kd, delta_k);
 		pid_z.set_gains(kp, ki, kd);
 		f.z() = pid_z.update_all(now.z(), target.z(), dt, max_speed_z, InertialNav::velocity.z());
-		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: z   p:%f i:%f d:%f", 
-			kp, ki, kd);
+		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: z   p:%f i:%f d:%f", 
+		// 	kp, ki, kd);
 		pid_yaw.get_pid(kp, ki, kd);
 		fuzzy_pid.fuzzy_pid_control(now.w(), target.w(), 3, kp, ki, kd, delta_k);
 		pid_yaw.set_gains(kp, ki, kd);
 		f.w() = pid_yaw.update_all(now.w(), target.w(), dt, max_speed_yaw, InertialNav::velocity.w());
-		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: yaw p:%f i:%f d:%f", 
-			kp, ki, kd);
+		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: yaw p:%f i:%f d:%f", 
+		// 	kp, ki, kd);
 		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: px:%f py:%f pz:%f pyaw:%f",
 			now.x(), now.y(), now.z(), now.w());
 		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: tx:%f ty:%f tz:%f tyaw:%f",
@@ -628,33 +628,30 @@ bool PosControl::trajectory_generator_world(double speed_factor, std::array<doub
 	{
 		reset_pid();
 		std::cout << InertialNav::position.x() << " " << InertialNav::position.y() << " " << InertialNav::position.z() << " " << std::endl;
-		// current_state.q_d = {InertialNav::position.x(), InertialNav::position.y(), InertialNav::position.z()};
 		current_state.q_d = {InertialNav::position.x(), InertialNav::position.y(), InertialNav::position.z()};
 		_trajectory_generator = std::make_unique<TrajectoryGenerator>(speed_factor, q_goal); // Use smart pointer for memory management
 		_trajectory_generator->set_dq_max({MIN(max_speed_xy, max_speed.x()), MIN(max_speed_xy, max_speed.y()), MIN(max_speed_z, max_speed.z())});
 		_trajectory_generator->set_dqq_max({MIN(max_accel_xy, max_accel.x()), MIN(max_accel_xy, max_accel.y()), MIN(max_accel_z, max_accel.z())});
-		// pos_start_temp = {InertialNav::position.x(), InertialNav::position.y, InertialNav::position.z(), 0};
 		pos_start_temp = Vector4f(InertialNav::position.x(), InertialNav::position.y(), InertialNav::position.z(), 0.0f);
-		// pos_target_temp = {static_cast<float>(q_goal[0]), static_cast<float>(q_goal[1]), static_cast<float>(q_goal[2]), 0};
-		// pos_target_temp << static_cast<float>(q_goal[0]), static_cast<float>(q_goal[1]), static_cast<float>(q_goal[2]), 0;
 		pos_target_temp = Vector4f(static_cast<float>(q_goal[0]), static_cast<float>(q_goal[1]), static_cast<float>(q_goal[2]), 0);
 		count = 0;
 		isFinished = false;
-		// direction = {InertialNav::position.x() < q_goal[0], InertialNav::position.y() < q_goal[1], InertialNav::position.z() < q_goal[2], false};
-
 		first = false; // Ensure that initialization block runs only once
 	}
 	if (is_equal(Vector4f(q_goal[0], q_goal[1], q_goal[2], 0), pos_target_temp, 0.1f))
 	{
-		RCLCPP_INFO(node->get_logger(), "trajectory_generator: is_equal count:%ld", count);
 		if (!isFinished)
 		{
 			isFinished = (*_trajectory_generator)(current_state, count / 10.0);
 			count++; // Increment count to simulate time passing
+			RCLCPP_INFO(node->get_logger(), "trajectory_generator: is_equal count:%ld, isFinished:%d", count, isFinished);
 		}
-		else
+		
+		if (isFinished)
 		{
+			RCLCPP_INFO(node->get_logger(), "trajectory_generator: Motion completed!");
 			first = true; // Reset first to true to reinitialize the trajectory generator
+			return true; // 返回完成状态
 		}
 	}
 	else
@@ -667,6 +664,14 @@ bool PosControl::trajectory_generator_world(double speed_factor, std::array<doub
 						<< _trajectory_generator->delta_q_d[1] << " "
 						<< _trajectory_generator->delta_q_d[2] << " "
 						<< std::endl;
+	
+	// send_local_setpoint_command(
+	// 	pos_start_temp.x() + static_cast<float>(_trajectory_generator->delta_q_d[0]),
+	// 	pos_start_temp.y() + static_cast<float>(_trajectory_generator->delta_q_d[1]),
+	// 	pos_start_temp.z() + static_cast<float>(_trajectory_generator->delta_q_d[2]),
+	// 	0
+	// );
+
 	// trajectory_setpoint_world(
 	// 	{InertialNav::position.x(), InertialNav::position.y, InertialNav::position.z(), 0},
 	// 	{
@@ -680,12 +685,14 @@ bool PosControl::trajectory_generator_world(double speed_factor, std::array<doub
 	// 	}
 	// 	,0.01f, 0.1f
 	// );
+
 	send_velocity_command_world(
 		input_pos_xyz_yaw(
 			Vector4f(InertialNav::position.x() - pos_start_temp.x(), InertialNav::position.y() - pos_start_temp.y(), InertialNav::position.z() - pos_start_temp.z(), 0),
 			Vector4f(static_cast<float>(_trajectory_generator->delta_q_d[0]), static_cast<float>(_trajectory_generator->delta_q_d[1]), static_cast<float>(_trajectory_generator->delta_q_d[2]), 0),
 			true)
 	);
+	
 	// send_accel_command(input_pos_vel_xyz_yaw(
 	// 		{InertialNav::position.x() - pos_start_temp.x(), InertialNav::position.y - pos_start_temp.y, InertialNav::position.z() - pos_start_temp.z(), 0},
 	// 		{static_cast<float>(_trajectory_generator->delta_q_d[0]), static_cast<float>(_trajectory_generator->delta_q_d[1]), static_cast<float>(_trajectory_generator->delta_q_d[2]), 0}));

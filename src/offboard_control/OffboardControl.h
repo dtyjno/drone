@@ -189,6 +189,16 @@ public:
 		// return fmod(M_PI / 2 - yaw + 2 * M_PI, 2 * M_PI); // 确保偏航角在0到2π之间
 		return fmod(yaw + 2 * M_PI, 2 * M_PI); // 确保偏航角在0到2π之间
 	}
+	void get_rpy(float &roll, float &pitch, float &yaw) {
+		float w = InertialNav::orientation.w();
+		float x = InertialNav::orientation.x();
+		float y = InertialNav::orientation.y();
+		float z = InertialNav::orientation.z();
+		// 计算欧拉角
+		yaw = atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z));
+		pitch = asin(2.0 * (w * y - z * x));
+		roll = atan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x * x + y * y));
+	}
 	float get_yaw_eigen() {
     // 直接从四元数提取偏航角
     return InertialNav::orientation.toRotationMatrix().eulerAngles(2, 1, 0)[0];

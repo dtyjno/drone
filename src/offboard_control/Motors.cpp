@@ -1,6 +1,7 @@
 #include "Motors.h"
 #include <chrono>
 #include "math.h" // 连接Eigen库，使用Eigen命名空间，添加cmath头文件和自定义数学函数
+#include "utils.h"
 
 using namespace std::chrono_literals;
 
@@ -24,6 +25,7 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude){
 	(void)local_frame_z;
 	static bool is_takeoff = false;
 	static uint8_t num_of_steps = 0;
+	static Timer *timer;
 	switch (state_)
 	{
 	case State::init :
@@ -38,6 +40,7 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude){
 		if(takeoff_command == true) {
 			RCLCPP_INFO(node->get_logger(), "开始解锁");
 			arm_motors(true);
+			timer = new Timer(); // 重置计时器
 			state_ = State::arm_requested;	
 		}
 		break;
@@ -49,12 +52,15 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude){
 		break;
 	case State::arm_requested : // skip
 		if(!armed){//_arm_done
-			rclcpp::sleep_for(1000ms);
-			arm_motors(true);
-			// command_takeoff_or_land("TAKEOFF");
+			if(timer->elapsed() > 1.0){
+				arm_motors(true);
+				timer->reset(); // 重置计时器
+			}
+			// rclcpp::sleep_for(1000ms);
 		}
 		else{
 			//RCLCPP_INFO(this->get_logger(), "vehicle is armed");
+			timer->reset(); // 重置计时器
 			command_takeoff_or_land("TAKEOFF",takeoff_altitude);
 			state_ = State::takeoff;
 		}
@@ -62,10 +68,15 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude){
 	case State::takeoff:
 		//RCLCPP_INFO(this->get_logger(), "vehicle is start");		
 		if(local_frame_z - home_position.z() < 0.5){
-			rclcpp::sleep_for(2000ms);
-			command_takeoff_or_land("TAKEOFF",takeoff_altitude);
+			if(timer->elapsed() > 2.0){
+				// RCLCPP_INFO(node->get_logger(), "vehicle is taking off");
+				command_takeoff_or_land("TAKEOFF",takeoff_altitude);
+				timer->reset(); // 重置计时器
+			}
 		}else{
 			is_takeoff = true;
+			delete timer; // 删除计时器对象
+			timer = nullptr; // 设置指针为空，避免悬挂指针
 			RCLCPP_INFO(node->get_logger(), "takeoff done");
 			state_ = State::init;
 		}

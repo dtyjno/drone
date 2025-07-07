@@ -39,7 +39,7 @@ private:
     
     void calculateSynchronizedValues();
 
-    static constexpr double DeltaQMotionFinished = 1e-6;
+    static constexpr double DeltaQMotionFinished = 2e-3;  // 调整为0.002米，更宽松的完成阈值
     
     const Vector3d q_goal_;
 

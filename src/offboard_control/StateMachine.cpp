@@ -89,14 +89,17 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 			break;
 		case owner_->DoshotState::doshot_scout: // 侦查投弹区
 			RCLCPP_INFO_ONCE(owner_->get_logger(), "开始侦查投弹区");
-			// if (!surround_shot_scout_points.empty()) {
-			// 	owner_->trajectory_generator_world_points(
-			// 		1, surround_shot_scout_points, surround_shot_scout_points.size(), true
-			// 	);
-			// } else {
-			// 	RCLCPP_WARN(owner_->get_logger(), "surround_shot_scout_points为空，跳转到doshot_init");
-				owner_->doshot_state_ = owner_->DoshotState::doshot_init;
-			// }
+			if (!surround_shot_scout_points.empty()) {
+				if (owner_->trajectory_generator_world_points(
+					1, surround_shot_scout_points, surround_shot_scout_points.size(), true
+				)) {
+					owner_->state_timer_.reset();
+					owner_->doshot_state_ = owner_->DoshotState::doshot_halt; // 设置投弹状态为侦查完成
+				}
+			} else {
+				RCLCPP_WARN(owner_->get_logger(), "surround_shot_scout_points为空，跳转到doshot_init");
+				owner_->doshot_state_ = owner_->DoshotState::doshot_halt;
+			}
 			break;
 		case owner_->DoshotState::doshot_halt: // 侦查投弹区
 			if (owner_->catch_target(arrive, YOLO::TARGET_TYPE::CIRCLE)

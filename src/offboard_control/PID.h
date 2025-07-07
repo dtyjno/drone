@@ -36,13 +36,13 @@ public:
         pidDefaults.ff = config[pid_name]["ff"].as<double>();
         pidDefaults.dff = config[pid_name]["dff"].as<double>();
         pidDefaults.imax = config[pid_name]["imax"].as<double>();
-        std::cout << "读取PID参数: " << pid_name << " p: " << pidDefaults.p
-                  << ", i: " << pidDefaults.i
-                  << ", d: " << pidDefaults.d
-                  << ", ff: " << pidDefaults.ff
-                  << ", dff: " << pidDefaults.dff
-                  << ", imax: " << pidDefaults.imax
-                  << std::endl;
+        // std::cout << "读取PID参数: " << pid_name << " p: " << pidDefaults.p
+        //           << ", i: " << pidDefaults.i
+        //           << ", d: " << pidDefaults.d
+        //           << ", ff: " << pidDefaults.ff
+        //           << ", dff: " << pidDefaults.dff
+        //           << ", imax: " << pidDefaults.imax
+        //           << std::endl;
         return pidDefaults;
     };
 #endif

@@ -498,41 +498,50 @@ bool OffboardControl::trajectory_generator_world_points(double speed_factor, con
 {
 	static bool first = true;
 	static uint16_t data_length_;
-	if (first || init)
+	static uint16_t current_waypoint_index = 0;
+	static bool sequence_completed = false;
+	
+	// 只在第一次调用或者序列完成后需要重新开始时初始化
+	if (first || (init && sequence_completed))
 	{
 		data_length_ = data_length;
+		current_waypoint_index = 0;
+		sequence_completed = false;
 		first = false;
+		std::cout << "Initializing waypoint sequence: data_length=" << data_length_ << std::endl;
 	}
+	
 	std::cout << "data.size(): " << data.size() << std::endl;
 	std::cout << "data_length: " << data_length_ << std::endl;
+	std::cout << "current_waypoint_index: " << current_waypoint_index << std::endl;
 	
 	// 检查数据有效性，防止越界访问
-	if (data.empty() || data_length_ == 0 || data.size() < data_length_) {
+	if (data.empty() || current_waypoint_index >= data.size() || current_waypoint_index >= data_length_) {
 		std::cout << "数据无效或已完成，返回true" << std::endl;
-		data_length_ = 0;
-		first = true;
+		sequence_completed = true;
 		return true;
 	}
 
-	std::array<double, 3> q_goal = data[data.size() - data_length_];
+	std::array<double, 3> q_goal = data[current_waypoint_index];
 	double global_x, global_y;
 	rotate_global2stand(q_goal[0], q_goal[1], global_x, global_y);
-	std::cout << "q_goal: " << global_x << " " << global_y << " " << q_goal[2] << std::endl;
-	// Vector3f max_vel = {__MAX_FLT__, __MAX_FLT__, __MAX_FLT__};
-	// Vector3f max_acc = {__MAX_FLT__, __MAX_FLT__, __MAX_FLT__};
-	// if(data_length_ != data.size()){}
-	// if(data_length_ != 1){}
+	std::cout << "waypoint " << current_waypoint_index << " q_goal: " << global_x << " " << global_y << " " << q_goal[2] << std::endl;
+	
 	if (_pose_control->trajectory_generator_world(
 					speed_factor,
 					{global_x, global_y, q_goal[2]}))
 	{
-		data_length_--;
+		current_waypoint_index++;
+		std::cout << "Waypoint " << (current_waypoint_index - 1) << " completed! Moving to waypoint " << current_waypoint_index << std::endl;
+		
+		// 检查是否完成所有waypoint
+		if (current_waypoint_index >= data.size() || current_waypoint_index >= data_length_)
+		{
+			std::cout << "All waypoints completed!" << std::endl;
+			sequence_completed = true;
+			return true;
+		}
 	}
-	if (data_length_ == 0)
-	{
-		data_length_ = 0;
-		first = true;
-		return true;
-	}
+	
 	return false;
 }
