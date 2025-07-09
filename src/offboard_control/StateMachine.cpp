@@ -137,6 +137,8 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				owner_->state_timer_.reset(); // 重置航点计时器
 				return; // 继续投弹
 			}
+			owner_->_servo_controller->set_servo(11, 1200);
+			owner_->_servo_controller->set_servo(12, 1200);
 			// 重置状态
 			owner_->doshot_state_ = owner_->DoshotState::doshot_init; // 重置投弹状态
 			doshot_start.set_start_time_to_default();
