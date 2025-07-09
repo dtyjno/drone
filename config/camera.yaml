@@ -1,5 +1,5 @@
-cap_frame_width: 1280
-cap_frame_height: 720
+cap_frame_width: 640 # 1920 1280*1080
+cap_frame_height: 480 # 1080
 
 # cap_frame_width: 1920
 # cap_frame_height: 1080
