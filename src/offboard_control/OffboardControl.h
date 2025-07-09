@@ -437,10 +437,10 @@ private:
 	bool waypoint_goto_next(double x, double y, double length, double width, double halt, vector<Vector2f> &way_points, double time, int *count = nullptr, const std::string &description = "");
 	// bool surround_shot_goto_next(double x, double y, double length, double width);
 	// bool surround_see(double x, double y, double length, double width);
+	bool catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYPE target, float tar_x, float tar_y, float tar_z, float tar_yaw, float accuracy);
 	bool Doland();
-	void PID_rtl(double now_x, double now_y, double now_z, double target_x, double target_y, bool &is_land);
-
-	bool catch_target(bool &result, enum YOLO::TARGET_TYPE target);
+	// void PID_rtl(double now_x, double now_y, double now_z, double target_x, double target_y, bool &is_land);
+	bool Doshot();
 	bool autotune(bool &result, enum YOLO::TARGET_TYPE target);
 	bool surrounding_shot_area(void);
 	bool surrounding_scout_area(void);

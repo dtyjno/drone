@@ -251,10 +251,10 @@ Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy
 			yaw_diff += 2 * M_PI; // 如果差值小于-π，加上2π调整
 			yaw_diff_last += 2 * M_PI;
 		}
-		if (target.w() > M_PI)
-			target.w() -= 2 * M_PI;
-		else if (target.w() < -M_PI)
-			target.w() += 2 * M_PI;
+		// if (target.w() > M_PI)
+		// 	target.w() -= 2 * M_PI;
+		// else if (target.w() < -M_PI)
+		// 	target.w() += 2 * M_PI;
 	if(fuzzy){
 		float delta_k = 2.0f;
 
@@ -642,7 +642,7 @@ bool PosControl::trajectory_generator_world(double speed_factor, std::array<doub
 	{
 		if (!isFinished)
 		{
-			isFinished = (*_trajectory_generator)(current_state, count / 10.0);
+			isFinished = (*_trajectory_generator)(current_state, count); // count / 10
 			count++; // Increment count to simulate time passing
 			RCLCPP_INFO(node->get_logger(), "trajectory_generator: is_equal count:%ld, isFinished:%d", count, isFinished);
 		}

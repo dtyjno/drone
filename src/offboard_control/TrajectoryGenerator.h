@@ -54,9 +54,9 @@ private:
 
     double time_ = 0.0;
 
-    Vector3d dq_max_ = (Vector3d() << 2.0, 2.0, 2.0).finished();   
+    Vector3d dq_max_ = (Vector3d() << 0.6, 0.6, 0.6).finished();   
 
-    Vector3d ddq_max_ = (Vector3d() << 0.6, 0.6, 0.6).finished(); 
+    Vector3d ddq_max_ = (Vector3d() << 0.2, 0.2, 0.2).finished(); 
 
     Vector3d dq;
 };
