@@ -123,13 +123,13 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 			RCLCPP_INFO(owner_->get_logger(), "投弹!!投弹!!，总用时：%f", doshot_start.elapsed());
 			RCLCPP_INFO(owner_->get_logger(), "Arrive, 投弹 等待3秒");
 			// 设置舵机位置
-			owner_->_servo_controller->set_servo(11 + shot_counter, 1800);
+			owner_->_servo_controller->set_servo(11 + shot_counter, 1200);
 			if(shot_counter < 2) // 投弹计数器小于2，执行投弹
 			{
 				owner_->waypoint_goto_next(
 					owner_->tx_shot, owner_->ty_shot, owner_->shot_length, owner_->shot_width, 
 					owner_->shot_halt, owner_->surround_shot_points, 3.0, &counter, "投弹区");
-				if (owner_->get_cur_time() - doshot_halt_end_time < 5.0 || counter == pre_counter) {   // 非阻塞等待3秒
+				if (owner_->get_cur_time() - doshot_halt_end_time < 5.0 || counter == pre_counter) {   // 非阻塞等待3秒或抵达下一个航点
 					return;
 				}
 				RCLCPP_INFO(owner_->get_logger(), "投弹完成，继续投弹 %d", shot_counter);
@@ -137,6 +137,8 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				owner_->state_timer_.reset(); // 重置航点计时器
 				return; // 继续投弹
 			}
+			owner_->_servo_controller->set_servo(11, 1200);
+			owner_->_servo_controller->set_servo(12, 1200);
 			// 重置状态
 			owner_->doshot_state_ = owner_->DoshotState::doshot_init; // 重置投弹状态
 			doshot_start.set_start_time_to_default();

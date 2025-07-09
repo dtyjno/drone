@@ -180,7 +180,9 @@ bool OffboardControl::waypoint_goto_next(double x, double y, double length, doub
 	double x_temp = 0.0, y_temp = 0.0;
 	if(count!=nullptr)
 		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "w_g_n,counter: %d, time=%lf", *count, state_timer_.elapsed());
-	if (state_timer_.elapsed() > time) 
+	x_temp = x + (length * way_points[count == nullptr? surround_cnt : *count].x());
+	y_temp = y + (width * way_points[count == nullptr? surround_cnt : *count].y());
+	if (state_timer_.elapsed() > time || is_equal(get_x(), x_temp, 0.3) && is_equal(get_y(), y_temp, 0.3)) 
 	{
 		if (static_cast<std::vector<Vector2f>::size_type>(count == nullptr? surround_cnt : *count) >= way_points.size())
 		{
@@ -190,8 +192,6 @@ bool OffboardControl::waypoint_goto_next(double x, double y, double length, doub
 				state_timer_.set_start_time_to_default();
 				return true;
 		} else {
-			x_temp = x + (length * way_points[count == nullptr? surround_cnt : *count].x());
-			y_temp = y + (width * way_points[count == nullptr? surround_cnt : *count].y());
 			count == nullptr? surround_cnt++ : (*count)++;
 			RCLCPP_INFO(this->get_logger(), "%s点位%zu x: %lf   y: %lf", description.c_str(), count == nullptr? surround_cnt : *count, x_temp, y_temp);
 

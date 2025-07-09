@@ -326,10 +326,10 @@ Vector4f PosControl::input_pos_xyz_yaw_without_vel(Vector4f now, Vector4f target
 		yaw_diff += 2 * M_PI; // 如果差值小于-π，加上2π调整
 		yaw_diff_last += 2 * M_PI;
 	}
-	if (target.w() > M_PI)
-		target.w() -= 2 * M_PI;
-	else if (target.w() < -M_PI)
-		target.w() += 2 * M_PI;
+	// if (target.w() > M_PI)
+	// 	target.w() -= 2 * M_PI;
+	// else if (target.w() < -M_PI)
+	// 	target.w() += 2 * M_PI;
 	f.w() = pid_yaw.update_all(now.w(), target.w(), dt, max_speed_yaw, InertialNav::velocity.w());
 	RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: x:%f y:%f z:%f yaw:%f", f.x(), f.y(), f.z(), f.w());
 
