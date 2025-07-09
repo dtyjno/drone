@@ -127,7 +127,7 @@ public:
 	float get_z_pos(void)
 	{
 		// return local_frame.z();
-		return InertialNav::position.z();
+		return get_rangefinder_distance();
 	}
 	Vector3f get_pos_3f(void)
 	{
