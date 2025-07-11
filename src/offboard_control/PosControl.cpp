@@ -630,8 +630,10 @@ bool PosControl::trajectory_generator_world(double speed_factor, std::array<doub
 		std::cout << InertialNav::position.x() << " " << InertialNav::position.y() << " " << InertialNav::position.z() << " " << std::endl;
 		current_state.q_d = {InertialNav::position.x(), InertialNav::position.y(), InertialNav::position.z()};
 		_trajectory_generator = std::make_unique<TrajectoryGenerator>(speed_factor, q_goal); // Use smart pointer for memory management
-		_trajectory_generator->set_dq_max({MIN(max_speed_xy, max_speed.x()), MIN(max_speed_xy, max_speed.y()), MIN(max_speed_z, max_speed.z())});
-		_trajectory_generator->set_dqq_max({MIN(max_accel_xy, max_accel.x()), MIN(max_accel_xy, max_accel.y()), MIN(max_accel_z, max_accel.z())});
+		// _trajectory_generator->set_dq_max({MIN(max_speed_xy, max_speed.x()), MIN(max_speed_xy, max_speed.y()), MIN(max_speed_z, max_speed.z())});
+		// _trajectory_generator->set_dqq_max({MIN(max_accel_xy, max_accel.x()), MIN(max_accel_xy, max_accel.y()), MIN(max_accel_z, max_accel.z())});
+		_trajectory_generator->set_dq_max({1, 1, 1});
+		_trajectory_generator->set_dqq_max({0.2, 0.2, 0.2});
 		pos_start_temp = Vector4f(InertialNav::position.x(), InertialNav::position.y(), InertialNav::position.z(), 0.0f);
 		pos_target_temp = Vector4f(static_cast<float>(q_goal[0]), static_cast<float>(q_goal[1]), static_cast<float>(q_goal[2]), 0);
 		count = 0;

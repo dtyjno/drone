@@ -53,6 +53,7 @@ private:
     Vector3d q_1_;  // q_1_ = q(\tau) - q_start_     
 
     double time_ = 0.0;
+    double frequency_ = 10.0; // 10Hz control frequeny
 
     Vector3d dq_max_ = (Vector3d() << 0.6, 0.6, 0.6).finished();   
 

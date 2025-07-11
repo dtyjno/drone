@@ -4,7 +4,7 @@ pid:
   d: 0.01
   ff: 0
   dff: 0
-  imax: 1
+  imax: 10
 limits:
   speed_max_xy: 0.5
   speed_max_z: 0.15

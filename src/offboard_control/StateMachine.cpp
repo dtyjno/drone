@@ -76,13 +76,12 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 			{
 				RCLCPP_INFO(owner_->get_logger(), "开始投弹任务");
 				surround_shot_scout_points = {
-					{owner_->tx_shot + 2.27, owner_->ty_shot + 1.7, 3},
-					{owner_->tx_shot + 2.27, owner_->ty_shot + 3.3, 3},
-					{owner_->tx_shot - 2.27, owner_->ty_shot + 3.3, 3},
-					{owner_->tx_shot - 2.27, owner_->ty_shot + 1.7, 3},
-					{owner_->tx_shot, owner_->ty_shot + 1.7, 3},
+					{owner_->tx_shot + 2.4, owner_->ty_shot + 1.3, 4},
+					{owner_->tx_shot + 2.4, owner_->ty_shot + 3.7, 4},
+					{owner_->tx_shot - 2.4, owner_->ty_shot + 3.7, 4},
+					{owner_->tx_shot - 2.4, owner_->ty_shot + 1.3, 4},
 				};
-				owner_->doshot_state_ = owner_->DoshotState::doshot_halt; // 设置投弹状态为侦查
+				owner_->doshot_state_ = owner_->DoshotState::doshot_scout; // 设置投弹状态为侦查
 				doshot_start.reset(); // 重置计时器
 				counter = 0; // 重置计数器
 				shot_counter = 0; // 重置投弹计数器
@@ -92,8 +91,13 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 			RCLCPP_INFO_ONCE(owner_->get_logger(), "开始侦查投弹区");
 			if (!surround_shot_scout_points.empty()) {
 				if (owner_->trajectory_generator_world_points(
-					1, surround_shot_scout_points, surround_shot_scout_points.size(), true
+					1, surround_shot_scout_points, surround_shot_scout_points.size(),
+					{2.0, 2.0, 2.0}, {0.2, 0.2, 0.2} // 设置最大速度和加速度
 				)) {
+				// if (owner_->waypoint_goto_next(
+				// 	owner_->tx_shot, owner_->ty_shot, owner_->shot_length, owner_->shot_width, 
+				// 	owner_->shot_halt, surround_shot_scout_points, 4.0, &counter, "侦查投弹区"))
+				// {
 					owner_->doshot_state_ = owner_->DoshotState::doshot_halt; // 设置投弹状态为侦查完成
 					owner_->state_timer_.reset();
 				}
@@ -137,8 +141,8 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				owner_->state_timer_.reset(); // 重置航点计时器
 				return; // 继续投弹
 			}
-			owner_->_servo_controller->set_servo(11, 1200);
-			owner_->_servo_controller->set_servo(12, 1200);
+			// owner_->_servo_controller->set_servo(11, 1200);
+			// owner_->_servo_controller->set_servo(12, 1200);
 			// 重置状态
 			owner_->doshot_state_ = owner_->DoshotState::doshot_init; // 重置投弹状态
 			doshot_start.set_start_time_to_default();
@@ -205,22 +209,28 @@ template<>
 void StateMachine::handle_state<FlyState::Print_Info>() {
 	if (current_state_ == FlyState::Print_Info
 	) {
-		RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 500, "--------timer_callback----------");
-		RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 500, "x:   %f, y:  %f, z: %f", owner_->get_x_pos(), owner_->get_y_pos(), owner_->get_z_pos());
-		RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 500, "vx:  %f, vy: %f, vz: %f", owner_->get_x_vel(), owner_->get_y_vel(), owner_->get_z_vel());
-		RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 500, "yaw: %f", owner_->get_yaw());
-		RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 500, "yaw_e: %f", owner_->get_yaw_eigen());
-		RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 500, "yaw_vel: %f", owner_->get_yaw_vel());
-		RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 500, "lat: %f, lon: %f, alt: %f", owner_->get_lat(), owner_->get_lon(), owner_->get_alt());
-		RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 500, "rangefinder_distance:  %f", owner_->get_rangefinder_distance());
-		RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 500, "armed:     %d", owner_->get_armed());
-		RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 500, "connected: %d", owner_->get_connected());
-		RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 500, "guided:    %d", owner_->get_guided());
-		RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 500, "mode:      %s", owner_->get_mode().c_str());
-		RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 500, "system_status:  %s", owner_->get_system_status().c_str());
-		RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 500, "z_home_pos:     %f", owner_->get_z_home_pos());
+		static unsigned short print_count = 0;
+		print_count++; // 先递增
+		print_count = print_count % 3; // 然后取模
+		if (print_count != 0) {
+			return; // 每10次打印一次
+		}
+		RCLCPP_INFO(owner_->get_logger(), "--------timer_callback----------");
+		RCLCPP_INFO(owner_->get_logger(), "x:   %f, y:  %f, z: %f", owner_->get_x_pos(), owner_->get_y_pos(), owner_->get_z_pos());
+		RCLCPP_INFO(owner_->get_logger(), "vx:  %f, vy: %f, vz: %f", owner_->get_x_vel(), owner_->get_y_vel(), owner_->get_z_vel());
+		RCLCPP_INFO(owner_->get_logger(), "yaw: %f", owner_->get_yaw());
+		RCLCPP_INFO(owner_->get_logger(), "yaw_e: %f", owner_->get_yaw_eigen());
+		RCLCPP_INFO(owner_->get_logger(), "yaw_vel: %f", owner_->get_yaw_vel());
+		RCLCPP_INFO(owner_->get_logger(), "lat: %f, lon: %f, alt: %f", owner_->get_lat(), owner_->get_lon(), owner_->get_alt());
+		RCLCPP_INFO(owner_->get_logger(), "rangefinder_distance:  %f", owner_->get_rangefinder_distance());
+		RCLCPP_INFO(owner_->get_logger(), "armed:     %d", owner_->get_armed());
+		RCLCPP_INFO(owner_->get_logger(), "connected: %d", owner_->get_connected());
+		RCLCPP_INFO(owner_->get_logger(), "guided:    %d", owner_->get_guided());
+		RCLCPP_INFO(owner_->get_logger(), "mode:      %s", owner_->get_mode().c_str());
+		RCLCPP_INFO(owner_->get_logger(), "system_status:  %s", owner_->get_system_status().c_str());
+		RCLCPP_INFO(owner_->get_logger(), "z_home_pos:     %f", owner_->get_z_home_pos());
 		auto now = owner_->get_clock()->now();
-		RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 500, "Current time: %f s,%ld nanos", now.seconds(), now.nanoseconds());
+		RCLCPP_INFO(owner_->get_logger(), "Current time: %f s,%ld nanos", now.seconds(), now.nanoseconds());
 	}
 }
 
