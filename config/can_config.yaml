@@ -12,8 +12,8 @@ limits:
   accel_max_xy: 0.5
   accel_max_z: 0.1
 accuracy: 0.3
-tar_x: 0.0 # 目标x坐标，单位：px  0使用默认值
-tar_y: 0.0
+tar_x: 600.0 # 目标x坐标，单位：px  0使用默认值
+tar_y: 460.0
 tar_z: 1.2
 # pid_bucket:
   # p: 0.40
