@@ -46,6 +46,7 @@ public:
         return pidDefaults;
     };
 #endif
+    PID(std::string pid_name, float kp, float ki, float kd, float kff = 0, float kdff = 0, float kimax = 2, float srmax = 0);
     PID(float kp, float ki, float kd, float kff = 0, float kdff = 0, float kimax = 2, float srmax = 0);
     PID(const PID::Defaults &defaults);
     PID() {};
@@ -67,7 +68,7 @@ public:
     float _target;     // target value to enable filtering
     float _error;      // error value to enable filtering
     float _derivative; // derivative value to enable filtering
-
+    std::string pid_name = "pid"; // PID name for debugging
     struct PIDInfo
     {
         float target;

@@ -5,8 +5,6 @@
 #include "FuzzyPID.h"
 
 
-// #define PID_P
-
 void PosControl::publish_setpoint_raw(Vector4f p, Vector4f v)
 {
 	// RCLCPP_INFO(node->get_logger(), "Publishing setpoint: latitude=%f, longitude=%f, altitude=%f, yaw=%f", latitude, longitude, altitude, yaw);
@@ -630,10 +628,10 @@ bool PosControl::trajectory_generator_world(double speed_factor, std::array<doub
 		std::cout << InertialNav::position.x() << " " << InertialNav::position.y() << " " << InertialNav::position.z() << " " << std::endl;
 		current_state.q_d = {InertialNav::position.x(), InertialNav::position.y(), InertialNav::position.z()};
 		_trajectory_generator = std::make_unique<TrajectoryGenerator>(speed_factor, q_goal); // Use smart pointer for memory management
-		// _trajectory_generator->set_dq_max({MIN(max_speed_xy, max_speed.x()), MIN(max_speed_xy, max_speed.y()), MIN(max_speed_z, max_speed.z())});
-		// _trajectory_generator->set_dqq_max({MIN(max_accel_xy, max_accel.x()), MIN(max_accel_xy, max_accel.y()), MIN(max_accel_z, max_accel.z())});
-		_trajectory_generator->set_dq_max({1, 1, 1});
-		_trajectory_generator->set_dqq_max({0.2, 0.2, 0.2});
+		_trajectory_generator->set_dq_max({MIN(max_speed_xy, max_speed.x()), MIN(max_speed_xy, max_speed.y()), MIN(max_speed_z, max_speed.z())});
+		_trajectory_generator->set_dqq_max({MIN(max_accel_xy, max_accel.x()), MIN(max_accel_xy, max_accel.y()), MIN(max_accel_z, max_accel.z())});
+		// _trajectory_generator->set_dq_max({1, 1, 1});
+		// _trajectory_generator->set_dqq_max({0.2, 0.2, 0.2});
 		pos_start_temp = Vector4f(InertialNav::position.x(), InertialNav::position.y(), InertialNav::position.z(), 0.0f);
 		pos_target_temp = Vector4f(static_cast<float>(q_goal[0]), static_cast<float>(q_goal[1]), static_cast<float>(q_goal[2]), 0);
 		count = 0;
@@ -901,3 +899,87 @@ bool PosControl::auto_tune(Vector4f pos_now, Vector4f pos_target, uint32_t delay
 	}
 	return false;
 }
+
+#ifdef PAL_STATISTIC_VISIBILITY
+#include "vector"
+
+void PosControl::publish_statistics(){
+	if (!node || !node->get_stats_publisher()) {
+		RCLCPP_ERROR(node->get_logger(), "Node or stats_publisher_ is not initialized.");
+		return;
+	}
+    auto msg = pal_statistics_msgs::msg::Statistics();
+    msg.header.stamp = node->get_clock()->now();
+    msg.header.frame_id = "base_link";
+
+    // 创建统计信息
+    std::vector<pal_statistics_msgs::msg::Statistic> statistics;
+    
+	PID* pids[] = {&pid_x, &pid_y, &pid_z, &pid_yaw};
+
+	for(PID* pid : pids) {
+		// PID输出
+		auto output_stat = pal_statistics_msgs::msg::Statistic();
+		output_stat.name = pid->pid_name + "_output";
+		output_stat.value = pid->_pid_info.output;
+		statistics.push_back(output_stat);
+
+		// PID输入
+		auto actual_stat = pal_statistics_msgs::msg::Statistic();
+		actual_stat.name = pid->pid_name + "_actual";
+		actual_stat.value = pid->_pid_info.actual;
+		statistics.push_back(actual_stat);
+
+		// PID目标
+		auto target_stat = pal_statistics_msgs::msg::Statistic();
+		target_stat.name = pid->pid_name + "_target";
+		target_stat.value = pid->_pid_info.target;
+		statistics.push_back(target_stat);
+
+		// PID误差
+		auto error_stat = pal_statistics_msgs::msg::Statistic();
+		error_stat.name = pid->pid_name + "_error";
+		error_stat.value = pid->_pid_info.error;
+		statistics.push_back(error_stat);
+
+		// kP项
+		auto kP_stat = pal_statistics_msgs::msg::Statistic();
+		kP_stat.name = pid->pid_name + "_kP";
+		kP_stat.value = pid->_pid_info._kP;
+		statistics.push_back(kP_stat);
+
+		// kI项
+		auto kI_stat = pal_statistics_msgs::msg::Statistic();
+		kI_stat.name = pid->pid_name + "_kI";
+		kI_stat.value = pid->_pid_info._kI;
+		statistics.push_back(kI_stat);
+
+		// kD项
+		auto kD_stat = pal_statistics_msgs::msg::Statistic();
+		kD_stat.name = pid->pid_name + "_kD";
+		kD_stat.value = pid->_pid_info._kD;
+		statistics.push_back(kD_stat);
+		
+		// P项
+		auto p_term_stat = pal_statistics_msgs::msg::Statistic();
+		p_term_stat.name = pid->pid_name + "_p_term";
+		p_term_stat.value = pid->_pid_info.P;
+		statistics.push_back(p_term_stat);
+		
+		// I项
+		auto i_term_stat = pal_statistics_msgs::msg::Statistic();
+		i_term_stat.name = pid->pid_name + "_i_term";
+		i_term_stat.value = pid->_pid_info.I;
+		statistics.push_back(i_term_stat);
+		
+		// D项
+		auto d_term_stat = pal_statistics_msgs::msg::Statistic();
+		d_term_stat.name = pid->pid_name + "_d_term";
+		d_term_stat.value = pid->_pid_info.D;
+		statistics.push_back(d_term_stat);
+	}
+    
+    msg.statistics = statistics;
+    node->get_stats_publisher()->publish(msg);
+}
+#endif

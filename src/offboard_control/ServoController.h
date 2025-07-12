@@ -5,6 +5,7 @@
 #include <mavros_msgs/msg/command_code.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <chrono> // 添加 chrono 头文件
+#include <iomanip> 
 #include "OffboardControl_Base.h"
 
 using namespace std::chrono_literals; // 使用 chrono 字面量
@@ -39,6 +40,7 @@ public:
 
     void set_servo(int servo_number, float position) {
         auto request = std::make_shared<mavros_msgs::srv::CommandLong::Request>();
+        RCLCPP_INFO(node->get_logger(), "Setting servo %d to position %f", servo_number, position);
         request->command = mavros_msgs::msg::CommandCode::DO_SET_SERVO;
         request->param1 = servo_number;
         request->param2 = position;

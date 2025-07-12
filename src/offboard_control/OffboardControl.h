@@ -33,10 +33,6 @@
 #include "std_msgs/msg/int32.hpp"
 
 
-#define DEFAULT_X_POS FLT_MAX
-
-#define TRAIN_PID
-
 using namespace std::chrono_literals;
 
 #include "OffboardControl_Base.h"
@@ -118,6 +114,14 @@ public:
 		
 		timestamp_init = get_cur_time();
 		timer_ = this->create_wall_timer(100ms, std::bind(&OffboardControl::timer_callback, this));
+		#ifdef PAL_STATISTIC_VISIBILITY
+		stats_publisher_ = this->create_publisher<pal_statistics_msgs::msg::Statistics>("/statistics", 10);
+		stats_timer_ = this->create_wall_timer(100ms,
+			[this](){
+				_pose_control->publish_statistics();
+			}
+		);
+		#endif
 	}
 
 	float get_x_pos(void)
@@ -401,10 +405,10 @@ private:
 	GlobalFrame start_global{0, 0, 0};
 
 	rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr state_publisher_;
+
   void publish_current_state();
 
 	rclcpp::TimerBase::SharedPtr timer_;
-
 	void set_pose();
 	void set_gps();
 	void set_velocity();

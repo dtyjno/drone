@@ -62,99 +62,108 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 		static Timer doshot_start = Timer();  // 全程计时器
 		static int counter = 0, pre_counter; // 航点计数器
 		static double doshot_halt_end_time; // 记录结束时间
-		static int shot_counter = 0; // 投弹计数器
+		static int shot_counter = 1; // 投弹计数器
 		static vector<array<double, 3>> surround_shot_scout_points;
 
-		if (doshot_start.elapsed() > 120) // 超时 60 秒
+		bool timeout = doshot_start.elapsed() > 60; // 超时 60 秒
+
+		if (timeout) // 超时 60 秒
 		{
 			RCLCPP_INFO(owner_->get_logger(), "超时");
 			owner_->doshot_state_ = owner_->DoshotState::doshot_end; // 设置投弹状态为结束
 		} 
-		switch (owner_->doshot_state_)  // 根据投弹状态执行不同的操作
-		{
-		case owner_->DoshotState::doshot_init: // 初始化投弹状态
+		while(true){
+			switch (owner_->doshot_state_)  // 根据投弹状态执行不同的操作
 			{
-				RCLCPP_INFO(owner_->get_logger(), "开始投弹任务");
-				surround_shot_scout_points = {
-					{owner_->tx_shot + 2.4, owner_->ty_shot + 1.3, 4},
-					{owner_->tx_shot + 2.4, owner_->ty_shot + 3.7, 4},
-					{owner_->tx_shot - 2.4, owner_->ty_shot + 3.7, 4},
-					{owner_->tx_shot - 2.4, owner_->ty_shot + 1.3, 4},
-				};
-				owner_->doshot_state_ = owner_->DoshotState::doshot_scout; // 设置投弹状态为侦查
-				doshot_start.reset(); // 重置计时器
-				counter = 0; // 重置计数器
-				shot_counter = 0; // 重置投弹计数器
-			}
-			break;
-		case owner_->DoshotState::doshot_scout: // 侦查投弹区
-			RCLCPP_INFO_ONCE(owner_->get_logger(), "开始侦查投弹区");
-			if (!surround_shot_scout_points.empty()) {
-				if (owner_->trajectory_generator_world_points(
-					1, surround_shot_scout_points, surround_shot_scout_points.size(),
-					{2.0, 2.0, 2.0}, {0.2, 0.2, 0.2} // 设置最大速度和加速度
-				)) {
-				// if (owner_->waypoint_goto_next(
-				// 	owner_->tx_shot, owner_->ty_shot, owner_->shot_length, owner_->shot_width, 
-				// 	owner_->shot_halt, surround_shot_scout_points, 4.0, &counter, "侦查投弹区"))
-				// {
-					owner_->doshot_state_ = owner_->DoshotState::doshot_halt; // 设置投弹状态为侦查完成
-					owner_->state_timer_.reset();
+			case owner_->DoshotState::doshot_init: // 初始化投弹状态
+				{
+					RCLCPP_INFO(owner_->get_logger(), "开始投弹任务");
+					surround_shot_scout_points = {
+						{owner_->tx_shot + 2.4, owner_->ty_shot + 1.3, 4},
+						{owner_->tx_shot + 2.4, owner_->ty_shot + 3.7, 4},
+						{owner_->tx_shot - 2.4, owner_->ty_shot + 3.7, 4},
+						{owner_->tx_shot - 2.4, owner_->ty_shot + 1.3, 4},
+					};
+					owner_->doshot_state_ = owner_->DoshotState::doshot_scout; // 设置投弹状态为侦查
+					doshot_start.reset(); // 重置计时器
+					counter = 0; // 重置计数器
+					shot_counter = 1; // 重置投弹计数器
 				}
-			} else {
-				RCLCPP_WARN(owner_->get_logger(), "surround_shot_scout_points为空，跳转到doshot_init");
-				owner_->doshot_state_ = owner_->DoshotState::doshot_halt;
-			}
-			break;
-		case owner_->DoshotState::doshot_halt: // 投弹
-			if (owner_->Doshot()){
-				RCLCPP_INFO(owner_->get_logger(), "寻找完毕，投弹!!投弹!!");
-				owner_->doshot_state_ = owner_->DoshotState::doshot_end; // 设置投弹状态为结束
-				doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
-				shot_counter++;
-			} else if (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE)) { // 如果没有找到投弹目标
-				pre_counter = counter; // 记录上一次的计数器值
-				owner_->waypoint_goto_next(
-					owner_->tx_shot, owner_->ty_shot, owner_->shot_length, owner_->shot_width, 
-					owner_->shot_halt, owner_->surround_shot_points, 3.0, &counter, "投弹区");
-				RCLCPP_INFO(owner_->get_logger(), "投弹区航点计数器：%d", counter);
-			} else { // 如果找到投弹目标
-				counter = pre_counter; // 恢复上一次的计数器值
-				owner_->state_timer_.reset(); // 重置航点计时器
-			}
-			break;
-		case owner_->DoshotState::doshot_end: // 侦查投弹区
-			RCLCPP_INFO(owner_->get_logger(), "投弹!!投弹!!，总用时：%f", doshot_start.elapsed());
-			RCLCPP_INFO(owner_->get_logger(), "Arrive, 投弹 等待3秒");
-			// 设置舵机位置
-			owner_->_servo_controller->set_servo(11 + shot_counter, 1200);
-			if(shot_counter < 2) // 投弹计数器小于2，执行投弹
-			{
-				owner_->waypoint_goto_next(
-					owner_->tx_shot, owner_->ty_shot, owner_->shot_length, owner_->shot_width, 
-					owner_->shot_halt, owner_->surround_shot_points, 3.0, &counter, "投弹区");
-				if (owner_->get_cur_time() - doshot_halt_end_time < 5.0 || counter == pre_counter) {   // 非阻塞等待3秒或抵达下一个航点
-					return;
+				continue;
+			case owner_->DoshotState::doshot_scout: // 侦查投弹区
+				RCLCPP_INFO_ONCE(owner_->get_logger(), "开始侦查投弹区");
+				if (!surround_shot_scout_points.empty()) {
+					if (owner_->trajectory_generator_world_points(
+						1, surround_shot_scout_points, surround_shot_scout_points.size(),
+						{1.5, 1.5, 1.5}, {0.2, 0.2, 0.2} // 设置最大速度和加速度
+					)) {
+					// if (owner_->waypoint_goto_next(
+					// 	owner_->tx_shot, owner_->ty_shot, owner_->shot_length, owner_->shot_width, 
+					// 	owner_->shot_halt, surround_shot_scout_points, 4.0, &counter, "侦查投弹区"))
+					// {
+						owner_->doshot_state_ = owner_->DoshotState::doshot_halt; // 设置投弹状态为侦查完成
+						owner_->state_timer_.reset();
+					}
+				} else {
+					RCLCPP_WARN(owner_->get_logger(), "surround_shot_scout_points为空，跳转到doshot_init");
+					owner_->doshot_state_ = owner_->DoshotState::doshot_halt;
 				}
-				RCLCPP_INFO(owner_->get_logger(), "投弹完成，继续投弹 %d", shot_counter);
-				owner_->doshot_state_ = owner_->DoshotState::doshot_halt;
-				owner_->state_timer_.reset(); // 重置航点计时器
-				return; // 继续投弹
+				break;
+			case owner_->DoshotState::doshot_halt: // 投弹
+				if (owner_->Doshot()){
+					// RCLCPP_INFO(owner_->get_logger(), "寻找完毕，投弹!!投弹!!");
+					RCLCPP_INFO(owner_->get_logger(), "投弹!!投弹!!，总用时：%f", doshot_start.elapsed());
+					RCLCPP_INFO(owner_->get_logger(), "Arrive, 投弹 等待5秒");
+				// 设置舵机位置
+				owner_->_servo_controller->set_servo(10 + shot_counter, 1200);
+					owner_->doshot_state_ = owner_->DoshotState::doshot_end; // 设置投弹状态为结束
+					doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
+				} else if (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE)) { // 如果没有找到投弹目标
+					pre_counter = counter; // 记录上一次的计数器值
+					owner_->waypoint_goto_next(
+						owner_->tx_shot, owner_->ty_shot, owner_->shot_length, owner_->shot_width, 
+						owner_->shot_halt, owner_->surround_shot_points, owner_->shot_halt, &counter, "投弹区");
+					// RCLCPP_INFO(owner_->get_logger(), "投弹区航点计数器：%d", counter);
+				} else { // 如果找到投弹目标但未到达目标上方
+					counter = pre_counter; // 恢复上一次的计数器值
+					owner_->state_timer_.reset(); // 重置航点计时器
+				}
+				break;
+			case owner_->DoshotState::doshot_end: // 侦查投弹区
+				// RCLCPP_INFO(owner_->get_logger(), "投弹!!投弹!!，总用时：%f", doshot_start.elapsed());
+				// RCLCPP_INFO(owner_->get_logger(), "Arrive, 投弹 等待5秒");
+				// 设置舵机位置
+				owner_->_servo_controller->set_servo(10 + shot_counter, 1200);
+				if(shot_counter <= 1 && !timeout) // 投弹计数器小于1，再次执行投弹
+				{
+					owner_->waypoint_goto_next(
+						owner_->tx_shot, owner_->ty_shot, owner_->shot_length, owner_->shot_width, 
+						owner_->shot_halt, owner_->surround_shot_points, owner_->shot_halt, &counter, "投弹区");
+					if (owner_->get_cur_time() - doshot_halt_end_time < 5.0 || counter == pre_counter) {   // 非阻塞等待5秒或抵达下一个航点
+						break;
+					}
+					RCLCPP_INFO(owner_->get_logger(), "投弹完成，继续投弹 shot_counter=%d", shot_counter);
+					shot_counter++;
+					owner_->doshot_state_ = owner_->DoshotState::doshot_halt;
+					owner_->state_timer_.reset(); // 重置航点计时器
+					continue; // 继续投弹
+				}
+				owner_->_servo_controller->set_servo(11, 1200);
+				owner_->_servo_controller->set_servo(12, 1200);
+				// 重置状态
+				owner_->doshot_state_ = owner_->DoshotState::doshot_init; // 重置投弹状态
+				doshot_start.set_start_time_to_default();
+				RCLCPP_INFO(owner_->get_logger(), "投弹完成，1s后前往侦查区域");
+				rclcpp::sleep_for(1s);
+				transition_to(FlyState::Goto_scoutpoint);
+				break;
+			default:
+				break;
 			}
-			// owner_->_servo_controller->set_servo(11, 1200);
-			// owner_->_servo_controller->set_servo(12, 1200);
-			// 重置状态
-			owner_->doshot_state_ = owner_->DoshotState::doshot_init; // 重置投弹状态
-			doshot_start.set_start_time_to_default();
-			counter = 0;     	// 重置航点计数器
-			RCLCPP_INFO(owner_->get_logger(), "投弹完成，3s后前往侦查区域");
-			rclcpp::sleep_for(3s);
-			transition_to(FlyState::Goto_scoutpoint);
-			break;
-		default:
-			break;
+			break; // 跳出 while 循环
 		}
 	}
+	return; // 结束函数
 }
 
 template<>
@@ -215,22 +224,26 @@ void StateMachine::handle_state<FlyState::Print_Info>() {
 		if (print_count != 0) {
 			return; // 每10次打印一次
 		}
-		RCLCPP_INFO(owner_->get_logger(), "--------timer_callback----------");
-		RCLCPP_INFO(owner_->get_logger(), "x:   %f, y:  %f, z: %f", owner_->get_x_pos(), owner_->get_y_pos(), owner_->get_z_pos());
-		RCLCPP_INFO(owner_->get_logger(), "vx:  %f, vy: %f, vz: %f", owner_->get_x_vel(), owner_->get_y_vel(), owner_->get_z_vel());
-		RCLCPP_INFO(owner_->get_logger(), "yaw: %f", owner_->get_yaw());
-		RCLCPP_INFO(owner_->get_logger(), "yaw_e: %f", owner_->get_yaw_eigen());
-		RCLCPP_INFO(owner_->get_logger(), "yaw_vel: %f", owner_->get_yaw_vel());
-		RCLCPP_INFO(owner_->get_logger(), "lat: %f, lon: %f, alt: %f", owner_->get_lat(), owner_->get_lon(), owner_->get_alt());
-		RCLCPP_INFO(owner_->get_logger(), "rangefinder_distance:  %f", owner_->get_rangefinder_distance());
-		RCLCPP_INFO(owner_->get_logger(), "armed:     %d", owner_->get_armed());
-		RCLCPP_INFO(owner_->get_logger(), "connected: %d", owner_->get_connected());
-		RCLCPP_INFO(owner_->get_logger(), "guided:    %d", owner_->get_guided());
-		RCLCPP_INFO(owner_->get_logger(), "mode:      %s", owner_->get_mode().c_str());
-		RCLCPP_INFO(owner_->get_logger(), "system_status:  %s", owner_->get_system_status().c_str());
-		RCLCPP_INFO(owner_->get_logger(), "z_home_pos:     %f", owner_->get_z_home_pos());
-		auto now = owner_->get_clock()->now();
-		RCLCPP_INFO(owner_->get_logger(), "Current time: %f s,%ld nanos", now.seconds(), now.nanoseconds());
+		std::stringstream ss;
+		// 打印当前状态信息
+		ss << "--------timer_callback----------" << std::endl;
+		ss << "px:  " << std::setw(10) << owner_->get_x_pos() << ", py: " << std::setw(10) << owner_->get_y_pos() << ", pz: " << std::setw(10) << owner_->get_z_pos() << std::endl;
+		ss << "vx:  " << std::setw(10) << owner_->get_x_vel() << ", vy: " << std::setw(10) << owner_->get_y_vel() << ", vz: " << std::setw(10) << owner_->get_z_vel() << std::endl;
+		ss << "yaw: " << owner_->get_yaw() << std::endl;
+		ss << "yaw_e: " << owner_->get_yaw_eigen() << std::endl;
+		ss << "yaw_vel: " << owner_->get_yaw_vel() << std::endl;
+		ss << "lat: " << owner_->get_lat() << ", lon: " << owner_->get_lon() << ", alt: " << owner_->get_alt() << std::endl;
+		ss << "rangefinder_distance:  " << owner_->get_rangefinder_distance() << std::endl;
+		ss << "armed:     " << owner_->get_armed() << std::endl;
+		ss << "connected: " << owner_->get_connected() << std::endl;
+		ss << "guided:	" << owner_->get_guided() << std::endl;
+		ss << "mode:	  " << owner_->get_mode() << std::endl;
+		ss << "system_status:  " << owner_->get_system_status() << std::endl;
+		ss << "z_home_pos:     " << owner_->get_z_home_pos() << std::endl;
+		ss << "running_time: " << owner_->get_cur_time() << std::endl;
+		RCLCPP_INFO_STREAM(owner_->get_logger(), ss.str());
+		ss.str(""); // 清空字符串流
+		ss.clear(); // 清除状态标志
 	}
 }
 

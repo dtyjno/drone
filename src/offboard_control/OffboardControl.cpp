@@ -181,13 +181,14 @@ bool OffboardControl::waypoint_goto_next(float x, float y, float length, float w
 {
 	static std::vector<Vector2f>::size_type surround_cnt = 0; // 修改类型
 	float x_temp = 0.0, y_temp = 0.0;
+	int count_n = count == nullptr? surround_cnt : *count;
 	if(count!=nullptr)
 		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "w_g_n,counter: %d, time=%lf", *count, state_timer_.elapsed());
-	x_temp = x + (length * way_points[count == nullptr? surround_cnt : *count].x());
-	y_temp = y + (width * way_points[count == nullptr? surround_cnt : *count].y());
+	x_temp = x + (length * way_points[count_n].x());
+	y_temp = y + (width * way_points[count_n].y());
 	if (state_timer_.elapsed() > time || (is_equal(get_x_pos(), x_temp, 0.3f) && is_equal(get_y_pos(), y_temp, 0.3f))) 
 	{
-		if (static_cast<std::vector<Vector2f>::size_type>(count == nullptr? surround_cnt : *count) >= way_points.size())
+		if (static_cast<std::vector<Vector2f>::size_type>(count_n) >= way_points.size())
 		{
 				RCLCPP_INFO(this->get_logger(), "%s已经全部遍历", description.c_str());
 				count == nullptr? surround_cnt = 0 : *count = 0;
@@ -196,7 +197,7 @@ bool OffboardControl::waypoint_goto_next(float x, float y, float length, float w
 				return true;
 		} else {
 			count == nullptr? surround_cnt++ : (*count)++;
-			RCLCPP_INFO(this->get_logger(), "%s点位%zu x: %lf   y: %lf", description.c_str(), count == nullptr? surround_cnt : *count, x_temp, y_temp);
+			RCLCPP_INFO(this->get_logger(), "%s点位%d x: %lf   y: %lf, timeout=%s", description.c_str(), count_n, x_temp, y_temp, (is_equal(get_x_pos(), x_temp, 0.3f) && is_equal(get_y_pos(), y_temp, 0.3f))? "true" : "false");
 
 			rotate_global2stand(x_temp, y_temp, x_temp, y_temp);
 
@@ -240,7 +241,7 @@ bool OffboardControl::Doland()
 	} land_state_ = LandState::init;
 	static int surround_land = -3;
 	static PID::Defaults defaults;
-	static double tar_x = 0.0, tar_y = 0.0, tar_z = 1.0, scout_x = 0.0, scout_y = 0.0, scout_halt = 1.0, accuracy = 0.3;
+	static double tar_x = 0.0, tar_y = 0.0, tar_z = 1.0, scout_x = 0.0, scout_y = 0.0, scout_halt = 3.0, accuracy = 0.3;
 	double x_home, y_home;
 	bool result = false;
 	while(true){
@@ -383,16 +384,16 @@ bool OffboardControl::Doshot()
 		}
 		case CatchState::fly_to_target:
 		{
-			RCLCPP_INFO(this->get_logger(), "cur_shot_time %f, time_find_start %f", get_cur_time(), time_find_start);
+			// RCLCPP_INFO(this->get_logger(), "cur_shot_time %f, time_find_start %f", get_cur_time(), time_find_start);
 			double cur_shot_time = get_cur_time();
-			if (cur_shot_time - time_find_start > 90) //60s
-			{
-				catch_state_ = CatchState::end;
-			}
+			// if (cur_shot_time - time_find_start > 60) //60s
+			// {
+			// 	catch_state_ = CatchState::end;
+			// }
 			// yolo未识别到桶
 			if (!_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE))
 			{
-				RCLCPP_INFO(this->get_logger(), "catch_target_bucket: yolo未识别到桶，等待");
+				// RCLCPP_INFO(this->get_logger(), "catch_target_bucket: yolo未识别到桶，等待");
 				break;
 			}
 			RCLCPP_INFO(this->get_logger(), "catch_target_bucket: x: %f, y: %f", _yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), _yolo->get_y(YOLO::TARGET_TYPE::CIRCLE));
@@ -402,12 +403,12 @@ bool OffboardControl::Doshot()
 					tar_x, tar_y, tar_z, tar_yaw, accuracy
 				))
 			{
-				RCLCPP_INFO(this->get_logger(), "Approach, catch_target_bucket, time = %f", cur_shot_time - _t_time);
+				RCLCPP_INFO(this->get_logger(), "Approach, catch_target_bucket, time = %fs", cur_shot_time - _t_time);
 				// if(error_x<0.05 && error_y<0.05){
 					// RCLCPP_INFO(this->get_logger(), "Arrive, catch_target_bucket");
 					// catch_state_=CatchState::end;
 				// } else 
-				if(cur_shot_time - _t_time > 2){ // 2秒
+				if(cur_shot_time - _t_time > 1.5){ // 1.5秒
 					RCLCPP_INFO(this->get_logger(), "Approach, catch_target_bucket");
 					catch_state_=CatchState::end;
 					continue; // 直接跳到下一个状态;
@@ -467,11 +468,11 @@ bool OffboardControl::autotune(bool &result, enum YOLO::TARGET_TYPE target)
 	// yolo未识别到桶
 	if (is_equal(_yolo->get_x(target), (float)0) && is_equal(_yolo->get_y(target), (float)0))
 	{
-		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: yolo未识别到桶");
+		RCLCPP_INFO(this->get_logger(), "Doshot: yolo未识别到桶");
 		result = false;
 		return false;
 	}
-	RCLCPP_INFO(this->get_logger(), "catch_target_bucket: x: %f, y: %f", _yolo->get_x(target), _yolo->get_y(target));
+	RCLCPP_INFO(this->get_logger(), "Doshot: x: %f, y: %f", _yolo->get_x(target), _yolo->get_y(target));
 
 	switch (catch_state_)
 	{
@@ -485,7 +486,7 @@ bool OffboardControl::autotune(bool &result, enum YOLO::TARGET_TYPE target)
 		YAML::Node config = Readyaml::readYAML("can_config.yaml");
 		accuracy = config["accuracy"].as<float>();
 
-		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: Init1");
+		RCLCPP_INFO(this->get_logger(), "Doshot: Init1");
 		data_point.p = defaults.p;
 		data_point.i = defaults.i;
 		data_point.d = defaults.d;
@@ -498,7 +499,7 @@ bool OffboardControl::autotune(bool &result, enum YOLO::TARGET_TYPE target)
 		dt = 0.25;								 // 设置执行周期（s）
 		_pose_control->set_dt(dt); // 设置执行周期（用于PID）
 
-		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: Init2");
+		RCLCPP_INFO(this->get_logger(), "Doshot: Init2");
 		RCLCPP_INFO(this->get_logger(), "--------------------\n\n读取pid_bucket: p: %f, i: %f, d: %f, ff: %f, dff: %f, imax: %f", defaults.p, defaults.i, defaults.d, defaults.ff, defaults.dff, defaults.imax);
 		RCLCPP_INFO(this->get_logger(), "n读取limits: speed_max_xy: %f, speed_max_z: %f, accel_max_x: %f, accel_max_z: %f", limits.speed_max_xy, limits.speed_max_z, limits.accel_max_xy, limits.accel_max_z);
 
@@ -523,8 +524,8 @@ bool OffboardControl::autotune(bool &result, enum YOLO::TARGET_TYPE target)
 		float tar_y = _yolo->get_cap_frame_height()-_yolo->get_cap_frame_height() / 2; // /3
 		rotate_xy(now_x, now_y, (get_yaw() - default_yaw));
 		rotate_xy(tar_x, tar_y, (get_yaw() - default_yaw));
-		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x, now_y, tar_x, tar_y);
-		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x / _yolo->get_cap_frame_width(), now_y / _yolo->get_cap_frame_height(), (tar_x) / _yolo->get_cap_frame_width(), (tar_y) / _yolo->get_cap_frame_height());
+		RCLCPP_INFO(this->get_logger(), "Doshot: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x, now_y, tar_x, tar_y);
+		RCLCPP_INFO(this->get_logger(), "Doshot: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x / _yolo->get_cap_frame_width(), now_y / _yolo->get_cap_frame_height(), (tar_x) / _yolo->get_cap_frame_width(), (tar_y) / _yolo->get_cap_frame_height());
 		static float _t_time = get_cur_time();
 
 		(void)accuracy;
@@ -546,7 +547,7 @@ bool OffboardControl::autotune(bool &result, enum YOLO::TARGET_TYPE target)
 		}
 		else
 		{
-			RCLCPP_INFO(this->get_logger(), "Arrive, catch_target_bucket, time = %f", get_cur_time() - _t_time);
+			RCLCPP_INFO(this->get_logger(), "Arrive, Doshot, time = %f", get_cur_time() - _t_time);
 			data_point.time = _t_time - get_cur_time();
 			_t_time = get_cur_time();
 			catch_state_ = CatchState::end;

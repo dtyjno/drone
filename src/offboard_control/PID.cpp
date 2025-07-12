@@ -38,6 +38,36 @@ float constrain_float(float _integrator, float _max, float _min)
 }
 #endif
 
+PID::PID(std::string pid_name, float kp, float ki, float kd, float kff, float kdff, float kimax, float srmax)
+{
+    this->pid_name = pid_name;
+    _kp = kp;
+    _ki = ki;
+    _kd = kd;
+    _kff = kff;
+    _kdff = kdff;
+    _kimax = kimax;
+    _integrator = 0.0f;
+    _error = 0.0f;
+    _derivative = 0.0f;
+    _pid_info._kP = _kp;
+    _pid_info._kI = _ki;
+    _pid_info._kD = _kd;
+    _pid_info.P = 0.0f;
+    _pid_info.I = 0.0f;
+    _pid_info.D = 0.0f;
+    _pid_info.FF = 0.0f;
+    _pid_info.DFF = 0.0f;
+    _pid_info.error = 0.0f;
+    _pid_info.target = 0.0f;
+    _pid_info.actual = 0.0f;
+    _pid_info.reset = false;
+    _pid_info.PD_limit = false;
+    _pid_info.slew_rate = srmax;
+    _pid_info.limit = false;
+    _pid_info.Dmod = 0.0f;
+}
+
 PID::PID(float kp, float ki, float kd, float kff, float kdff, float kimax, float srmax)
 {
     _kp = kp;
