@@ -11,14 +11,29 @@
 // #include <mavros_msgs/msg/state.hpp>
 #include "math.h"
 
+#ifndef PAL_STATISTIC_VISIBILITY
+#define PAL_STATISTIC_VISIBILITY 0 // 是否开启统计可视化
+#endif
+
+#if PAL_STATISTIC_VISIBILITY
+#include <pal_statistics_msgs/msg/statistics.hpp>
+#include <pal_statistics_msgs/msg/statistic.hpp>
+#endif
+
 #define DEFAULT_YAW (0 * M_PI_2) // default yaw for position control
+
+#define DEFAULT_X_POS FLT_MAX
+
+// #define PID_P
+
+// #define TRAIN_PID
 
 class OffboardControl_Base : public rclcpp::Node
 {
 public:
 
 	OffboardControl_Base(std::string ardupilot_namespace) : Node("offboard_control_srv"),
-																													mode_switch_client_{this->create_client<mavros_msgs::srv::SetMode>(ardupilot_namespace + "set_mode")}
+		mode_switch_client_{this->create_client<mavros_msgs::srv::SetMode>(ardupilot_namespace + "set_mode")}
 	{
 		RCLCPP_INFO(this->get_logger(), "Starting Offboard Control example");
 	}
@@ -38,6 +53,18 @@ public:
 	// virtual void set_home_position();
 	rclcpp::Client<mavros_msgs::srv::SetMode>::SharedPtr mode_switch_client_;
 	static Vector4f start;
+	
+#if PAL_STATISTIC_VISIBILITY
+	auto get_stats_publisher() {
+		return stats_publisher_;
+	}
+#endif
+
+protected:
+#if PAL_STATISTIC_VISIBILITY
+	rclcpp::Publisher<pal_statistics_msgs::msg::Statistics>::SharedPtr stats_publisher_;
+	rclcpp::TimerBase::SharedPtr stats_timer_;
+#endif
 
 private:
 	// class GlobalFrame{

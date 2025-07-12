@@ -42,8 +42,15 @@ find_package(cv_bridge REQUIRED)
 find_package(Curses REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(ros2_yolo_msgs REQUIRED)
-
-
+find_package(pal_statistics_msgs QUIET)
+if(pal_statistics_msgs_FOUND)
+	message(STATUS "PAL Statistics support enabled")
+    add_definitions(-DPAL_STATISTIC_VISIBILITY)
+    set(PAL_STATISTICS_DEPS pal_statistics_msgs)
+else()
+    message(WARNING "PAL Statistics requested but pal_statistics_msgs not found")
+    set(PAL_STATISTICS_DEPS "")
+endif()
 #################
 # Setup targets #
 #################
@@ -77,7 +84,7 @@ include_directories(
 file(GLOB SOURCES "src/offboard_control/*.cpp")
 add_executable(offboard_control ${SOURCES}
     src/offboard_control/FuzzyPID.cpp)
-ament_target_dependencies(offboard_control rclcpp mavros_msgs geometry_msgs nav_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs sensor_msgs OpenCV cv_bridge ament_index_cpp ros2_interfaces ros2_yolo_msgs)
+ament_target_dependencies(offboard_control rclcpp mavros_msgs geometry_msgs nav_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs sensor_msgs OpenCV cv_bridge ament_index_cpp ros2_interfaces ros2_yolo_msgs ${PAL_STATISTICS_DEPS})
 target_link_libraries(offboard_control yaml-cpp)  
 install(TARGETS offboard_control DESTINATION lib/${PROJECT_NAME})
 

@@ -17,6 +17,11 @@
 #include "AutoTune.h"
 #include "FuzzyPID.h"
 
+#ifdef PAL_STATISTIC_VISIBILITY
+#include <pal_statistics_msgs/msg/statistics.hpp>
+#include <pal_statistics_msgs/msg/statistic.hpp>
+#endif
+
 //
  # define POSCONTROL_Z_P                    0.6f    // vertical velocity controller P gain default
  # define POSCONTROL_Z_I                    0.0f    // vertical velocity controller I gain default
@@ -151,6 +156,7 @@ public:
 
 		fuzzy_pid = FuzzyPID(fuzzy_params);
 		pid_x = PID(
+			"x_pos",
 			POSCONTROL_XY_P,
 			POSCONTROL_XY_I,
 			POSCONTROL_XY_D,
@@ -160,6 +166,7 @@ public:
 			0
 		);
 		pid_y = PID(
+			"y_pos",
 			POSCONTROL_XY_P,
 			POSCONTROL_XY_I,
 			POSCONTROL_XY_D,
@@ -169,6 +176,7 @@ public:
 			0
 		);
 		pid_z = PID(
+			"z_pos",
 			POSCONTROL_Z_P,
 			POSCONTROL_Z_I,
 			POSCONTROL_Z_D,
@@ -178,13 +186,14 @@ public:
 			0
 		);
 		pid_yaw = PID(
+			"yaw_pos",
 			POSCONTROL_Z_FILT_P_HZ,
 			0,
 			POSCONTROL_Z_FILT_D_HZ,
 			0,
 			0,
 			0,
-			0	
+			0
 		);
 		pid_px = PID(
 			POSCONTROL_POS_XY_P,
@@ -281,6 +290,11 @@ public:
 		this->dt = dt;
 	}
 	bool auto_tune(Vector4f pos_now, Vector4f pos_target, uint32_t delayMsec, bool tune_x=true, bool tune_y=true, bool tune_z=true, bool tune_yaw=true);
+	
+#if PAL_STATISTIC_VISIBILITY
+	void publish_statistics();
+#endif
+
 	PID::Defaults
 		pid_x_defaults,
 		pid_y_defaults,

@@ -186,9 +186,9 @@ bool TrajectoryGenerator::operator()(const RobotState& robot_state, double time)
 }
 
 void TrajectoryGenerator::set_dq_max(const std::array<double, 3> d_q_max){
-    dq_max_ = Eigen::Map<const Vector3d>(d_q_max.data());
+    dq_max_ = Eigen::Map<const Vector3d>(d_q_max.data()) / frequency_;
 }
 
 void TrajectoryGenerator::set_dqq_max(const std::array<double, 3> d_qq_max){
-    ddq_max_ = Eigen::Map<const Vector3d>(d_qq_max.data());
+    ddq_max_ = Eigen::Map<const Vector3d>(d_qq_max.data()) / frequency_;
 }

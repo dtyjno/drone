@@ -21,13 +21,16 @@ void OffboardControl::timer_callback(void)
 	// 发布当前状态
 	publish_current_state();
 	// RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前时间：%f", get_cur_time());
-	RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "收到坐标c(%f, %f) h(%f ,%f), flag_servo = %d yaw=%f",
+	if(!print_info_)
+	{
+		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "收到坐标c(%f, %f) h(%f ,%f), flag_servo = %d yaw=%f",
 		_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), _yolo->get_y(YOLO::TARGET_TYPE::CIRCLE),
 		_yolo->get_x(YOLO::TARGET_TYPE::H), _yolo->get_y(YOLO::TARGET_TYPE::H),
 		_yolo->get_servo_flag(), get_yaw());
+	}
 	// RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前飞机位置 x: %f y: %f z: %f yaw: %f",
 	// 	get_x_pos(), get_y_pos(), get_z_pos(), get_yaw());
-	// 桶1（1 -30） 2 (2 -30) 3 (-1 -29)
+	// 桶1（1 -31） 2 (2 -31) 3 (-1 -33)
 	CameraParams camera1;
 	camera1.position = Vector3d(get_x_pos(), get_y_pos(), get_z_pos());
 	
@@ -71,7 +74,7 @@ void OffboardControl::timer_callback(void)
 	// 	}
 	// }
 
-	if (_motors->mode == "LAND" && state_machine_.get_current_state() != FlyState::end)
+	if (_motors->mode == "LAND" && state_machine_.get_current_state() != FlyState::end && !print_info_)
 	{
 		RCLCPP_INFO(this->get_logger(), "飞行结束，进入结束状态");
 		state_machine_.transition_to(FlyState::end);
@@ -174,15 +177,18 @@ void OffboardControl::publish_current_state()
 
 // 指定间隔时间循环执行航点
 // x，y为中心位置，length，width为航点的长宽，halt为高度，way_points为航点集合，description为航点描述
-bool OffboardControl::waypoint_goto_next(double x, double y, double length, double width, double halt, vector<Vector2f> &way_points, double time, int *count, const std::string &description)
+bool OffboardControl::waypoint_goto_next(float x, float y, float length, float width, float halt, vector<Vector2f> &way_points, float time, int *count, const std::string &description)
 {
 	static std::vector<Vector2f>::size_type surround_cnt = 0; // 修改类型
-	double x_temp = 0.0, y_temp = 0.0;
+	float x_temp = 0.0, y_temp = 0.0;
+	int count_n = count == nullptr? surround_cnt : *count;
 	if(count!=nullptr)
 		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "w_g_n,counter: %d, time=%lf", *count, state_timer_.elapsed());
-	if (state_timer_.elapsed() > time) 
+	x_temp = x + (length * way_points[count_n].x());
+	y_temp = y + (width * way_points[count_n].y());
+	if (state_timer_.elapsed() > time || (is_equal(get_x_pos(), x_temp, 0.3f) && is_equal(get_y_pos(), y_temp, 0.3f))) 
 	{
-		if (static_cast<std::vector<Vector2f>::size_type>(count == nullptr? surround_cnt : *count) >= way_points.size())
+		if (static_cast<std::vector<Vector2f>::size_type>(count_n) >= way_points.size())
 		{
 				RCLCPP_INFO(this->get_logger(), "%s已经全部遍历", description.c_str());
 				count == nullptr? surround_cnt = 0 : *count = 0;
@@ -190,10 +196,8 @@ bool OffboardControl::waypoint_goto_next(double x, double y, double length, doub
 				state_timer_.set_start_time_to_default();
 				return true;
 		} else {
-			x_temp = x + (length * way_points[count == nullptr? surround_cnt : *count].x());
-			y_temp = y + (width * way_points[count == nullptr? surround_cnt : *count].y());
 			count == nullptr? surround_cnt++ : (*count)++;
-			RCLCPP_INFO(this->get_logger(), "%s点位%zu x: %lf   y: %lf", description.c_str(), count == nullptr? surround_cnt : *count, x_temp, y_temp);
+			RCLCPP_INFO(this->get_logger(), "%s点位%d x: %lf   y: %lf, timeout=%s", description.c_str(), count_n, x_temp, y_temp, (is_equal(get_x_pos(), x_temp, 0.3f) && is_equal(get_y_pos(), y_temp, 0.3f))? "true" : "false");
 
 			rotate_global2stand(x_temp, y_temp, x_temp, y_temp);
 
@@ -237,85 +241,93 @@ bool OffboardControl::Doland()
 	} land_state_ = LandState::init;
 	static int surround_land = -3;
 	static PID::Defaults defaults;
-	double x_home, y_home, tar_x = 0.0, tar_y = 0.0, scout_halt = 1.0, accuracy = 0.3;
-	switch (land_state_)
-	{
-	case LandState::init:{
-		// 读取PID参数
-		defaults = PID::readPIDParameters("land_config.yaml", "pid");
-		PosControl::Limits_t limits = _pose_control->readLimits("land_config.yaml", "limits");
-		_pose_control->set_limits(limits);
-		YAML::Node config = Readyaml::readYAML("land_config.yaml");
-		tar_x = config["tar_x"].as<double>();
-		tar_y = config["tar_y"].as<double>();
-		scout_halt = config["scout_halt"].as<double>();
-		accuracy = config["accuracy"].as<double>();
-		tar_x = (is_equal(tar_x, 0.0) ? _yolo->get_cap_frame_width() / 2 : tar_x);
-		tar_y = (is_equal(tar_y, 0.0) ? _yolo->get_cap_frame_height() / 2 : tar_y);
-    	RCLCPP_INFO(this->get_logger(), "Doland");
-		rotate_global2stand(0.0, 0.0, x_home, y_home);
-    	RCLCPP_INFO(this->get_logger(), "返回降落准备点 x: %lf   y: %lf    angle: %lf", x_home, y_home, headingangle_compass);
-    	send_local_setpoint_command(x_home, y_home, 4, headingangle_compass);
-    	// rclcpp::sleep_for(std::chrono::seconds(6));
-		rotate_global2stand(0.0, 0.3, x_home, y_home);
-    	RCLCPP_INFO(this->get_logger(), "返回降落点 x: %lf   y: %lf    angle: %lf", x_home, y_home, headingangle_compass);
-    	send_local_setpoint_command(x_home, y_home, 4, headingangle_compass);
-		timer_.reset();
-		timer_.set_timepoint();
-		land_state_ = LandState::land_to_target;
-		break;
-	}
-	case LandState::land_to_target:{
-		if (timer_.elapsed() > 19 || surround_land > 3)
+	static double tar_x = 0.0, tar_y = 0.0, tar_z = 1.0, scout_x = 0.0, scout_y = 0.0, scout_halt = 3.0, accuracy = 0.3;
+	double x_home, y_home;
+	bool result = false;
+	while(true){
+		switch (land_state_)
 		{
-			land_state_ = LandState::end;
-			break;
+		case LandState::init:{
+			// 读取PID参数
+			defaults = PID::readPIDParameters("land_config.yaml", "pid");
+			PosControl::Limits_t limits = _pose_control->readLimits("land_config.yaml", "limits");
+			_pose_control->set_limits(limits);
+			YAML::Node config = Readyaml::readYAML("land_config.yaml");
+			tar_x = config["tar_x"].as<double>();
+			tar_y = config["tar_y"].as<double>();
+			tar_z = config["tar_z"].as<double>();
+			scout_halt = config["scout_halt"].as<double>();
+			scout_x = config["scout_x"].as<double>();
+			scout_y = config["scout_y"].as<double>();
+			accuracy = config["accuracy"].as<double>();
+			tar_x = (is_equal(tar_x, 0.0) ? _yolo->get_cap_frame_width() / 2 : tar_x);
+			tar_y = (is_equal(tar_y, 0.0) ? _yolo->get_cap_frame_height() / 2 : tar_y);
+			RCLCPP_INFO(this->get_logger(), "Doland");
+			rotate_global2stand(scout_x, scout_y, x_home, y_home);
+			RCLCPP_INFO(this->get_logger(), "返回降落准备点 x: %lf   y: %lf    angle: %lf", x_home, y_home, headingangle_compass);
+			send_local_setpoint_command(x_home, y_home, scout_halt, headingangle_compass);
+			// rclcpp::sleep_for(std::chrono::seconds(6));
+			rotate_global2stand(scout_x, scout_y + 0.3, x_home, y_home);
+			RCLCPP_INFO(this->get_logger(), "返回降落点 x: %lf   y: %lf    angle: %lf", x_home, y_home, headingangle_compass);
+			send_local_setpoint_command(x_home, y_home, scout_halt, headingangle_compass);
+			timer_.reset();
+			timer_.set_timepoint();
+			land_state_ = LandState::land_to_target;
+			continue; // 直接跳到下一个状态;
 		}
-		// yolo未识别到桶
-		if (!_yolo->is_get_target(YOLO::TARGET_TYPE::H))
-		{
-			if (timer_.get_timepoint_elapsed() > 1.5)
+		case LandState::land_to_target:{
+			if (timer_.elapsed() > 19 || surround_land > 3)
 			{
-					RCLCPP_INFO(this->get_logger(), "surround_land = %d", surround_land);
-					rotate_global2stand(static_cast<double>(surround_land) * 1.0, 0.0, x_home, y_home);
-					RCLCPP_INFO(this->get_logger(), "land点 x: %lf   y: %lf    angle: %lf", x_home, y_home, headingangle_compass);
-					send_local_setpoint_command(x_home, y_home, scout_halt, headingangle_compass);
-					timer_.set_timepoint();
-					surround_land++;
-			}
-		}
-		else
-		{
-			RCLCPP_INFO(this->get_logger(), "看见H了，执行PID_rtl");
-			if (catch_target(
-					defaults,
-					YOLO::TARGET_TYPE::H, // 目标类型
-					tar_x, tar_y, 1.0, default_yaw, accuracy
-				))
-			{
-				RCLCPP_INFO(this->get_logger(), "到达降落点");
 				land_state_ = LandState::end;
-				surround_land = 0;
-				timer_.set_timepoint();
+				continue; // 直接跳到下一个状态;
+			}
+			if (!_yolo->is_get_target(YOLO::TARGET_TYPE::H)) // yolo未识别到YOLO::TARGET_TYPE::H   (YOLO::TARGET_TYPE::CIRCLE)
+			{
+				if (timer_.get_timepoint_elapsed() > 1.5)
+				{
+						RCLCPP_INFO(this->get_logger(), "surround_land = %d", surround_land);
+						rotate_global2stand(scout_x + static_cast<double>(surround_land) * 1.0, scout_y, x_home, y_home);
+						RCLCPP_INFO(this->get_logger(), "land点 x: %lf   y: %lf    angle: %lf", x_home, y_home, headingangle_compass);
+						send_local_setpoint_command(x_home, y_home, scout_halt, headingangle_compass);
+						timer_.set_timepoint();
+						surround_land++;
+				}
 			}
 			else
 			{
-				RCLCPP_INFO(this->get_logger(), "未到达降落点");
+				RCLCPP_INFO(this->get_logger(), "看见H了，执行PID_rtl");
+				if (catch_target(
+						defaults,
+						YOLO::TARGET_TYPE::H, // 目标类型
+						tar_x, tar_y, tar_z, default_yaw, accuracy
+					))
+				{
+					RCLCPP_INFO(this->get_logger(), "到达降落点");
+					land_state_ = LandState::end;
+					continue; // 直接跳到下一个状态;
+				}
+				else
+				{
+					RCLCPP_INFO(this->get_logger(), "未到达降落点");
+				}
 			}
+			break;
+		}
+		case LandState::end:{
+			send_velocity_command_with_time(0, 0, -0.1, 0, 1);
+			RCLCPP_INFO(this->get_logger(), "降落");
+			land_state_ = LandState::init;
+			surround_land = 0;
+			timer_.set_timepoint();
+			result = true;
+			break;
+		}
+		default:
+			break;
 		}
 		break;
 	}
-	case LandState::end:{
-		send_velocity_command_with_time(0, 0, -0.1, 0, 1);
-		RCLCPP_INFO(this->get_logger(), "1s后降落");
-		land_state_ = LandState::init;
-		return true;
-		break;
-	}
-	default:
-		break;
-	}
-	return false;
+	return result;
 }
 
 // 抵达桶上方
@@ -328,12 +340,14 @@ bool OffboardControl::Doshot()
 		end
 	} catch_state_ = CatchState::init;
 	static double time_find_start = 0;			 		// 开始时间
+	static float _t_time = 0; 					        // 接近目标时单轮执行时间
 	static float tar_x = 0, tar_y = 0, tar_z = 1;		// 声明目标高度（m）未初始化
 	static float tar_yaw = 0; 							// 声明目标偏航角（rad）
 	static float accuracy = 0.1; 						// 声明精度
-
+	bool result = false;
+	PID::Defaults defaults;
 	// 读取PID参数
-	PID::Defaults defaults = PID::readPIDParameters("can_config.yaml", "pid");
+	defaults = PID::readPIDParameters("can_config.yaml", "pid");
 	PosControl::Limits_t limits = _pose_control->readLimits("can_config.yaml", "limits");
 	_pose_control->set_limits(limits);
 	// 读取距离目标一定范围内退出的距离
@@ -344,79 +358,84 @@ bool OffboardControl::Doshot()
 	tar_z = config["tar_z"].as<float>();
 	tar_x = (is_equal(tar_x, 0.0f) ? _yolo->get_cap_frame_width() / 2 : tar_x);
 	tar_y = (is_equal(tar_y, 0.0f) ? _yolo->get_cap_frame_height() / 2 : tar_y);
-
-	switch (catch_state_)
-	{
-	case CatchState::init:
-	{
-		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: Init1");
-		time_find_start = get_cur_time();
-		tar_z = 1.5;								 // 设置目标高度（m）
-		tar_yaw = default_yaw;			 // 设置目标偏航角（rad）
-		catch_state_ = CatchState::fly_to_target;
-		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: Init2");
-		break;
-	}
-	case CatchState::fly_to_target:
-	{
-		RCLCPP_INFO(this->get_logger(), "cur_shot_time %f, time_find_start %f", get_cur_time(), time_find_start);
-		double cur_shot_time = get_cur_time();
-		if (cur_shot_time - time_find_start > 90) //60s
+	while(true){
+		switch (catch_state_)
 		{
-			catch_state_ = CatchState::end;
+		case CatchState::init:
+		{
+			RCLCPP_INFO(this->get_logger(), "catch_target_bucket: Init");
+			// 读取PID参数
+			defaults = PID::readPIDParameters("can_config.yaml", "pid");
+			PosControl::Limits_t limits = _pose_control->readLimits("can_config.yaml", "limits");
+			_pose_control->set_limits(limits);
+			// 读取距离目标一定范围内退出的距离
+			YAML::Node config = Readyaml::readYAML("can_config.yaml");
+			accuracy = config["accuracy"].as<float>();
+			tar_x = config["tar_x"].as<float>();
+			tar_y = config["tar_y"].as<float>();
+			tar_z = config["tar_z"].as<float>();         // 设置目标高度（m）
+			tar_x = (is_equal(tar_x, 0.0f) ? _yolo->get_cap_frame_width() / 2 : tar_x);
+			tar_y = (is_equal(tar_y, 0.0f) ? _yolo->get_cap_frame_height() / 2 : tar_y);
+			time_find_start = get_cur_time();
+			_t_time = time_find_start;
+			tar_yaw = default_yaw;			            // 设置目标偏航角（rad）
+			catch_state_ = CatchState::fly_to_target;
+			continue; // 继续执行下一个case;
 		}
-		// yolo未识别到桶
-		if (!_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE))
+		case CatchState::fly_to_target:
 		{
-			RCLCPP_INFO(this->get_logger(), "catch_target_bucket: yolo未识别到桶，等待");
-			return false;
-		}
-		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: x: %f, y: %f", _yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), _yolo->get_y(YOLO::TARGET_TYPE::CIRCLE));
-
-		// RCLCPP_INFO(this->get_logger(), "--------------------\n\n读取pid_bucket: p: %f, i: %f, d: %f, ff: %f, dff: %f, imax: %f", defaults.p, defaults.i, defaults.d, defaults.ff, defaults.dff, defaults.imax);
-		// RCLCPP_INFO(this->get_logger(), "n读取limits: speed_max_xy: %f, speed_max_z: %f, accel_max_x: %f, accel_max_z: %f", limits.speed_max_xy, limits.speed_max_z, limits.accel_max_xy, limits.accel_max_z);
-		
-		static float _t_time = cur_shot_time;
-		if (catch_target(
-				defaults,
-				YOLO::TARGET_TYPE::CIRCLE, // 目标类型
-				tar_x, tar_y, tar_z, tar_yaw, accuracy
-			))
-		{
-			// RCLCPP_INFO(this->get_logger(), "Arrive, time = %f", cur_shot_time-_t_time);
-			double error_x = abs(_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE) / _yolo->get_cap_frame_width() - tar_x / _yolo->get_cap_frame_width());
-			double error_y = abs(_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE) / _yolo->get_cap_frame_height() - tar_y / _yolo->get_cap_frame_height());
-			
-			RCLCPP_INFO(this->get_logger(), "Approach, catch_target_bucket, time = %f, ex = %f, ey = %f", cur_shot_time - _t_time, error_x, error_y);
-			// if(error_x<0.05 && error_y<0.05){
-				// RCLCPP_INFO(this->get_logger(), "Arrive, catch_target_bucket");
-				// catch_state_=CatchState::end;
-			// } else 
-			if(cur_shot_time - _t_time > 2){
-				RCLCPP_INFO(this->get_logger(), "Approach, catch_target_bucket");
-				catch_state_=CatchState::end;
+			// RCLCPP_INFO(this->get_logger(), "cur_shot_time %f, time_find_start %f", get_cur_time(), time_find_start);
+			double cur_shot_time = get_cur_time();
+			// if (cur_shot_time - time_find_start > 60) //60s
+			// {
+			// 	catch_state_ = CatchState::end;
+			// }
+			// yolo未识别到桶
+			if (!_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE))
+			{
+				// RCLCPP_INFO(this->get_logger(), "catch_target_bucket: yolo未识别到桶，等待");
+				break;
 			}
+			RCLCPP_INFO(this->get_logger(), "catch_target_bucket: x: %f, y: %f", _yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), _yolo->get_y(YOLO::TARGET_TYPE::CIRCLE));
+			if (catch_target(
+					defaults,
+					YOLO::TARGET_TYPE::CIRCLE, // 目标类型
+					tar_x, tar_y, tar_z, tar_yaw, accuracy
+				))
+			{
+				RCLCPP_INFO(this->get_logger(), "Approach, catch_target_bucket, time = %fs", cur_shot_time - _t_time);
+				// if(error_x<0.05 && error_y<0.05){
+					// RCLCPP_INFO(this->get_logger(), "Arrive, catch_target_bucket");
+					// catch_state_=CatchState::end;
+				// } else 
+				if(cur_shot_time - _t_time > 1.5){ // 1.5秒
+					RCLCPP_INFO(this->get_logger(), "Approach, catch_target_bucket");
+					catch_state_=CatchState::end;
+					continue; // 直接跳到下一个状态;
+				}
+			}
+			else
+			{
+				_t_time = cur_shot_time;
+			}
+			break;
 		}
-		else
+		case CatchState::end:
 		{
-			_t_time = cur_shot_time;
+			RCLCPP_INFO(this->get_logger(), "catch_target_bucket: end");
+			// 重置所有静态变量
+			catch_state_ = CatchState::init;
+			_pose_control->reset_limits();
+			time_find_start = 0;
+			result = true;
+			break;
+		}
+		default:
+			break;
 		}
 		break;
 	}
-	case CatchState::end:
-	{
-		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: end");
-		// 重置所有静态变量
-		catch_state_ = CatchState::init;
-		_pose_control->reset_limits();
-		time_find_start = 0;
-		return true;
-		break;
-	}
-	default:
-		break;
-	}
-	return false;
+	return result;
 }
 
 
@@ -449,11 +468,11 @@ bool OffboardControl::autotune(bool &result, enum YOLO::TARGET_TYPE target)
 	// yolo未识别到桶
 	if (is_equal(_yolo->get_x(target), (float)0) && is_equal(_yolo->get_y(target), (float)0))
 	{
-		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: yolo未识别到桶");
+		RCLCPP_INFO(this->get_logger(), "Doshot: yolo未识别到桶");
 		result = false;
 		return false;
 	}
-	RCLCPP_INFO(this->get_logger(), "catch_target_bucket: x: %f, y: %f", _yolo->get_x(target), _yolo->get_y(target));
+	RCLCPP_INFO(this->get_logger(), "Doshot: x: %f, y: %f", _yolo->get_x(target), _yolo->get_y(target));
 
 	switch (catch_state_)
 	{
@@ -467,7 +486,7 @@ bool OffboardControl::autotune(bool &result, enum YOLO::TARGET_TYPE target)
 		YAML::Node config = Readyaml::readYAML("can_config.yaml");
 		accuracy = config["accuracy"].as<float>();
 
-		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: Init1");
+		RCLCPP_INFO(this->get_logger(), "Doshot: Init1");
 		data_point.p = defaults.p;
 		data_point.i = defaults.i;
 		data_point.d = defaults.d;
@@ -480,7 +499,7 @@ bool OffboardControl::autotune(bool &result, enum YOLO::TARGET_TYPE target)
 		dt = 0.25;								 // 设置执行周期（s）
 		_pose_control->set_dt(dt); // 设置执行周期（用于PID）
 
-		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: Init2");
+		RCLCPP_INFO(this->get_logger(), "Doshot: Init2");
 		RCLCPP_INFO(this->get_logger(), "--------------------\n\n读取pid_bucket: p: %f, i: %f, d: %f, ff: %f, dff: %f, imax: %f", defaults.p, defaults.i, defaults.d, defaults.ff, defaults.dff, defaults.imax);
 		RCLCPP_INFO(this->get_logger(), "n读取limits: speed_max_xy: %f, speed_max_z: %f, accel_max_x: %f, accel_max_z: %f", limits.speed_max_xy, limits.speed_max_z, limits.accel_max_xy, limits.accel_max_z);
 
@@ -505,8 +524,8 @@ bool OffboardControl::autotune(bool &result, enum YOLO::TARGET_TYPE target)
 		float tar_y = _yolo->get_cap_frame_height()-_yolo->get_cap_frame_height() / 2; // /3
 		rotate_xy(now_x, now_y, (get_yaw() - default_yaw));
 		rotate_xy(tar_x, tar_y, (get_yaw() - default_yaw));
-		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x, now_y, tar_x, tar_y);
-		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x / _yolo->get_cap_frame_width(), now_y / _yolo->get_cap_frame_height(), (tar_x) / _yolo->get_cap_frame_width(), (tar_y) / _yolo->get_cap_frame_height());
+		RCLCPP_INFO(this->get_logger(), "Doshot: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x, now_y, tar_x, tar_y);
+		RCLCPP_INFO(this->get_logger(), "Doshot: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x / _yolo->get_cap_frame_width(), now_y / _yolo->get_cap_frame_height(), (tar_x) / _yolo->get_cap_frame_width(), (tar_y) / _yolo->get_cap_frame_height());
 		static float _t_time = get_cur_time();
 
 		(void)accuracy;
@@ -528,7 +547,7 @@ bool OffboardControl::autotune(bool &result, enum YOLO::TARGET_TYPE target)
 		}
 		else
 		{
-			RCLCPP_INFO(this->get_logger(), "Arrive, catch_target_bucket, time = %f", get_cur_time() - _t_time);
+			RCLCPP_INFO(this->get_logger(), "Arrive, Doshot, time = %f", get_cur_time() - _t_time);
 			data_point.time = _t_time - get_cur_time();
 			_t_time = get_cur_time();
 			catch_state_ = CatchState::end;
@@ -651,7 +670,7 @@ bool OffboardControl::trajectory_generator_world(double speed_factor, std::array
 // 		{q_goal[0]+get_x_pos(), q_goal[1]+get_y_pos(),q_goal[2]+get_z_pos()}
 // 	);
 // }
-bool OffboardControl::trajectory_generator_world_points(double speed_factor, const std::vector<std::array<double, 3>> &data, int data_length, bool init)
+bool OffboardControl::trajectory_generator_world_points(double speed_factor, const std::vector<std::array<double, 3>> &data, int data_length, Vector3f max_speed_xy, Vector3f max_accel_xy)
 {
 	static bool first = true;
 	static uint16_t data_length_;
@@ -659,7 +678,7 @@ bool OffboardControl::trajectory_generator_world_points(double speed_factor, con
 	static bool sequence_completed = false;
 	
 	// 只在第一次调用或者序列完成后需要重新开始时初始化
-	if (first || (init && sequence_completed))
+	if (first || (sequence_completed))
 	{
 		data_length_ = data_length;
 		current_waypoint_index = 0;
@@ -685,8 +704,12 @@ bool OffboardControl::trajectory_generator_world_points(double speed_factor, con
 	std::cout << "waypoint " << current_waypoint_index << " q_goal: " << global_x << " " << global_y << " " << q_goal[2] << std::endl;
 	
 	if (_pose_control->trajectory_generator_world(
-					speed_factor,
-					{global_x, global_y, q_goal[2]}))
+				speed_factor,
+				{global_x, global_y, q_goal[2]},
+				max_speed_xy,
+				max_accel_xy
+			)
+		)
 	{
 		current_waypoint_index++;
 		std::cout << "Waypoint " << (current_waypoint_index - 1) << " completed! Moving to waypoint " << current_waypoint_index << std::endl;

@@ -33,10 +33,6 @@
 #include "std_msgs/msg/int32.hpp"
 
 
-#define DEFAULT_X_POS FLT_MAX
-
-#define TRAIN_PID
-
 using namespace std::chrono_literals;
 
 #include "OffboardControl_Base.h"
@@ -73,6 +69,12 @@ public:
 		this->declare_parameter("mode_switch", false);
 		this->get_parameter("mode_switch", debug_mode_);
 		RCLCPP_INFO(this->get_logger(), "mode_switch: %s", debug_mode_ ? "true" : "false");
+		this->declare_parameter("print_info", false);
+		this->get_parameter("print_info", print_info_);
+		RCLCPP_INFO(this->get_logger(), "print_info: %s", print_info_ ? "true" : "false");
+		if (print_info_) {
+			state_machine_.transition_to(FlyState::Print_Info);
+		}
 
 		// RCLCPP_INFO(this->get_logger(), "Starting Offboard Control example with PX4 services");
 		RCLCPP_INFO(this->get_logger(), "开始使用APM服务的离线控制 OffboardControl");
@@ -112,6 +114,14 @@ public:
 		
 		timestamp_init = get_cur_time();
 		timer_ = this->create_wall_timer(100ms, std::bind(&OffboardControl::timer_callback, this));
+		#ifdef PAL_STATISTIC_VISIBILITY
+		stats_publisher_ = this->create_publisher<pal_statistics_msgs::msg::Statistics>("/statistics", 10);
+		stats_timer_ = this->create_wall_timer(100ms,
+			[this](){
+				_pose_control->publish_statistics();
+			}
+		);
+		#endif
 	}
 
 	float get_x_pos(void)
@@ -306,6 +316,7 @@ public:
 private:
 	bool sim_mode_ = false; // 是否为仿真模式
 	bool debug_mode_ = false; // 是否手动切换状态
+	bool print_info_ = false; // 是否打印信息
 	std::string ardupilot_namespace_copy_;
 	std::shared_ptr<YOLO> _yolo;
 	std::shared_ptr<ServoController> _servo_controller;
@@ -394,10 +405,10 @@ private:
 	GlobalFrame start_global{0, 0, 0};
 
 	rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr state_publisher_;
+
   void publish_current_state();
 
 	rclcpp::TimerBase::SharedPtr timer_;
-
 	void set_pose();
 	void set_gps();
 	void set_velocity();
@@ -434,7 +445,7 @@ private:
 	}
 	// control.cpp
 	Timer state_timer_;         // 通用计时器1
-	bool waypoint_goto_next(double x, double y, double length, double width, double halt, vector<Vector2f> &way_points, double time, int *count = nullptr, const std::string &description = "");
+	bool waypoint_goto_next(float x, float y, float length, float width, float halt, vector<Vector2f> &way_points, float time, int *count = nullptr, const std::string &description = "");
 	// bool surround_shot_goto_next(double x, double y, double length, double width);
 	// bool surround_see(double x, double y, double length, double width);
 	bool catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYPE target, float tar_x, float tar_y, float tar_z, float tar_yaw, float accuracy);
@@ -455,6 +466,6 @@ private:
 	bool trajectory_circle(float a, float b, float height, float dt = 0.05, float yaw = 0);
 	bool trajectory_generator_world(double speed_factor, std::array<double, 3> q_goal);
 	bool trajectory_generator(double speed_factor, std::array<double, 3> q_goal);
-	bool trajectory_generator_world_points(double speed_factor, const std::vector<std::array<double, 3>> &data, int data_length, bool init = false);
+	bool trajectory_generator_world_points(double speed_factor, const std::vector<std::array<double, 3>> &data, int data_length, Vector3f max_speed_xy, Vector3f max_accel_xy);
 };
 #endif // OFFBOARDCONTROL_H

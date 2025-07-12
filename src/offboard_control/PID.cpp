@@ -38,6 +38,36 @@ float constrain_float(float _integrator, float _max, float _min)
 }
 #endif
 
+PID::PID(std::string pid_name, float kp, float ki, float kd, float kff, float kdff, float kimax, float srmax)
+{
+    this->pid_name = pid_name;
+    _kp = kp;
+    _ki = ki;
+    _kd = kd;
+    _kff = kff;
+    _kdff = kdff;
+    _kimax = kimax;
+    _integrator = 0.0f;
+    _error = 0.0f;
+    _derivative = 0.0f;
+    _pid_info._kP = _kp;
+    _pid_info._kI = _ki;
+    _pid_info._kD = _kd;
+    _pid_info.P = 0.0f;
+    _pid_info.I = 0.0f;
+    _pid_info.D = 0.0f;
+    _pid_info.FF = 0.0f;
+    _pid_info.DFF = 0.0f;
+    _pid_info.error = 0.0f;
+    _pid_info.target = 0.0f;
+    _pid_info.actual = 0.0f;
+    _pid_info.reset = false;
+    _pid_info.PD_limit = false;
+    _pid_info.slew_rate = srmax;
+    _pid_info.limit = false;
+    _pid_info.Dmod = 0.0f;
+}
+
 PID::PID(float kp, float ki, float kd, float kff, float kdff, float kimax, float srmax)
 {
     _kp = kp;
@@ -191,7 +221,7 @@ void PID::get_pid(float &kp, float &ki, float &kd)
 float PID::update_all(float measurement, float target, float dt, float limit, float velocity)
 {
 #ifdef pid_debug_print
-    printf("p:%3.2f i:%3.2f d:%3.2f ", _pid_info._kP, _pid_info._kI, _pid_info._kD);
+    // printf("p:%3.2f i:%3.2f d:%3.2f ", _pid_info._kP, _pid_info._kI, _pid_info._kD);
 #endif
     _pid_info.target = target;
     _pid_info.actual = measurement;
@@ -268,7 +298,8 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
     // Set the slew rate
     _pid_info.slew_rate = srmax;
 #ifdef pid_debug_print
-    printf("tar:%+10f mea:%+5f err:%+5f P:%+10f I:%+10f D:%+10f Out:%f\n", target, measurement, _pid_info.error, _pid_info.P, _pid_info.I, _pid_info.D, _pid_info.output);
+    printf("PID: tar:%+10f mea:%+5f kp:%+5f ki:%+5f kd:%+5f\n", target, measurement, _pid_info._kP, _pid_info._kI, _pid_info._kD);
+    printf("PID: err:%+5f P:%+10f I:%+10f D:%+10f Out:%f\n",  _pid_info.error, _pid_info.P, _pid_info.I, _pid_info.D, _pid_info.output);
 // std::cout <<"target:"<<target<<" meadurement:"<<measurement<<" error:"<<_pid_info.error <<" P:"
 // <<_pid_info.P<<" I:"
 // <<_pid_info.I<<" D:"
