@@ -1,0 +1,32 @@
+[33mCMake Warning (dev) at /usr/local/lib/cmake/opencv4/OpenCVConfig.cmake:86 (find_package):
+  Policy CMP0074 is not set: find_package uses <PackageName>_ROOT variables.
+  Run "cmake --help-policy CMP0074" for policy details.  Use the cmake_policy
+  command to set the policy and suppress this warning.
+
+  Environment variable CUDA_ROOT is set to:
+
+    /usr/local/cuda
+
+  For compatibility, CMake is ignoring the variable.
+Call Stack (most recent call first):
+  /usr/local/lib/cmake/opencv4/OpenCVConfig.cmake:108 (find_host_package)
+  CMakeLists.txt:40 (find_package)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+[0m
+[31mCMake Error at CMakeLists.txt:44 (find_package):
+  By not providing "Findros2_yolo_msgs.cmake" in CMAKE_MODULE_PATH this
+  project has asked CMake to find a package configuration file provided by
+  "ros2_yolo_msgs", but CMake did not find one.
+
+  Could not find a package configuration file provided by "ros2_yolo_msgs"
+  with any of the following names:
+
+    ros2_yolo_msgsConfig.cmake
+    ros2_yolo_msgs-config.cmake
+
+  Add the installation prefix of "ros2_yolo_msgs" to CMAKE_PREFIX_PATH or set
+  "ros2_yolo_msgs_DIR" to a directory containing one of the above files.  If
+  "ros2_yolo_msgs" provides a separate development package or SDK, be sure it
+  has been installed.
+
+[0m
