@@ -53,18 +53,16 @@ public:
 	// virtual void set_home_position();
 	rclcpp::Client<mavros_msgs::srv::SetMode>::SharedPtr mode_switch_client_;
 	static Vector4f start;
-	
-#if PAL_STATISTIC_VISIBILITY
-	auto get_stats_publisher() {
-		return stats_publisher_;
-	}
-#endif
 
 protected:
-#if PAL_STATISTIC_VISIBILITY
-	rclcpp::Publisher<pal_statistics_msgs::msg::Statistics>::SharedPtr stats_publisher_;
-	rclcpp::TimerBase::SharedPtr stats_timer_;
-#endif
+// #ifdef PAL_STATISTIC_VISIBILITY
+// 	rclcpp::Publisher<pal_statistics_msgs::msg::Statistics>::SharedPtr stats_publisher_;
+// 	rclcpp::TimerBase::SharedPtr stats_timer_;
+// 	auto get_stats_publisher() {
+// 		return stats_publisher_;
+// 	}
+
+// #endif
 
 private:
 	// class GlobalFrame{

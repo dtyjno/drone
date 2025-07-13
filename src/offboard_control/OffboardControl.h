@@ -116,11 +116,7 @@ public:
 		timer_ = this->create_wall_timer(100ms, std::bind(&OffboardControl::timer_callback, this));
 		#ifdef PAL_STATISTIC_VISIBILITY
 		stats_publisher_ = this->create_publisher<pal_statistics_msgs::msg::Statistics>("/statistics", 10);
-		stats_timer_ = this->create_wall_timer(100ms,
-			[this](){
-				_pose_control->publish_statistics();
-			}
-		);
+		stats_timer_ = this->create_wall_timer(100ms,std::bind(&OffboardControl::publish_statistics, this));
 		#endif
 	}
 
@@ -313,6 +309,30 @@ public:
 		return 0;
 	}
 
+#ifdef PAL_STATISTIC_VISIBILITY
+	rclcpp::Publisher<pal_statistics_msgs::msg::Statistics>::SharedPtr stats_publisher_;
+	rclcpp::TimerBase::SharedPtr stats_timer_;
+	void publish_statistics(){
+		if (!stats_publisher_) {
+			RCLCPP_ERROR(this->get_logger(), "stats_publisher_ is not initialized.");
+			return;
+		}
+		std::vector<pal_statistics_msgs::msg::Statistic> statistics;
+		auto msg = pal_statistics_msgs::msg::Statistics();
+		msg.header.stamp = this->get_clock()->now();
+		msg.header.frame_id = "base_link";
+		_pose_control->publish_statistic(statistics);
+		this->publish_statistic(statistics);
+		msg.statistics = statistics;
+		this->stats_publisher_->publish(msg);
+	}
+	void publish_statistic(std::vector<pal_statistics_msgs::msg::Statistic> &statistics){
+		auto output_stat = pal_statistics_msgs::msg::Statistic();
+		output_stat.name ="Offboard_State";
+		output_stat.value = static_cast<int>(state_machine_.get_current_state());
+		statistics.push_back(output_stat);	
+	}
+#endif
 private:
 	bool sim_mode_ = false; // 是否为仿真模式
 	bool debug_mode_ = false; // 是否手动切换状态
@@ -451,7 +471,7 @@ private:
 	bool catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYPE target, float tar_x, float tar_y, float tar_z, float tar_yaw, float accuracy);
 	bool Doland();
 	// void PID_rtl(double now_x, double now_y, double now_z, double target_x, double target_y, bool &is_land);
-	bool Doshot();
+	bool Doshot(int shot_count);
 	bool autotune(bool &result, enum YOLO::TARGET_TYPE target);
 	bool surrounding_shot_area(void);
 	bool surrounding_scout_area(void);

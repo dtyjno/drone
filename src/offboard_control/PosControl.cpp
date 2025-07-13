@@ -570,11 +570,11 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 			// && abs(pos_now.w() - _pos_target.w())<=yaw_accuracy
 	)
 	{
+		
 		RCLCPP_INFO(node->get_logger(), "at_check_point");
 		// 重设为默认pid参数
 		set_pid(pid_px, pid_px_defaults);
 		set_pid(pid_py, pid_py_defaults);
-		reset_limits();
 		first = true;
 		return true;
 	}
@@ -903,17 +903,14 @@ bool PosControl::auto_tune(Vector4f pos_now, Vector4f pos_target, uint32_t delay
 #ifdef PAL_STATISTIC_VISIBILITY
 #include "vector"
 
-void PosControl::publish_statistics(){
-	if (!node || !node->get_stats_publisher()) {
-		RCLCPP_ERROR(node->get_logger(), "Node or stats_publisher_ is not initialized.");
-		return;
-	}
-    auto msg = pal_statistics_msgs::msg::Statistics();
-    msg.header.stamp = node->get_clock()->now();
-    msg.header.frame_id = "base_link";
-
-    // 创建统计信息
-    std::vector<pal_statistics_msgs::msg::Statistic> statistics;
+void PosControl::publish_statistic(std::vector<pal_statistics_msgs::msg::Statistic> &statistics){
+	// if (!node || !node->get_stats_publisher()) {
+	// 	RCLCPP_ERROR(node->get_logger(), "Node or stats_publisher_ is not initialized.");
+	// 	return;
+	// }
+    // auto msg = pal_statistics_msgs::msg::Statistics();
+    // msg.header.stamp = node->get_clock()->now();
+    // msg.header.frame_id = "base_link";
     
 	PID* pids[] = {&pid_x, &pid_y, &pid_z, &pid_yaw};
 
@@ -979,7 +976,7 @@ void PosControl::publish_statistics(){
 		statistics.push_back(d_term_stat);
 	}
     
-    msg.statistics = statistics;
-    node->get_stats_publisher()->publish(msg);
+    // msg.statistics = statistics;
+    // node->get_stats_publisher()->publish(msg);
 }
 #endif
