@@ -65,7 +65,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 		static int shot_counter = 1; // 投弹计数器
 		static vector<array<double, 3>> surround_shot_scout_points;
 
-		bool timeout = doshot_start.elapsed() > 60; // 超时 60 秒
+		bool timeout = doshot_start.elapsed() > 100; // 超时 60 秒
 
 		if (timeout) // 超时 60 秒
 		{
@@ -110,12 +110,17 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				}
 				break;
 			case owner_->DoshotState::doshot_halt: // 投弹
-				if (owner_->Doshot()){
+				// RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "收到坐标c(%f, %f) h(%f ,%f), flag_servo = %d yaw=%f",
+				RCLCPP_INFO(owner_->get_logger(), "收到坐标c(%f, %f) h(%f ,%f), flag_servo = %d",
+					owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE),
+					owner_->_yolo->get_x(YOLO::TARGET_TYPE::H), owner_->_yolo->get_y(YOLO::TARGET_TYPE::H),
+					owner_->_yolo->get_servo_flag());
+				if (owner_->Doshot(shot_counter)) { // 如果到达投弹点
 					// RCLCPP_INFO(owner_->get_logger(), "寻找完毕，投弹!!投弹!!");
 					RCLCPP_INFO(owner_->get_logger(), "投弹!!投弹!!，总用时：%f", doshot_start.elapsed());
 					RCLCPP_INFO(owner_->get_logger(), "Arrive, 投弹 等待5秒");
-				// 设置舵机位置
-				owner_->_servo_controller->set_servo(10 + shot_counter, 1200);
+					// 设置舵机位置
+					owner_->_servo_controller->set_servo(10 + shot_counter, 1864);
 					owner_->doshot_state_ = owner_->DoshotState::doshot_end; // 设置投弹状态为结束
 					doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
 				} else if (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE)) { // 如果没有找到投弹目标
@@ -133,7 +138,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				// RCLCPP_INFO(owner_->get_logger(), "投弹!!投弹!!，总用时：%f", doshot_start.elapsed());
 				// RCLCPP_INFO(owner_->get_logger(), "Arrive, 投弹 等待5秒");
 				// 设置舵机位置
-				owner_->_servo_controller->set_servo(10 + shot_counter, 1200);
+				// owner_->_servo_controller->set_servo(10 + shot_counter, 1864);
 				if(shot_counter <= 1 && !timeout) // 投弹计数器小于1，再次执行投弹
 				{
 					owner_->waypoint_goto_next(
@@ -148,8 +153,8 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					owner_->state_timer_.reset(); // 重置航点计时器
 					continue; // 继续投弹
 				}
-				owner_->_servo_controller->set_servo(11, 1200);
-				owner_->_servo_controller->set_servo(12, 1200);
+				owner_->_servo_controller->set_servo(11, 1864);
+				owner_->_servo_controller->set_servo(12, 1864);
 				// 重置状态
 				owner_->doshot_state_ = owner_->DoshotState::doshot_init; // 重置投弹状态
 				doshot_start.set_start_time_to_default();
@@ -197,7 +202,7 @@ void StateMachine::handle_state<FlyState::Surround_see>() {
 			RCLCPP_INFO_ONCE(owner_->get_logger(), "侦查完毕");
 			counter = 0;
 			owner_->_motors->switch_mode("RTL");
-			rclcpp::sleep_for(std::chrono::seconds(11));
+			rclcpp::sleep_for(std::chrono::seconds(17));
 			owner_->_motors->switch_mode("GUIDED");
 			transition_to(FlyState::Doland);
 		}

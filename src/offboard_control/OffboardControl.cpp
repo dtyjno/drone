@@ -21,13 +21,13 @@ void OffboardControl::timer_callback(void)
 	// 发布当前状态
 	publish_current_state();
 	// RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前时间：%f", get_cur_time());
-	if(!print_info_)
-	{
-		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "收到坐标c(%f, %f) h(%f ,%f), flag_servo = %d yaw=%f",
-		_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), _yolo->get_y(YOLO::TARGET_TYPE::CIRCLE),
-		_yolo->get_x(YOLO::TARGET_TYPE::H), _yolo->get_y(YOLO::TARGET_TYPE::H),
-		_yolo->get_servo_flag(), get_yaw());
-	}
+	// if(!print_info_)
+	// {
+		// RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "收到坐标c(%f, %f) h(%f ,%f), flag_servo = %d yaw=%f",
+		// _yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), _yolo->get_y(YOLO::TARGET_TYPE::CIRCLE),
+		// _yolo->get_x(YOLO::TARGET_TYPE::H), _yolo->get_y(YOLO::TARGET_TYPE::H),
+		// _yolo->get_servo_flag(), get_yaw());
+	// }
 	// RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前飞机位置 x: %f y: %f z: %f yaw: %f",
 	// 	get_x_pos(), get_y_pos(), get_z_pos(), get_yaw());
 	// 桶1（1 -31） 2 (2 -31) 3 (-1 -33)
@@ -212,11 +212,22 @@ bool OffboardControl::waypoint_goto_next(float x, float y, float length, float w
 // 接近目标点
 bool OffboardControl::catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYPE target, float tar_x, float tar_y, float tar_z, float tar_yaw, float accuracy){
 	// RCLCPP_INFO(this->get_logger(), "--------------------\n\n读取pid参数: p: %f, i: %f, d: %f, ff: %f, dff: %f, imax: %f", defaults.p, defaults.i, defaults.d, defaults.ff, defaults.dff, defaults.imax);d_max_xy: %f, speed_max_z: %f, accel_max_x: %f, accel_max_z: %f", limits.speed_max_xy, limits.speed_max_z, limits.accel_max_xy, limits.accel_max_z);
+	// 检查YOLO帧尺寸是否有效
+    // if (_yolo->get_cap_frame_width() <= 0 || _yolo->get_cap_frame_height() <= 0) {
+    //     RCLCPP_ERROR(this->get_logger(), "Invalid YOLO frame dimensions: width=%d, height=%d", 
+    //                  _yolo->get_cap_frame_width(), _yolo->get_cap_frame_height());
+    //     return false;
+    // }
 	// yolo返回值坐标系：x右y下（x_flip|y_flip = false），转换为飞机坐标系：x右y上
 	float now_x = _yolo->get_x(target);// _yolo->get_cap_frame_width() - _yolo->get_x(target);
 	float now_y = _yolo->get_cap_frame_height() - _yolo->get_y(target); // _yolo->get_y(target);
 	tar_x =  tar_x;// _yolo->get_cap_frame_width() - tar_x; // 目标x坐标
 	tar_y =  _yolo->get_cap_frame_height() - tar_y;// tar_y; // 目标y坐标
+	// 检查坐标是否有效
+    // if (!std::isfinite(now_x) || !std::isfinite(now_y) || !std::isfinite(tar_x) || !std::isfinite(tar_y)) {
+    //     RCLCPP_ERROR(this->get_logger(), "Invalid coordinates detected");
+    //     return false;
+    // }
 	rotate_xy(now_x, now_y, get_yaw()); // 将目标坐标旋转到世界坐标系 headingangle_compass
 	rotate_xy(tar_x, tar_y, get_yaw()); // 将目标坐标旋转到世界坐标系
 	RCLCPP_INFO(this->get_logger(), "catch_target_bucket: yaw: %f, default_yaw: %f, headingangle_compass: %f", get_yaw(), default_yaw, headingangle_compass);
@@ -332,7 +343,7 @@ bool OffboardControl::Doland()
 
 // 抵达桶上方
 // if(识别到桶=Doshot（到达正上方）){[if(到达正上方==true){...}}
-bool OffboardControl::Doshot()
+bool OffboardControl::Doshot(int shot_count)
 {
 	static enum class CatchState {
 		init,
@@ -341,41 +352,43 @@ bool OffboardControl::Doshot()
 	} catch_state_ = CatchState::init;
 	static double time_find_start = 0;			 		// 开始时间
 	static float _t_time = 0; 					        // 接近目标时单轮执行时间
-	static float tar_x = 0, tar_y = 0, tar_z = 1;		// 声明目标高度（m）未初始化
-	static float tar_yaw = 0; 							// 声明目标偏航角（rad）
 	static float accuracy = 0.1; 						// 声明精度
+	static float shot_duration = 2; 					// 稳定持续时间
+	static vector<float> tar_x;							// 声明目标x坐标（%）
+	static vector<float> tar_y;
+	static float tar_z = 1, tar_yaw = 0; 				// 声明目标偏航角（rad）
 	bool result = false;
-	PID::Defaults defaults;
+
 	// 读取PID参数
+	PID::Defaults defaults;
 	defaults = PID::readPIDParameters("can_config.yaml", "pid");
-	PosControl::Limits_t limits = _pose_control->readLimits("can_config.yaml", "limits");
-	_pose_control->set_limits(limits);
-	// 读取距离目标一定范围内退出的距离
-	YAML::Node config = Readyaml::readYAML("can_config.yaml");
-	accuracy = config["accuracy"].as<float>();
-	tar_x = config["tar_x"].as<float>();
-	tar_y = config["tar_y"].as<float>();
-	tar_z = config["tar_z"].as<float>();
-	tar_x = (is_equal(tar_x, 0.0f) ? _yolo->get_cap_frame_width() / 2 : tar_x);
-	tar_y = (is_equal(tar_y, 0.0f) ? _yolo->get_cap_frame_height() / 2 : tar_y);
+
 	while(true){
 		switch (catch_state_)
 		{
 		case CatchState::init:
 		{
-			RCLCPP_INFO(this->get_logger(), "catch_target_bucket: Init");
-			// 读取PID参数
+			RCLCPP_INFO(this->get_logger(), "Doshot: Init");
+			PID::Defaults defaults;
 			defaults = PID::readPIDParameters("can_config.yaml", "pid");
 			PosControl::Limits_t limits = _pose_control->readLimits("can_config.yaml", "limits");
 			_pose_control->set_limits(limits);
 			// 读取距离目标一定范围内退出的距离
 			YAML::Node config = Readyaml::readYAML("can_config.yaml");
 			accuracy = config["accuracy"].as<float>();
-			tar_x = config["tar_x"].as<float>();
-			tar_y = config["tar_y"].as<float>();
-			tar_z = config["tar_z"].as<float>();         // 设置目标高度（m）
-			tar_x = (is_equal(tar_x, 0.0f) ? _yolo->get_cap_frame_width() / 2 : tar_x);
-			tar_y = (is_equal(tar_y, 0.0f) ? _yolo->get_cap_frame_height() / 2 : tar_y);
+			// shot_duration = config["shot_duration"].as<float>();
+			tar_x.clear();
+			tar_y.clear();
+			tar_x.push_back(config["tar_x_l"].as<float>(0.0f));
+			tar_y.push_back(config["tar_y_l"].as<float>(0.0f));
+			tar_x.push_back(config["tar_x_r"].as<float>(0.0f));
+			tar_y.push_back(config["tar_y_r"].as<float>(0.0f));
+			for (size_t i = 0; i < tar_x.size(); i++)
+			{
+				tar_x[i] = (is_equal(tar_x[i], 0.0f) ? _yolo->get_cap_frame_width() / 2 : tar_x[i]);
+				tar_y[i] = (is_equal(tar_y[i], 0.0f) ? _yolo->get_cap_frame_height() / 2 : tar_y[i]);
+			}
+			tar_z = config["tar_z"].as<float>();
 			time_find_start = get_cur_time();
 			_t_time = time_find_start;
 			tar_yaw = default_yaw;			            // 设置目标偏航角（rad）
@@ -384,32 +397,28 @@ bool OffboardControl::Doshot()
 		}
 		case CatchState::fly_to_target:
 		{
-			// RCLCPP_INFO(this->get_logger(), "cur_shot_time %f, time_find_start %f", get_cur_time(), time_find_start);
 			double cur_shot_time = get_cur_time();
-			// if (cur_shot_time - time_find_start > 60) //60s
-			// {
-			// 	catch_state_ = CatchState::end;
-			// }
+			int shot_index = (shot_count - 1) % tar_x.size(); // 计算当前投弹桶的索引，shot_count从1开始计数， tar_x.size()!=0
+
 			// yolo未识别到桶
 			if (!_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE))
 			{
-				// RCLCPP_INFO(this->get_logger(), "catch_target_bucket: yolo未识别到桶，等待");
+				// RCLCPP_INFO(this->get_logger(), "Doshot: yolo未识别到桶，等待");
 				break;
 			}
-			RCLCPP_INFO(this->get_logger(), "catch_target_bucket: x: %f, y: %f", _yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), _yolo->get_y(YOLO::TARGET_TYPE::CIRCLE));
 			if (catch_target(
 					defaults,
 					YOLO::TARGET_TYPE::CIRCLE, // 目标类型
-					tar_x, tar_y, tar_z, tar_yaw, accuracy
+					tar_x[shot_index], tar_y[shot_index], tar_z, tar_yaw, accuracy
 				))
 			{
-				RCLCPP_INFO(this->get_logger(), "Approach, catch_target_bucket, time = %fs", cur_shot_time - _t_time);
+				RCLCPP_INFO(this->get_logger(), "Approach, Doshot, time = %fs", cur_shot_time - _t_time);
 				// if(error_x<0.05 && error_y<0.05){
-					// RCLCPP_INFO(this->get_logger(), "Arrive, catch_target_bucket");
+					// RCLCPP_INFO(this->get_logger(), "Arrive, Doshot");
 					// catch_state_=CatchState::end;
 				// } else 
-				if(cur_shot_time - _t_time > 1.5){ // 1.5秒
-					RCLCPP_INFO(this->get_logger(), "Approach, catch_target_bucket");
+				if(cur_shot_time - _t_time > shot_duration){ // 1.5秒
+					RCLCPP_INFO(this->get_logger(), "Approach, Doshot");
 					catch_state_=CatchState::end;
 					continue; // 直接跳到下一个状态;
 				}
@@ -422,7 +431,7 @@ bool OffboardControl::Doshot()
 		}
 		case CatchState::end:
 		{
-			RCLCPP_INFO(this->get_logger(), "catch_target_bucket: end");
+			RCLCPP_INFO(this->get_logger(), "Doshot: end");
 			// 重置所有静态变量
 			catch_state_ = CatchState::init;
 			_pose_control->reset_limits();

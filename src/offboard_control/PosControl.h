@@ -291,8 +291,8 @@ public:
 	}
 	bool auto_tune(Vector4f pos_now, Vector4f pos_target, uint32_t delayMsec, bool tune_x=true, bool tune_y=true, bool tune_z=true, bool tune_yaw=true);
 	
-#if PAL_STATISTIC_VISIBILITY
-	void publish_statistics();
+#ifdef PAL_STATISTIC_VISIBILITY
+	void publish_statistic(std::vector<pal_statistics_msgs::msg::Statistic> &statistics);
 #endif
 
 	PID::Defaults
@@ -350,8 +350,9 @@ private:
 	float default_accuracy = DEFAULT_ACCURACY;
 	float default_yaw_accuracy = DEFAULT_YAW_ACCURACY;
 	float default_yaw = DEFAULT_YAW;
-	float dt = 1;
+	float dt = 0.1;
 	float dt_pid_p_v = 1;
+
 	Vector3f input_pos_xyz(Vector3f now, Vector3f target, bool fuzzy = false);
 	Vector4f input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy = false);
 	Vector4f input_pos_xyz_yaw_without_vel(Vector4f now, Vector4f target);
