@@ -57,7 +57,7 @@ public:
 		_servo_controller{std::make_shared<ServoController>(ardupilot_namespace_copy_, this)},
 		_inav(std::make_shared<InertialNav>(ardupilot_namespace_copy_, this)),
 		_motors(std::make_shared<Motors>(ardupilot_namespace_copy_, this)),
-		_pose_control(std::make_shared<PosControl>(ardupilot_namespace_copy_, this)),
+		_pose_control(std::make_shared<PosControl>(ardupilot_namespace_copy_, this, _inav)),
 		_camera_gimbal(std::make_shared<CameraGimbal>(ardupilot_namespace_copy_, this)),
 		mypid(),
 		state_machine_(this)  // 显式初始化 state_machine_
@@ -84,8 +84,8 @@ public:
 		// 读取罗盘数据
 		read_configs("OffboardControl.yaml");
 		// RCLCPP_INFO_STREAM(geometry_msgs::msg::PoseStampedthis->get_logger(), "Waiting for " << px4_namespace << "vehicle_command service");
-		InertialNav::position.x() = DEFAULT_X_POS;
-		Motors::home_position.x() = DEFAULT_X_POS;
+		_inav->position.x() = DEFAULT_X_POS;
+		_motors->home_position.x() = DEFAULT_X_POS;
 		// rclcpp::Rate rate(1s);
 		
 		// 发布当前状态 
@@ -116,142 +116,179 @@ public:
 		timer_ = this->create_wall_timer(100ms, std::bind(&OffboardControl::timer_callback, this));
 		#ifdef PAL_STATISTIC_VISIBILITY
 		stats_publisher_ = this->create_publisher<pal_statistics_msgs::msg::Statistics>("/statistics", 10);
-		stats_timer_ = this->create_wall_timer(100ms,std::bind(&OffboardControl::publish_statistics, this));
+		stats_timer_ = this->create_wall_timer(50ms,std::bind(&OffboardControl::publish_statistics, this));
 		#endif
 	}
 
 	float get_x_pos(void)
 	{
 		// return local_frame.x();
-		return InertialNav::position.x();
+		return _inav->position.x();
 	}
 	float get_y_pos(void)
 	{
 		// return local_frame.y();
-		return InertialNav::position.y();
+		return _inav->position.y();
 	}
 	float get_z_pos(void)
 	{
 		// return local_frame.z();
-		return InertialNav::position.z();
+		return _inav->position.z();
 	}
 	Vector3f get_pos_3f(void)
 	{
 		// return local_frame;
-		return InertialNav::position;
+		return _inav->position;
 	}
 	Vector4f get_pos_4f(void)
 	{
-		return {InertialNav::position.x(), InertialNav::position.y(), InertialNav::position.z(), get_yaw()};
+		return {_inav->position.x(), _inav->position.y(), _inav->position.z(), get_yaw()};
 	}
 	float get_x_vel(void)
 	{
 		// return local_frame.x();
-		return InertialNav::velocity.x();
+		return _inav->velocity.x();
 	}
 	float get_y_vel(void)
 	{
 		// return local_frame.y();
-		return InertialNav::velocity.y();
+		return _inav->velocity.y();
 	}
 	float get_z_vel(void)
 	{
 		// return local_frame.z();
-		return InertialNav::velocity.z();
+		return _inav->velocity.z();
 	}
 	float get_yaw_vel(void)
 	{
 		// return local_frame.z();
-		return InertialNav::velocity.w();
+		return _inav->velocity.w();
 	}
 	Vector3f get_vel_3f(void)
 	{
 		// return local_frame;
-		return {InertialNav::velocity.x(), InertialNav::velocity.y(), InertialNav::velocity.z()};
+		return {_inav->velocity.x(), _inav->velocity.y(), _inav->velocity.z()};
 	}
 	Vector4f get_vel_4f(void)
 	{
-		return InertialNav::velocity;
+		return _inav->velocity;
 	}
 	// float get_n_yaw(){
 	// 	Eigen::Quaterniond quaternion;// 四元数
-	// 	quaternion.w() = InertialNav::orientation.y()aw;
-	// 	quaternion.x()() = InertialNav::orientation.x();
-	// 	quaternion.y()() = InertialNav::orientation.y();
-	// 	quaternion.z()() = InertialNav::orientation.z();
+	// 	quaternion.w() = _inav->orientation.y()aw;
+	// 	quaternion.x()() = _inav->orientation.x();
+	// 	quaternion.y()() = _inav->orientation.y();
+	// 	quaternion.z()() = _inav->orientation.z();
 	// 	return quaternion.toRotationMatrix().eulerAngles(2, 1, 0).reverse()(2);
 	// }
 	// #define YAW_TOLERANCE 0.1
+	// 角度标准化到 [-π, π]
+	float normalize_angle(float angle){
+		while (angle > M_PI) angle -= 2.0f * M_PI;
+		while (angle < -M_PI) angle += 2.0f * M_PI;
+		return angle;
+	};
 	float get_yaw(void)
 	{
-		float w = InertialNav::orientation.w();
-		float x = InertialNav::orientation.x();
-		float y = InertialNav::orientation.y();
-		float z = InertialNav::orientation.z();
-		// 计算欧拉角
-		float yaw = atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z));
-		// float pitch = asin(2.0 * (w * y - z * x));
-		// float roll = atan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x * x + y * y));
-		// return fmod(M_PI / 2 - yaw + 2 * M_PI, 2 * M_PI); // 确保偏航角在0到2π之间
-		return fmod(yaw + 2 * M_PI, 2 * M_PI); // 确保偏航角在0到2π之间
+		return _inav->get_yaw();
 	}
-	void get_rpy(float &roll, float &pitch, float &yaw) {
-		float w = InertialNav::orientation.w();
-		float x = InertialNav::orientation.x();
-		float y = InertialNav::orientation.y();
-		float z = InertialNav::orientation.z();
-		// 计算欧拉角
-		yaw = atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z));
-		pitch = asin(2.0 * (w * y - z * x));
-		roll = atan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x * x + y * y));
+	void get_euler(float &roll, float &pitch, float &yaw) {
+		// 获取四元数分量
+		float w = _inav->orientation.w();
+		float x = _inav->orientation.x();
+		float y = _inav->orientation.y();
+		float z = _inav->orientation.z();
+		
+		// // 验证四元数有效性
+		// float norm = sqrt(w*w + x*x + y*y + z*z);
+		// if (fabs(norm - 1.0f) > 0.1f) {
+		// 	RCLCPP_WARN(this->get_logger(), "四元数异常！norm=%.6f", norm);
+		// 	// 标准化四元数
+		// 	if (norm > 0.001f) {
+		// 		w /= norm; x /= norm; y /= norm; z /= norm;
+		// 	} else {
+		// 		w = 1.0f; x = y = z = 0.0f; // 默认无旋转
+		// 	}
+		// }
+		
+		// 使用稳定的欧拉角计算方法
+		// Roll (X轴旋转)
+		float sinr_cosp = 2.0f * (w * x + y * z);
+		float cosr_cosp = 1.0f - 2.0f * (x * x + y * y);
+		roll = atan2(sinr_cosp, cosr_cosp);
+		
+		// Pitch (Y轴旋转) - 处理万向锁
+		float sinp = 2.0f * (w * y - z * x);
+		if (fabs(sinp) >= 1.0f) {
+			pitch = copysign(M_PI / 2.0f, sinp);
+		} else {
+			pitch = asin(sinp);
+		}
+		
+		// Yaw (Z轴旋转)
+		float siny_cosp = 2.0f * (w * z + x * y);
+		float cosy_cosp = 1.0f - 2.0f * (y * y + z * z);
+		yaw = atan2(siny_cosp, cosy_cosp);
+		
+		roll = normalize_angle(roll);
+		pitch = normalize_angle(pitch);
+		yaw = normalize_angle(yaw);
+		
+		// 调试输出四元数信息
+		// static int debug_count = 0;
+		// if (++debug_count % 100 == 0) { // 每10秒输出一次
+		// 	RCLCPP_INFO(this->get_logger(), 
+		// 				"四元数调试: w=%.3f x=%.3f y=%.3f z=%.3f norm=%.6f", 
+		// 				w, x, y, z, norm);
+		// }
 	}
 	float get_yaw_eigen() {
     // 直接从四元数提取偏航角
-    return InertialNav::orientation.toRotationMatrix().eulerAngles(2, 1, 0)[0];
+    return _inav->orientation.toRotationMatrix().eulerAngles(2, 1, 0)[0];
 	}
 	Vector3f get_gps(void)
 	{
-		return InertialNav::gps;
+		return _inav->gps;
 	}
 	float get_lat(void)
 	{
-		return InertialNav::gps.x();
+		return _inav->gps.x();
 	}
 	float get_lon(void)
 	{
-		return InertialNav::gps.y();
+		return _inav->gps.y();
 	}
 	float get_alt(void)
 	{
-		return InertialNav::gps.z();
+		return _inav->gps.z();
 	}
 	float get_rangefinder_distance()
 	{
-		return InertialNav::rangefinder_height;
+		return _inav->rangefinder_height;
 	}
 	bool get_armed(void)
 	{
-		return Motors::armed;
+		return _motors->armed;
 	}
 	bool get_connected(void)
 	{
-		return Motors::connected;
+		return _motors->connected;
 	}
 	bool get_guided(void)
 	{
-		return Motors::guided;
+		return _motors->guided;
 	}
 	std::string get_mode(void)
 	{
-		return Motors::mode;
+		return _motors->mode;
 	}
 	std::string get_system_status(void)
 	{
-		return Motors::system_status;
+		return _motors->system_status;
 	}
 	float get_z_home_pos()
 	{
-		return Motors::home_position.z();
+		return _motors->home_position.z();
 	}
 	// 获取当前时间
 	double get_cur_time() {
@@ -327,12 +364,43 @@ public:
 		this->stats_publisher_->publish(msg);
 	}
 	void publish_statistic(std::vector<pal_statistics_msgs::msg::Statistic> &statistics){
-		auto output_stat = pal_statistics_msgs::msg::Statistic();
-		output_stat.name ="Offboard_State";
-		output_stat.value = static_cast<int>(state_machine_.get_current_state());
-		statistics.push_back(output_stat);	
+		auto current_state_stat = pal_statistics_msgs::msg::Statistic();
+		current_state_stat.name ="Offboard_State";
+		current_state_stat.value = static_cast<int>(state_machine_.get_current_state());
+		statistics.push_back(current_state_stat);	
+		
+		auto yolo_x_circle_stat = pal_statistics_msgs::msg::Statistic();
+		yolo_x_circle_stat.name ="yolo_x_circle";
+		yolo_x_circle_stat.value = _yolo->get_x(YOLO::TARGET_TYPE::CIRCLE);
+		statistics.push_back(yolo_x_circle_stat);	
+
+		auto yolo_y_circle_stat = pal_statistics_msgs::msg::Statistic();
+		yolo_y_circle_stat.name ="yolo_y_circle";
+		yolo_y_circle_stat.value = _yolo->get_y(YOLO::TARGET_TYPE::CIRCLE);
+		statistics.push_back(yolo_y_circle_stat);	
+
+		auto yolo_x_h_stat = pal_statistics_msgs::msg::Statistic();
+		yolo_x_h_stat.name ="yolo_x_h";
+		yolo_x_h_stat.value = _yolo->get_y(YOLO::TARGET_TYPE::H);
+		statistics.push_back(yolo_x_h_stat);	
+
+		auto yolo_y_h_stat = pal_statistics_msgs::msg::Statistic();
+		yolo_y_h_stat.name ="yolo_y_h";
+		yolo_y_h_stat.value = _yolo->get_y(YOLO::TARGET_TYPE::H);
+		statistics.push_back(yolo_y_h_stat);
+
+		auto tar_x_stat = pal_statistics_msgs::msg::Statistic();
+		tar_x_stat.name = "tar_x_stat";
+		tar_x_stat.value = target1.has_value() ? target1.value().x() : 0.0;
+		statistics.push_back(tar_x_stat);
+
+		auto tar_y_stat = pal_statistics_msgs::msg::Statistic();
+		tar_y_stat.name = "tar_y_stat";
+		tar_y_stat.value = target1.has_value() ? target1.value().y() : 0.0;
+		statistics.push_back(tar_y_stat);
 	}
 #endif
+	std::optional<Vector3d> target1;
 private:
 	bool sim_mode_ = false; // 是否为仿真模式
 	bool debug_mode_ = false; // 是否手动切换状态
@@ -448,7 +516,7 @@ private:
 		default_yaw = fmod(headingangle_compass + 360.0, 360.0); // 确保角度在0到360度之间
 		RCLCPP_INFO(this->get_logger(), "读取罗盘角度: %f，默认旋转角：%f", headingangle_compass, default_yaw);
 		headingangle_compass = headingangle_compass * M_PI / 180.0; // 弧度制
-		default_yaw = default_yaw * M_PI / 180.0; // 弧度制
+		default_yaw = M_PI/2 - default_yaw * M_PI / 180.0; // 弧度制
 		dx_shot = config["dx_shot"].as<float>();
 		dy_shot = config["dy_shot"].as<float>();
 		dx_see = config["dx_see"].as<float>(); 
@@ -486,6 +554,6 @@ private:
 	bool trajectory_circle(float a, float b, float height, float dt = 0.05, float yaw = 0);
 	bool trajectory_generator_world(double speed_factor, std::array<double, 3> q_goal);
 	bool trajectory_generator(double speed_factor, std::array<double, 3> q_goal);
-	bool trajectory_generator_world_points(double speed_factor, const std::vector<std::array<double, 3>> &data, int data_length, Vector3f max_speed_xy, Vector3f max_accel_xy);
+	bool trajectory_generator_world_points(double speed_factor, const std::vector<std::array<double, 3>> &data, int data_length, Vector3f max_speed_xy, Vector3f max_accel_xy, float tar_yaw = 0.0);
 };
 #endif // OFFBOARDCONTROL_H

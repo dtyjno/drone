@@ -81,14 +81,14 @@ public:
 	// State: GUIDED, Armed: 1, Connected: 1, Guided: 1, System Status:
 	// State: RTL, Armed: 1, Connected: 1, Guided: 1, System Status:  
 	// State: LAND, Armed: 1, Connected: 1, Guided: 1, System Status:
-	static bool armed;
-	static bool connected;
-	static bool guided;
-	static std::string mode;
-	static std::string system_status;
-	static Vector3f home_position;//{FLT_MIN,0,0};
-	static Vector3f home_position_global;
-	static Quaternionf home_quaternion;// 四元数
+	bool armed;
+	bool connected;
+	bool guided;
+	std::string mode;
+	std::string system_status;
+	Vector3f home_position;//{FLT_MIN,0,0};
+	Vector3f home_position_global;
+	Quaternionf home_quaternion;// 四元数
 private:
 	OffboardControl_Base* node;
 	std::string ardupilot_namespace;

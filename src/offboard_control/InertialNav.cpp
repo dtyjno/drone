@@ -3,21 +3,22 @@
 #include "InertialNav.h"
 #include "math.h"
 
-Vector3f InertialNav::position;
-Vector4f InertialNav::velocity;
-Vector3f InertialNav::gps;
-Quaternionf InertialNav::orientation;
-float InertialNav::altitude;
-Vector3f InertialNav::linear_acceleration;
-Vector3f InertialNav::angular_velocity;
-float InertialNav::rangefinder_height;
+// Vector3f InertialNav::position;
+// Vector4f InertialNav::velocity;
+// Vector3f InertialNav::gps;
+// Quaternionf InertialNav::orientation;
+// float InertialNav::altitude;
+// Vector3f InertialNav::linear_acceleration;
+// Vector3f InertialNav::angular_velocity;
+// float InertialNav::rangefinder_height;
+// float InertialNav::roll, InertialNav::pitch, InertialNav::yaw; // 欧拉角
 
 
 // 接收位置数据
 void InertialNav::status_callback(const nav_msgs::msg::Odometry::SharedPtr msg) 
 {
 	position = Vector3f(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z);
-	orientation = Quaternionf(msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z, msg->pose.pose.orientation.w);
+	orientation = Quaternionf(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z);
 	velocity = Vector4f(msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z, msg->twist.twist.angular.z);
 
 	// node->set_pose();
@@ -72,6 +73,7 @@ void InertialNav::altitude_callback(const mavros_msgs::msg::Altitude::SharedPtr 
 }
 // 接收IMU数据
 void InertialNav::imu_data_callback(const sensor_msgs::msg::Imu::SharedPtr msg){
+	// orientation = Quaternionf(msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z);
 	linear_acceleration = Vector3f(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z);
 	angular_velocity = Vector3f(msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z);
 	// node->set_imu_data();

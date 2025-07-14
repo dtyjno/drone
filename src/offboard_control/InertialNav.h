@@ -77,40 +77,56 @@ public:
 	// float get_amsl(){
 	// 	return altitude;
 	// }
-	static Vector3f position;
-	static Vector4f velocity;
-	static Quaternionf orientation;
-	static Vector3f gps;
-	static float altitude;
-	static Vector3f linear_acceleration;
-	static Vector3f angular_velocity;
-	static float rangefinder_height;
+	Vector3f position;
+	Vector4f velocity;
+	Quaternionf orientation;
+	Vector3f gps;
+	float altitude;
+	Vector3f linear_acceleration;
+	Vector3f angular_velocity;
+	float rangefinder_height;
+	float roll, pitch, yaw; // 欧拉角
 
 	// // pose_subscription_时间戳
-	// static float timestamp_seconds;
-	// static long timestamp_nanoseconds;
+	// float timestamp_seconds;
+	// long timestamp_nanoseconds;
 
-	static Vector3f get_position(){
+	Vector3f get_position(){
 		return position;
 	}
-	static bool get_position(Vector3f& position){
+	bool get_position(Vector3f& position){
 		position = InertialNav::position;
 		return position.isZero();
 	}
-	static Vector3f get_velocity(){
+	Vector3f get_velocity(){
 		return {velocity.x(),velocity.y(),velocity.z()};
 	}
-	static bool get_forward_speed(float & velocity){
+	bool get_forward_speed(float & velocity){
 		Vector2f _velocity = {InertialNav::velocity.x(),InertialNav::velocity.y()};
 		velocity = _velocity.norm(); // 长度
 		return _velocity.isZero();	
 	}
-	static Vector2f groundspeed_vector(){
+	Vector2f groundspeed_vector(){
 		return {velocity.x(),velocity.y()};
 	}
 	// float get_time(void){
 	// 	return (node->get_clock()->now().nanoseconds() / 1000)/1000000.0;
 	// }
+	float get_yaw(void)
+	{
+		// 计算欧拉角
+		float yaw = atan2(2.0 * (orientation.w() * orientation.z() 
+			+ orientation.x() * orientation.y()), 1.0 - 2.0 * 
+			(orientation.y() * orientation.y() + orientation.z() * orientation.z()));
+
+		// 角度标准化到 [-π, π]
+		// auto normalize_angle = [](float angle) -> float {
+		// 	while (angle > M_PI) angle -= 2.0f * M_PI;
+		// 	while (angle < -M_PI) angle += 2.0f * M_PI;
+		// 	return angle;
+		// };
+		return yaw;
+	}
 private:
 	OffboardControl_Base* node;
 	

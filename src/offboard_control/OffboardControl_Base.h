@@ -1,3 +1,4 @@
+#pragma once
 #ifndef OFFBOARD_CONTROL_BASE_H
 #define OFFBOARD_CONTROL_BASE_H
 

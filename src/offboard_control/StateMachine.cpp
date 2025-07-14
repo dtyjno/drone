@@ -47,7 +47,7 @@ void StateMachine::handle_state<FlyState::Goto_shotpoint>() {
 			transition_to(FlyState::Doshot);
 		} else {
 			owner_->send_local_setpoint_command(
-				x_shot, y_shot, owner_->shot_halt, owner_->default_yaw
+				x_shot, y_shot, owner_->shot_halt, 0
 			);
 			RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 3000, "前往投弹区中...%f", owner_->state_timer_.elapsed());
 		}
@@ -95,7 +95,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				if (!surround_shot_scout_points.empty()) {
 					if (owner_->trajectory_generator_world_points(
 						1, surround_shot_scout_points, surround_shot_scout_points.size(),
-						{1.5, 1.5, 1.5}, {0.2, 0.2, 0.2} // 设置最大速度和加速度
+						{1.5, 1.5, 1.5}, {0.15, 0.15, 0.15} // 设置最大速度和加速度
 					)) {
 					// if (owner_->waypoint_goto_next(
 					// 	owner_->tx_shot, owner_->ty_shot, owner_->shot_length, owner_->shot_width, 
@@ -139,12 +139,17 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				// RCLCPP_INFO(owner_->get_logger(), "Arrive, 投弹 等待5秒");
 				// 设置舵机位置
 				// owner_->_servo_controller->set_servo(10 + shot_counter, 1864);
+
 				if(shot_counter <= 1 && !timeout) // 投弹计数器小于1，再次执行投弹
 				{
+					if (owner_->get_cur_time() - doshot_halt_end_time < 0.5) { // 等待1秒
+						owner_->_pose_control->send_velocity_command_world(0, 0, 0, 0); // 停止飞行
+						RCLCPP_INFO(owner_->get_logger(), "等待0.5秒，准备投弹");
+					}
 					owner_->waypoint_goto_next(
 						owner_->tx_shot, owner_->ty_shot, owner_->shot_length, owner_->shot_width, 
 						owner_->shot_halt, owner_->surround_shot_points, owner_->shot_halt, &counter, "投弹区");
-					if (owner_->get_cur_time() - doshot_halt_end_time < 5.0 || counter == pre_counter) {   // 非阻塞等待5秒或抵达下一个航点
+					if (owner_->get_cur_time() - doshot_halt_end_time < 5.0 || counter == pre_counter) {   // 非阻塞等待至第5秒或抵达下一个航点
 						break;
 					}
 					RCLCPP_INFO(owner_->get_logger(), "投弹完成，继续投弹 shot_counter=%d", shot_counter);
@@ -184,7 +189,7 @@ void StateMachine::handle_state<FlyState::Goto_scoutpoint>() {
 			transition_to(FlyState::Surround_see);
 		} else {
 			owner_->send_local_setpoint_command(
-				x_see, y_see, owner_->see_halt, owner_->default_yaw
+				x_see, y_see, owner_->see_halt, 0
 			);
 			RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 3000, "前往侦查区中...%f", owner_->state_timer_.elapsed());
 		}
