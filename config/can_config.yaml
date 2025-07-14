@@ -2,8 +2,12 @@ pid:
   p: 0.40
   i: 0.25
   d: 0.10
+  p: 0.40
+  i: 0.25
+  d: 0.10
   ff: 0
   dff: 0
+  imax: 4
   imax: 4
 limits:
   speed_max_xy: 0.5

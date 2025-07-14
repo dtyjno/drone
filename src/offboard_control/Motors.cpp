@@ -5,14 +5,14 @@
 
 using namespace std::chrono_literals;
 
-bool Motors::armed;
-bool Motors::connected;
-bool Motors::guided;
-std::string Motors::mode;
-std::string Motors::system_status;
-Vector3f Motors::home_position = Vector3f::Zero();
-Vector3f Motors::home_position_global = Vector3f::Zero();
-Quaternionf Motors::home_quaternion = Quaternionf::Identity(); // 使用四元数类
+// bool Motors::armed;
+// bool Motors::connected;
+// bool Motors::guided;
+// std::string Motors::mode;
+// std::string Motors::system_status;
+// Vector3f Motors::home_position = Vector3f::Zero();
+// Vector3f Motors::home_position_global = Vector3f::Zero();
+// Quaternionf Motors::home_quaternion = Quaternionf::Identity(); // 使用四元数类
 
 // 起飞 local_frame_z: 当前高度(m) takeoff_altitude=5 起飞高度(m)
 // 1. 设置家的位置

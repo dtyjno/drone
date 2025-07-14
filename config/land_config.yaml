@@ -2,20 +2,23 @@ pid:
   p: 0.4
   i: 0.05
   d: 0.05
+  i: 0.05
+  d: 0.05
   ff: 0
   dff: 0
   imax: 10
 limits:
   speed_max_xy: 0.3
   speed_max_z: 0.2
+  speed_max_z: 0.2
   speed_max_yaw: 0.1
   accel_max_xy: 0.5
   accel_max_z: 0.1
-accuracy: 0.2 # 到达目标范围内的精度 单位：%
 tar_x: 640 # 目标x坐标，单位：px  0使用默认值
 tar_y: 400 # 目标y坐标，单位：px  0使用默认值
 tar_z: 1.0 # 目标z坐标，单位：米
 scout_x: 0.0 # 侦察点x坐标，单位：米
 scout_y: 0.0 # 侦察点y坐标，单位：米
 scout_halt: 3.0
+accuracy: 0.05 # 到达目标范围内的精度 单位：%
 

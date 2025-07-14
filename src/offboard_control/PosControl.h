@@ -11,6 +11,7 @@
 #include "math.h"
 #include "rclcpp/rclcpp.hpp"
 #include "OffboardControl_Base.h"
+#include "InertialNav.h"
 #include "PID.h"
 #include "TrajectoryGenerator.h"
 #include "Readyaml.h"
@@ -21,6 +22,7 @@
 #include <pal_statistics_msgs/msg/statistics.hpp>
 #include <pal_statistics_msgs/msg/statistic.hpp>
 #endif
+
 
 //
  # define POSCONTROL_Z_P                    0.6f    // vertical velocity controller P gain default
@@ -56,11 +58,11 @@
 //  # define POSCONTROL_ACC_Z_IMAX                 800     // vertical acceleration controller IMAX gain default
 //  # define POSCONTROL_ACC_Z_FILT_HZ              20.0f   // vertical acceleration controller input filter default
 //  # define POSCONTROL_ACC_Z_DT                   0.0025f // vertical acceleration controller dt default
-//  # define POSCONTROL_POS_XY_P                   1.6f//1.0f    // horizontal position controller P gain default
-//  # define POSCONTROL_VEL_XY_P                   0.80f//2.0f    // horizontal velocity controller P gain default
-//  # define POSCONTROL_VEL_XY_I                   0.40f//1.0f    // horizontal velocity controller I gain default
-//  # define POSCONTROL_VEL_XY_D                   0.40f//0.5f    // horizontal velocity controller D gain default
-//  # define POSCONTROL_VEL_XY_IMAX                1000.0f // horizontal velocity controller IMAX gain default
+ # define POSCONTROL_POS_XY_P                   1.6f//1.0f    // horizontal position controller P gain default
+ # define POSCONTROL_VEL_XY_P                   0.80f//2.0f    // horizontal velocity controller P gain default
+ # define POSCONTROL_VEL_XY_I                   0.40f//1.0f    // horizontal velocity controller I gain default
+ # define POSCONTROL_VEL_XY_D                   0.40f//0.5f    // horizontal velocity controller D gain default
+ # define POSCONTROL_VEL_XY_IMAX                1000.0f // horizontal velocity controller IMAX gain default
 //  # define POSCONTROL_VEL_XY_FILT_HZ             5.0f    // horizontal velocity controller input filter
 //  # define POSCONTROL_VEL_XY_FILT_D_HZ           5.0f    // horizontal velocity controller input filter for D
 
@@ -70,18 +72,6 @@
  # define POSCONTROL_VEL_Z_FILT_HZ              5.0f    // vertical velocity controller input filter
  # define POSCONTROL_VEL_Z_FILT_D_HZ            5.0f    // vertical velocity controller input filter for D
  # define POSCONTROL_ACC_Z_P                    0.05f    // vertical acceleration controller P gain default
- # define POSCONTROL_ACC_Z_I                    0.05f//1.0f    // vertical acceleration controller I gain default
- # define POSCONTROL_ACC_Z_D                    0.0f    // vertical acceleration controller D gain default
- # define POSCONTROL_ACC_Z_IMAX                 800     // vertical acceleration controller IMAX gain default
- # define POSCONTROL_ACC_Z_FILT_HZ              20.0f   // vertical acceleration controller input filter default
- # define POSCONTROL_ACC_Z_DT                   0.0025f // vertical acceleration controller dt default
- # define POSCONTROL_POS_XY_P                   1.0f//1.0f    // horizontal position controller P gain default
- # define POSCONTROL_VEL_XY_P                   1.35f//2.0f    // horizontal velocity controller P gain default
- # define POSCONTROL_VEL_XY_I                   1.15f//1.0f    // horizontal velocity controller I gain default
- # define POSCONTROL_VEL_XY_D                   0.85f//0.5f    // horizontal velocity controller D gain default
- # define POSCONTROL_VEL_XY_IMAX                1000.0f // horizontal velocity controller IMAX gain default
- # define POSCONTROL_VEL_XY_FILT_HZ             5.0f    // horizontal velocity controller input filter
- # define POSCONTROL_VEL_XY_FILT_D_HZ           5.0f    // horizontal velocity controller input filter for D
 
 
  # define POSCONTROL_ACC_XY_MAX                 1.2f    
@@ -91,7 +81,8 @@
  
 class PosControl{
 public:
-    PosControl(const std::string ardupilot_namespace,OffboardControl_Base* node) : node(node)
+    PosControl(const std::string ardupilot_namespace,OffboardControl_Base* node, std::shared_ptr<InertialNav> inav) :
+		node(node), _inav(inav)
 	{
 		this->ardupilot_namespace = ardupilot_namespace;
 		// RCLCPP_INFO(node->get_logger(), "Starting Pose Control example");
@@ -249,6 +240,7 @@ public:
     }
 
 	OffboardControl_Base* node;
+	std::shared_ptr<InertialNav> _inav;
 	void publish_setpoint_raw(Vector4f p, Vector4f v);
 	void publish_setpoint_raw_global(double latitude, double longitude, double altitude, double yaw);
 	void send_local_setpoint_command(double x, double y, double z,double yaw);
@@ -264,7 +256,7 @@ public:
 	bool trajectory_setpoint_world(Vector4f pos_now,Vector4f pos_target,double accuracy = DEFAULT_ACCURACY,double yaw_accuracy = DEFAULT_YAW_ACCURACY);
 	bool trajectory_setpoint_world(Vector4f pos_now,Vector4f pos_target,PID::Defaults defaults,double accuracy = DEFAULT_ACCURACY,double yaw_accuracy = DEFAULT_YAW_ACCURACY);
 	bool trajectory_circle(float a,float b,float height,float dt,float default_yaw = DEFAULT_YAW,float yaw = DEFAULT_YAW);
-	bool trajectory_generator_world(double speed_factor, std::array<double, 3> q_goal, Vector3f max_speed = {100,100,100}, Vector3f max_accel = {100,100,100});
+	bool trajectory_generator_world(double speed_factor, std::array<double, 3> q_goal, Vector3f max_speed = {100,100,100}, Vector3f max_accel = {100,100,100}, float tar_yaw = DEFAULT_YAW);
 	float get_speed_max();
 	float get_turn_rate_speed_max();
 	float get_accel_max();

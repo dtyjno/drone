@@ -30,19 +30,20 @@ void OffboardControl::timer_callback(void)
 	// }
 	// RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前飞机位置 x: %f y: %f z: %f yaw: %f",
 	// 	get_x_pos(), get_y_pos(), get_z_pos(), get_yaw());
-	// 桶1（1 -31） 2 (2 -31) 3 (-1 -33)
+
+	// 桶1（1 -31） 2 (2 -32) 3 (-1 -33)
 	CameraParams camera1;
 	camera1.position = Vector3d(get_x_pos(), get_y_pos(), get_z_pos());
 	
 	// 相机坐标系：相对于飞机机体坐标系，向前旋转90度后垂直向下
 	// 飞机偏航角 + 相机相对偏航角(90度) + 俯仰角(-90度向下)
 	float roll, pitch, yaw;
-	get_rpy(roll, pitch, yaw);	
+	get_euler(roll, pitch, yaw);	
 	// RCLCPP_INFO(this->get_logger(), "飞机当前滚转角: %f 弧度 (%f°), 俯仰角: %f 弧度 (%f°), 偏航角: %f 弧度 (%f°)",
-		// roll, roll * 180.0 / M_PI, pitch, pitch * 180.0 / M_PI, yaw, yaw * 180.0 / M_PI);
+	// 	roll, roll * 180.0 / M_PI, pitch, pitch * 180.0 / M_PI, yaw, yaw * 180.0 / M_PI);
 	
 	// 设置相机姿态：垂直向下看（pitch = -90°）
-	camera1.rotation = Vector3d(0, pitch - M_PI/2, 0);  // roll=0, pitch=-90°(垂直向下), yaw=0
+	camera1.rotation = Vector3d(roll, pitch - M_PI/2, yaw);  // roll=0, pitch=-90°(垂直向下), yaw=0
 	
 	// std::cout << "相机旋转角度: roll=" << camera1.rotation[0] << " pitch=" << camera1.rotation[1] << " (" << camera1.rotation[1] * 180.0/M_PI << "°) yaw=" << camera1.rotation[2] << std::endl;
 	
@@ -65,14 +66,14 @@ void OffboardControl::timer_callback(void)
 	// std::cout << "相机旋转角度: roll=" << camera1.rotation[0] << " pitch=" << camera1.rotation[1] << " yaw=" << camera1.rotation[2] << std::endl;
 	// std::cout << "相机内参: fx=" << camera1.fx << " fy=" << camera1.fy << " cx=" << camera1.cx << " cy=" << camera1.cy << std::endl;
 	
-	// if (_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE))
-	// {
-	// 	auto target1 = calculateWorldPosition(image_point1, camera1, 0.0, 0.3);
-	// 	if (target1) {
-	// 			std::cout << "Example 1 - Target position: " << std::endl;
-	// 			std::cout << *target1 << std::endl;
-	// 	}
-	// }
+	if (_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE))
+	{
+	 	this->target1 = calculateWorldPosition(image_point1, camera1, 0.0, 0.3);
+		// if (target1) {
+		// 		std::cout << "Example 1 - Target position: " << std::endl;
+		// 		std::cout << *target1 << std::endl;
+		// }
+	}
 
 	if (_motors->mode == "LAND" && state_machine_.get_current_state() != FlyState::end && !print_info_)
 	{
@@ -115,19 +116,19 @@ void OffboardControl::FlyState_init()
 		// float tx_see = dx_see;
 		// float ty_see = dy_see;
 		// 旋转到飞机坐标系当前机头朝向角度
-		float x_shot, y_shot, x_see, y_see;
-		rotate_global2stand(tx_shot, ty_shot, x_shot, y_shot);
-		rotate_global2stand(tx_see, ty_see, x_see, y_see);
-		RCLCPP_INFO(this->get_logger(), "默认方向下角度：%f", default_yaw);
-		RCLCPP_INFO(this->get_logger(), "起始点投弹区起点 x: %f   y: %f    angle: %f", x_shot, y_shot, default_yaw);
+	float x_shot, y_shot, x_see, y_see;
+	rotate_global2stand(tx_shot, ty_shot, x_shot, y_shot);
+	rotate_global2stand(tx_see, ty_see, x_see, y_see);
+	RCLCPP_INFO(this->get_logger(), "默认方向下角度：%f", default_yaw);
+	RCLCPP_INFO(this->get_logger(), "起始点投弹区起点 x: %f   y: %f    angle: %f", x_shot, y_shot, default_yaw);
     RCLCPP_INFO(this->get_logger(), "起始点侦查起点 x: %f   y: %f    angle: %f", x_see, y_see, default_yaw);
-		rotate_2start(tx_shot, ty_shot, x_shot, y_shot);
-		rotate_2start(tx_see, ty_see, x_see, y_see);
-		RCLCPP_INFO(this->get_logger(), "飞机坐标投弹区起点 x: %f   y: %f    angle: %f", x_shot, y_shot, default_yaw);
+	rotate_2start(tx_shot, ty_shot, x_shot, y_shot);
+	rotate_2start(tx_see, ty_see, x_see, y_see);
+	RCLCPP_INFO(this->get_logger(), "飞机坐标投弹区起点 x: %f   y: %f    angle: %f", x_shot, y_shot, default_yaw);
     RCLCPP_INFO(this->get_logger(), "飞机坐标侦查起点 x: %f   y: %f    angle: %f", x_see, y_see, default_yaw);
-		rotate_2local(tx_shot, ty_shot, x_shot, y_shot);
-		rotate_2local(tx_see, ty_see, x_see, y_see);
-		RCLCPP_INFO(this->get_logger(), "当前朝向投弹区起点 x: %f   y: %f    angle: %f", x_shot, y_shot, default_yaw);
+	rotate_2local(tx_shot, ty_shot, x_shot, y_shot);
+	rotate_2local(tx_see, ty_see, x_see, y_see);
+	RCLCPP_INFO(this->get_logger(), "当前朝向投弹区起点 x: %f   y: %f    angle: %f", x_shot, y_shot, default_yaw);
     RCLCPP_INFO(this->get_logger(), "当前朝向侦查起点 x: %f   y: %f    angle: %f", x_see, y_see, default_yaw);
 		
 	_camera_gimbal->set_gimbal(
@@ -149,12 +150,15 @@ void OffboardControl::FlyState_init()
   // RCLCPP_INFO(this->get_logger(), "结束初始化舵机");
 
 	// rclcpp::sleep_for(1s);
-	// if (is_equal(get_x_pos(), DEFAULT_X_POS))
-	// {
-	// 	// THROTTLE表示节流的意思，以下代码节流时间间隔为 500 毫秒（即 5 秒）．
-	// 	RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "没有获取到位置数据，等待GPS信号...");
-	// 	return;
-	// }
+
+
+	if (is_equal(get_x_pos(), DEFAULT_X_POS) || fabs(sqrt(_inav->orientation.w()*_inav->orientation.w() + _inav->orientation.x()*_inav->orientation.x() + _inav->orientation.y()*_inav->orientation.y() + _inav->orientation.z()*_inav->orientation.z()) - 1.0f) > 0.1f)
+	{
+		// THROTTLE表示节流的意思，以下代码节流时间间隔为 500 毫秒（即 5 秒）．
+		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "没有获取到位置数据，等待GPS信号...");
+		return;
+	}
+	
 	// 飞控的扩展卡尔曼滤波器（EKF3）已经为IMU（惯性测量单元）0和IMU1设置了起点。
 	start = {get_x_pos(), get_y_pos(), get_z_pos(), get_yaw()}; 
 	// 飞控日志 AP: Field Elevation Set: 0m 设定当前位置的地面高度为0米，这对于高度控制和避免地面碰撞非常重要。
@@ -186,7 +190,7 @@ bool OffboardControl::waypoint_goto_next(float x, float y, float length, float w
 		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "w_g_n,counter: %d, time=%lf", *count, state_timer_.elapsed());
 	x_temp = x + (length * way_points[count_n].x());
 	y_temp = y + (width * way_points[count_n].y());
-	if (state_timer_.elapsed() > time || (is_equal(get_x_pos(), x_temp, 0.3f) && is_equal(get_y_pos(), y_temp, 0.3f))) 
+	if (state_timer_.elapsed() > time || (is_equal(get_x_pos(), x_temp, 0.3f) && is_equal(get_y_pos(), y_temp, 0.5f))) 
 	{
 		if (static_cast<std::vector<Vector2f>::size_type>(count_n) >= way_points.size())
 		{
@@ -197,11 +201,11 @@ bool OffboardControl::waypoint_goto_next(float x, float y, float length, float w
 				return true;
 		} else {
 			count == nullptr? surround_cnt++ : (*count)++;
-			RCLCPP_INFO(this->get_logger(), "%s点位%d x: %lf   y: %lf, timeout=%s", description.c_str(), count_n, x_temp, y_temp, (is_equal(get_x_pos(), x_temp, 0.3f) && is_equal(get_y_pos(), y_temp, 0.3f))? "true" : "false");
+			RCLCPP_INFO(this->get_logger(), "%s点位%d x: %lf   y: %lf, timeout=%s", description.c_str(), count_n, x_temp, y_temp, (is_equal(get_x_pos(), x_temp, 0.5f) && is_equal(get_y_pos(), y_temp, 0.5f))? "true" : "false");
 
 			rotate_global2stand(x_temp, y_temp, x_temp, y_temp);
 
-			send_local_setpoint_command(x_temp, y_temp, halt, default_yaw);
+			send_local_setpoint_command(x_temp, y_temp, halt, 0.0); // 发送本地坐标系下的航点指令
 			// RCLCPP_INFO(this->get_logger(), "前往下一点");
 			state_timer_.reset();
 		}
@@ -228,117 +232,18 @@ bool OffboardControl::catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYP
     //     RCLCPP_ERROR(this->get_logger(), "Invalid coordinates detected");
     //     return false;
     // }
-	rotate_xy(now_x, now_y, get_yaw()); // 将目标坐标旋转到世界坐标系 headingangle_compass
-	rotate_xy(tar_x, tar_y, get_yaw()); // 将目标坐标旋转到世界坐标系
+	rotate_xy(now_x, now_y, get_yaw() + default_yaw); // 将目标坐标旋转到世界坐标系 headingangle_compass
+	rotate_xy(tar_x, tar_y, get_yaw() + default_yaw); // 将目标坐标旋转到世界坐标系
 	RCLCPP_INFO(this->get_logger(), "catch_target_bucket: yaw: %f, default_yaw: %f, headingangle_compass: %f", get_yaw(), default_yaw, headingangle_compass);
 	RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x, now_y, tar_x, tar_y);
 	RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x / _yolo->get_cap_frame_width(), now_y / _yolo->get_cap_frame_height(), (tar_x) / _yolo->get_cap_frame_width(), (tar_y) / _yolo->get_cap_frame_height());
 	RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_z: %f, tar_z: %f, now_yaw: %f, tar_yaw: %f", get_z_pos(), tar_z, get_yaw(), tar_yaw);
 	return _pose_control->trajectory_setpoint_world(
 		Vector4f{tar_x / _yolo->get_cap_frame_width(), tar_y / _yolo->get_cap_frame_height(), get_z_pos(), get_yaw()}, // 当前坐标
-		Vector4f{now_x / _yolo->get_cap_frame_width(), now_y / _yolo->get_cap_frame_height(), tar_z, tar_yaw}, // 目标坐标
+		Vector4f{now_x / _yolo->get_cap_frame_width(), now_y / _yolo->get_cap_frame_height(), tar_z, tar_yaw + default_yaw}, // 目标坐标
 		defaults,
 		accuracy
 	);	
-}
-
-bool OffboardControl::Doland()
-{
-	static Timer timer_ = Timer();
-	static enum class LandState {
-		init,
-		land_to_target,
-		end
-	} land_state_ = LandState::init;
-	static int surround_land = -3;
-	static PID::Defaults defaults;
-	static double tar_x = 0.0, tar_y = 0.0, tar_z = 1.0, scout_x = 0.0, scout_y = 0.0, scout_halt = 3.0, accuracy = 0.3;
-	double x_home, y_home;
-	bool result = false;
-	while(true){
-		switch (land_state_)
-		{
-		case LandState::init:{
-			// 读取PID参数
-			defaults = PID::readPIDParameters("land_config.yaml", "pid");
-			PosControl::Limits_t limits = _pose_control->readLimits("land_config.yaml", "limits");
-			_pose_control->set_limits(limits);
-			YAML::Node config = Readyaml::readYAML("land_config.yaml");
-			tar_x = config["tar_x"].as<double>();
-			tar_y = config["tar_y"].as<double>();
-			tar_z = config["tar_z"].as<double>();
-			scout_halt = config["scout_halt"].as<double>();
-			scout_x = config["scout_x"].as<double>();
-			scout_y = config["scout_y"].as<double>();
-			accuracy = config["accuracy"].as<double>();
-			tar_x = (is_equal(tar_x, 0.0) ? _yolo->get_cap_frame_width() / 2 : tar_x);
-			tar_y = (is_equal(tar_y, 0.0) ? _yolo->get_cap_frame_height() / 2 : tar_y);
-			RCLCPP_INFO(this->get_logger(), "Doland");
-			rotate_global2stand(scout_x, scout_y, x_home, y_home);
-			RCLCPP_INFO(this->get_logger(), "返回降落准备点 x: %lf   y: %lf    angle: %lf", x_home, y_home, headingangle_compass);
-			send_local_setpoint_command(x_home, y_home, scout_halt, headingangle_compass);
-			// rclcpp::sleep_for(std::chrono::seconds(6));
-			rotate_global2stand(scout_x, scout_y + 0.3, x_home, y_home);
-			RCLCPP_INFO(this->get_logger(), "返回降落点 x: %lf   y: %lf    angle: %lf", x_home, y_home, headingangle_compass);
-			send_local_setpoint_command(x_home, y_home, scout_halt, headingangle_compass);
-			timer_.reset();
-			timer_.set_timepoint();
-			land_state_ = LandState::land_to_target;
-			continue; // 直接跳到下一个状态;
-		}
-		case LandState::land_to_target:{
-			if (timer_.elapsed() > 19 || surround_land > 3)
-			{
-				land_state_ = LandState::end;
-				continue; // 直接跳到下一个状态;
-			}
-			if (!_yolo->is_get_target(YOLO::TARGET_TYPE::H)) // yolo未识别到YOLO::TARGET_TYPE::H   (YOLO::TARGET_TYPE::CIRCLE)
-			{
-				if (timer_.get_timepoint_elapsed() > 1.5)
-				{
-						RCLCPP_INFO(this->get_logger(), "surround_land = %d", surround_land);
-						rotate_global2stand(scout_x + static_cast<double>(surround_land) * 1.0, scout_y, x_home, y_home);
-						RCLCPP_INFO(this->get_logger(), "land点 x: %lf   y: %lf    angle: %lf", x_home, y_home, headingangle_compass);
-						send_local_setpoint_command(x_home, y_home, scout_halt, headingangle_compass);
-						timer_.set_timepoint();
-						surround_land++;
-				}
-			}
-			else
-			{
-				RCLCPP_INFO(this->get_logger(), "看见H了，执行PID_rtl");
-				if (catch_target(
-						defaults,
-						YOLO::TARGET_TYPE::H, // 目标类型
-						tar_x, tar_y, tar_z, default_yaw, accuracy
-					))
-				{
-					RCLCPP_INFO(this->get_logger(), "到达降落点");
-					land_state_ = LandState::end;
-					continue; // 直接跳到下一个状态;
-				}
-				else
-				{
-					RCLCPP_INFO(this->get_logger(), "未到达降落点");
-				}
-			}
-			break;
-		}
-		case LandState::end:{
-			send_velocity_command_with_time(0, 0, -0.1, 0, 1);
-			RCLCPP_INFO(this->get_logger(), "降落");
-			land_state_ = LandState::init;
-			surround_land = 0;
-			timer_.set_timepoint();
-			result = true;
-			break;
-		}
-		default:
-			break;
-		}
-		break;
-	}
-	return result;
 }
 
 // 抵达桶上方
@@ -391,7 +296,7 @@ bool OffboardControl::Doshot(int shot_count)
 			tar_z = config["tar_z"].as<float>();
 			time_find_start = get_cur_time();
 			_t_time = time_find_start;
-			tar_yaw = default_yaw;			            // 设置目标偏航角（rad）
+			tar_yaw = 0;			            // 设置目标偏航角（rad）
 			catch_state_ = CatchState::fly_to_target;
 			continue; // 继续执行下一个case;
 		}
@@ -447,6 +352,104 @@ bool OffboardControl::Doshot(int shot_count)
 	return result;
 }
 
+bool OffboardControl::Doland()
+{
+	static Timer timer_ = Timer();
+	static enum class LandState {
+		init,
+		land_to_target,
+		end
+	} land_state_ = LandState::init;
+	static int surround_land = -3;
+	static PID::Defaults defaults;
+	static double tar_x = 0.0, tar_y = 0.0, tar_z = 1.0, scout_x = 0.0, scout_y = 0.0, scout_halt = 3.0, accuracy = 0.3;
+	double x_home, y_home;
+	bool result = false;
+	while(true){
+		switch (land_state_)
+		{
+		case LandState::init:{
+			// 读取PID参数
+			defaults = PID::readPIDParameters("land_config.yaml", "pid");
+			PosControl::Limits_t limits = _pose_control->readLimits("land_config.yaml", "limits");
+			_pose_control->set_limits(limits);
+			YAML::Node config = Readyaml::readYAML("land_config.yaml");
+			tar_x = config["tar_x"].as<double>();
+			tar_y = config["tar_y"].as<double>();
+			tar_z = config["tar_z"].as<double>();
+			scout_halt = config["scout_halt"].as<double>();
+			scout_x = config["scout_x"].as<double>();
+			scout_y = config["scout_y"].as<double>();
+			accuracy = config["accuracy"].as<double>();
+			tar_x = (is_equal(tar_x, 0.0) ? _yolo->get_cap_frame_width() / 2 : tar_x);
+			tar_y = (is_equal(tar_y, 0.0) ? _yolo->get_cap_frame_height() / 2 : tar_y);
+			RCLCPP_INFO(this->get_logger(), "Doland");
+			rotate_global2stand(scout_x, scout_y, x_home, y_home);
+			RCLCPP_INFO(this->get_logger(), "返回降落准备点 x: %lf   y: %lf    angle: %lf", x_home, y_home, headingangle_compass);
+			send_local_setpoint_command(x_home, y_home, scout_halt, 0);
+			// rclcpp::sleep_for(std::chrono::seconds(6));
+			rotate_global2stand(scout_x, scout_y + 0.3, x_home, y_home);
+			RCLCPP_INFO(this->get_logger(), "返回降落点 x: %lf   y: %lf    angle: %lf", x_home, y_home, 0.0);
+			send_local_setpoint_command(x_home, y_home, scout_halt, 0);
+			timer_.reset();
+			timer_.set_timepoint();
+			land_state_ = LandState::land_to_target;
+			continue; // 直接跳到下一个状态;
+		}
+		case LandState::land_to_target:{
+			if (timer_.elapsed() > 19 || surround_land > 3 || get_z_pos() < 0.5) // 降落时间超过19秒，或者降落高度小于0.5米
+			{
+				land_state_ = LandState::end;
+				continue; // 直接跳到下一个状态;
+			}
+			if (!_yolo->is_get_target(YOLO::TARGET_TYPE::H)) // yolo未识别到YOLO::TARGET_TYPE::H   (YOLO::TARGET_TYPE::CIRCLE)
+			{
+				if (timer_.get_timepoint_elapsed() > 1.5)
+				{
+						RCLCPP_INFO(this->get_logger(), "surround_land = %d", surround_land);
+						rotate_global2stand(scout_x + static_cast<double>(surround_land) * 1.0, scout_y, x_home, y_home);
+						RCLCPP_INFO(this->get_logger(), "land点 x: %lf   y: %lf    angle: %lf", x_home, y_home, 0.0);
+						send_local_setpoint_command(x_home, y_home, scout_halt, 0);
+						timer_.set_timepoint();
+						surround_land++;
+				}
+			}
+			else
+			{
+				RCLCPP_INFO(this->get_logger(), "看见H了，执行PID_rtl");
+				if (catch_target(
+						defaults,
+						YOLO::TARGET_TYPE::H, // 目标类型
+						tar_x, tar_y, tar_z, 0, accuracy
+					))
+				{
+					RCLCPP_INFO(this->get_logger(), "到达降落点");
+					land_state_ = LandState::end;
+					continue; // 直接跳到下一个状态;
+				}
+				else
+				{
+					RCLCPP_INFO(this->get_logger(), "未到达降落点");
+				}
+			}
+			break;
+		}
+		case LandState::end:{
+			send_velocity_command_with_time(0, 0, -0.1, 0, 1);
+			RCLCPP_INFO(this->get_logger(), "降落");
+			land_state_ = LandState::init;
+			surround_land = 0;
+			timer_.set_timepoint();
+			result = true;
+			break;
+		}
+		default:
+			break;
+		}
+		break;
+	}
+	return result;
+}
 
 // OffboardControl.h #define TRAIN_PID
 struct PIDDataPoint
@@ -504,7 +507,7 @@ bool OffboardControl::autotune(bool &result, enum YOLO::TARGET_TYPE target)
 		time_find_start = get_cur_time();
 		last_time = get_cur_time();
 		tar_z = 1.5;								 // 设置目标高度（m）
-		tar_yaw = get_yaw();			 // 设置目标偏航角（rad）
+		tar_yaw = 0;			 // 设置目标偏航角（rad）
 		dt = 0.25;								 // 设置执行周期（s）
 		_pose_control->set_dt(dt); // 设置执行周期（用于PID）
 
@@ -602,8 +605,9 @@ bool OffboardControl::autotune(bool &result, enum YOLO::TARGET_TYPE target)
 }
 
 void OffboardControl::send_local_setpoint_command(float x, float y, float z, float yaw){
-	yaw = fmod(M_PI / 2 - yaw + 2 * M_PI, 2 * M_PI);
-	_pose_control->send_local_setpoint_command(x, y, z, yaw);
+	// yaw = fmod(M_PI / 2 - yaw + 2 * M_PI, 2 * M_PI);
+	// default_yaw M_PI/2 - headingangle_compass 
+	_pose_control->send_local_setpoint_command(x, y, z, default_yaw - yaw);
 }
 
 bool OffboardControl::local_setpoint_command(float x, float y, float z, float yaw, double accuracy){
@@ -661,7 +665,7 @@ bool OffboardControl::trajectory_circle(float a, float b, float height, float dt
 	return _pose_control->trajectory_circle(
 			a,
 			b,
-			(height - InertialNav::position.z()),
+			(height - get_z_pos()),
 			dt,
 			yaw + default_yaw,
 			default_yaw);
@@ -679,7 +683,7 @@ bool OffboardControl::trajectory_generator_world(double speed_factor, std::array
 // 		{q_goal[0]+get_x_pos(), q_goal[1]+get_y_pos(),q_goal[2]+get_z_pos()}
 // 	);
 // }
-bool OffboardControl::trajectory_generator_world_points(double speed_factor, const std::vector<std::array<double, 3>> &data, int data_length, Vector3f max_speed_xy, Vector3f max_accel_xy)
+bool OffboardControl::trajectory_generator_world_points(double speed_factor, const std::vector<std::array<double, 3>> &data, int data_length, Vector3f max_speed_xy, Vector3f max_accel_xy, float tar_yaw)
 {
 	static bool first = true;
 	static uint16_t data_length_;
@@ -716,7 +720,8 @@ bool OffboardControl::trajectory_generator_world_points(double speed_factor, con
 				speed_factor,
 				{global_x, global_y, q_goal[2]},
 				max_speed_xy,
-				max_accel_xy
+				max_accel_xy,
+				static_cast<float>(tar_yaw + default_yaw)
 			)
 		)
 	{
