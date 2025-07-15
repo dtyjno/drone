@@ -306,6 +306,13 @@ public:
 	}
 
 	template <typename T>
+	void rotate_stand2global(T in_x, T in_y, T &out_x, T &out_y) {
+		rotate_angle(in_x, in_y, -headingangle_compass);
+		out_x = in_x;
+		out_y = in_y;
+	}
+
+	template <typename T>
 	void rotate_2start(T in_x, T in_y, T &out_x, T &out_y) {
 		rotate_angle(in_x, in_y, -start.w());
 		out_x = in_x;
@@ -463,6 +470,8 @@ private:
 	float ty_shot;
 	float tx_see;
 	float ty_see;
+	float global2stand_x;
+	float global2stand_y;
 
 	// 定义航点
 	vector<Vector2f> surround_shot_points{
@@ -536,10 +545,10 @@ private:
 		RCLCPP_INFO(this->get_logger(), "读取投弹区起点坐标: dx_shot: %f, dy_shot: %f shot_halt: %f", dx_shot, dy_shot, shot_halt);
 		RCLCPP_INFO(this->get_logger(), "读取侦查区起点坐标: dx_see: %f, dy_see: %f see_halt: %f", dx_see, dy_see, see_halt);
 		
-		tx_shot = dx_shot;
-		ty_shot = dy_shot - 0.5;
-		tx_see = dx_see;
-		ty_see = dy_see;
+		// tx_shot = dx_shot;
+		// ty_shot = dy_shot;
+		// tx_see = dx_see;
+		// ty_see = dy_see;
 	}
 	// control.cpp
 	Timer state_timer_;         // 通用计时器1

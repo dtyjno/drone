@@ -4,7 +4,7 @@
 #define DEFAULT_VELOCITY FLT_MAX
 #include "Readyaml.h"
 
-// #define pid_debug_print
+#define pid_debug_print
 // #define fuzzy_pid_dead_zone
 
 class PID

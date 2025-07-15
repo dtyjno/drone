@@ -11,8 +11,8 @@ limits:
   speed_max_yaw: 0.05
   accel_max_xy: 0.5
   accel_max_z: 0.1
-accuracy: 0.03     # 到达目标范围内的精度 单位：%
-shot_duration: 2   # 到达范围内稳定时间后投弹 的持续时间 单位：s
+accuracy: 0.03     # 到达目标范围内的精度 单位：1
+shot_duration: 1.5   # 到达范围内稳定时间后投弹 的持续时间 单位：s
 tar_x_l: 0.0     # 左侧舵机 目标x坐标，单位：px  0使用默认值
 tar_y_l: 0.0     # 左侧舵机 目标y坐标，单位：px  0使用默认值
 tar_x_r: 50.0     # 右侧舵机 目标x坐标，单位：px  0使用默认值
