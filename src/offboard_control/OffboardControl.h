@@ -399,6 +399,15 @@ public:
 		tar_y_stat.name = "tar_y_stat";
 		tar_y_stat.value = target1.has_value() ? target1.value().y() : 0.0;
 		statistics.push_back(tar_y_stat);
+
+		for(size_t i = 0; i < 3; ++i) {
+			auto point_stat = pal_statistics_msgs::msg::Statistic();
+			point_stat.name = "surround_shot_point_" + std::to_string(i);
+			point_stat.value = surround_shot_points[i].x();
+			statistics.push_back(point_stat);
+			point_stat.value = surround_shot_points[i].y();
+			statistics.push_back(point_stat);
+		}
 	}
 #endif
 	std::optional<Vector3d> target1;

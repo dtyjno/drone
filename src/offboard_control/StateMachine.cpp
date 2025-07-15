@@ -103,9 +103,10 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					// 	owner_->tx_shot, owner_->ty_shot, owner_->shot_length, owner_->shot_width, 
 					// 	owner_->shot_halt, surround_shot_scout_points, 4.0, &counter, "侦查投弹区"))
 					// {
-					    vector<Vector3d>cal_center = Clustering(Target_Samples);
-					    owner_->tx_shot = cal_center[shot_counter - 1].x();
-						owner_->ty_shot = cal_center[shot_counter - 1].y();
+					    //vector<Vector3d>cal_center = Clustering(Target_Samples);
+					    //owner_->tx_shot = cal_center[shot_counter - 1].x();
+						//owner_->ty_shot = cal_center[shot_counter - 1].y();
+						
 						owner_->doshot_state_ = owner_->DoshotState::doshot_halt; // 设置投弹状态为侦查完成
 						owner_->state_timer_.reset();
 					}
