@@ -5,94 +5,81 @@
 #include "clustering.h"
 
 using namespace std;
-
-class Circle
-{
-public:
-    double m_x,m_y;
-    int m_circle_id;
-}
-
-struct Points
-{
-    double x,y;
-    int cluster_id;
-}
+vector<Points> Target_Samples;// 全局变量，存储目标样本点
 
 // 计算两个点的欧几里得距离
-double distance(const Point& a, const Point& b) 
+double distance(Vector3d a, Vector3d b) 
 {
-    return sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2));
+    return sqrt(pow(a.x() - b.x(), 2) + pow(a.y() - b.y(), 2));
 }
 
 // 更新中心点
-Vector3d calculate_center(vector<std::optional<Vector3d>> samples) 
+vector<Vector3d> calculate_center(vector<Points> samples) 
 {
-    double sum_x = 0, sum_y = 0;
-    int count = 0;
-    for (const auto& p : points) 
+    vector<Vector3d> centers(3); // 提前声明
+    for (int j = 0; j < 3; j++) 
     {
-        if (p.cluster_id == cluster_id) 
+        double sum_x = 0, sum_y = 0;
+        int count = 0;
+        for(size_t i = 0; i < samples.size(); i++)
         {
-            sum_x += p.x;
-            sum_y += p.y;
-            ++count;
+            if (samples[i].cluster_id == j) 
+            {
+                sum_x += samples[i].point.x();
+                sum_y += samples[i].point.y();
+                count++;
+            }
+        }
+        if(count > 0) {
+            centers[j].x() = sum_x / count;
+            centers[j].y() = sum_y / count;
+        } else {
+            centers[j].setZero(); // 防止除0
         }
     }
-    return { sum_x / count, sum_y / count, cluster_id };
+    return centers;
 }
 
 //从原样本空间中选取三个点作为起始点
-vector<Vector3d> Initialize_Clustering(vector<std::optional<Vector3d>> samples)
+vector<Vector3d> Initialize_Clustering(vector<Points> samples)
 {
-    int i;
-    vector<Vector3d> Center(3);
-    for(i  = 0;i < vector.size(); i++)
+    vector<Points> Center(3);
+    Center[0] = samples[0];
+    Center[2] = samples[samples.size() - 1];
+    Center[1].point = (Center[0].point + Center[2].point) / 2;
+    for(size_t i = 0; i < samples.size(); i++)
     {
-        Center[0] = Center[0].x() > samples[i].x()?samples[i]:Center[0];
-        Center[2] = Center[2].x() < samples[i].x()?samples[i]:Center[2];
-        Center[1] = (Center[0] + Center[2]) / 2;
+        Center[0].point = Center[0].point.x() > samples[i].point.x()?samples[i].point:Center[0].point;
+        Center[2].point = Center[2].point.x() < samples[i].point.x()?samples[i].point:Center[2].point;
+        Center[1].point = (Center[0].point + Center[2].point) / 2;
     }
-
-    
-    return Center;
+    vector<Vector3d> I_Center(3);
+    I_Center[0] = Center[0].point;
+    I_Center[1] = Center[1].point;
+    I_Center[2] = Center[2].point;
+    return I_Center;
 }
 
 //聚类算法
-Vector3d Clustering(vector<std::optional<Vector3d>> samples)
+vector<Vector3d> Clustering(vector<Points> samples)
 {
-    First_center = Initialize_Clustering(samples);
-    for(int j = 0;j < samples.size();J ++)
-    {
-        if(samples[j] == nullopt)
-        {
-            samples[j] = 0;
-        }
-    }
-    Vector3d clustering_result;
-
+    vector<Vector3d> Clustering_Result = Initialize_Clustering(samples);
     // 第一步：分配每个点到最近的簇
-    for (auto& p : points) 
+    for (size_t i = 0; i < samples.size(); i++ )
     {
-        double min_dist = 1e9;
-        int best_cluster = -1;
-        for (const auto& c : centers) 
+        double min_dist = distance(samples[i].point, Clustering_Result[0]);
+        samples[i].cluster_id = 0;
+        for(size_t j = 1; j < Clustering_Result.size(); j++)
         {
-            double d = distance(p, c);
-            if (d < min_dist) 
+            double dist = distance(samples[i].point, Clustering_Result[j]);
+            if (min_dist > dist)
             {
-                min_dist = d;
-                best_cluster = c.cluster_id;
+                min_dist = dist;
+                samples[i].cluster_id = j;
             }
         }
-        p.cluster_id = best_cluster;
     }
-
     // 第二步：更新中心点
-    for (int i = 0; i < centers.size(); ++i) 
-    {
-        centers[i] = calculate_center(points, i);
-    }
-
-    return clustering_result;
+    Clustering_Result = calculate_center(samples);
+    return Clustering_Result;
 }

@@ -22,6 +22,8 @@
 // #include "math.h"
 #include "memory"
 #include "Readyaml.h"
+#include <yaml-cpp/yaml.h>
+#include<fstream>
 // #include <Eigen/Eigen>
 #include "math.h"
 // #include "Vector3.h"
@@ -44,7 +46,6 @@ using namespace std::chrono_literals;
 #include "CameraGimbal.h"
 
 #include "utils.h" // 包含自定义的工具函数
-
 
 class OffboardControl : public OffboardControl_Base
 {

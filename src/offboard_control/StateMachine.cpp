@@ -1,6 +1,8 @@
 #include "StateMachine.h"
 #include "OffboardControl.h"
-
+#include "clustering.h"
+extern std::vector<Points> Target_Samples;
+extern vector<Vector3d> cal_center;
 // 具体状态处理实现
 template<>
 void StateMachine::handle_state<FlyState::init>() {
@@ -101,6 +103,9 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					// 	owner_->tx_shot, owner_->ty_shot, owner_->shot_length, owner_->shot_width, 
 					// 	owner_->shot_halt, surround_shot_scout_points, 4.0, &counter, "侦查投弹区"))
 					// {
+					    vector<Vector3d>cal_center = Clustering(Target_Samples);
+					    owner_->tx_shot = cal_center[shot_counter - 1].x();
+						owner_->ty_shot = cal_center[shot_counter - 1].y();
 						owner_->doshot_state_ = owner_->DoshotState::doshot_halt; // 设置投弹状态为侦查完成
 						owner_->state_timer_.reset();
 					}
@@ -117,6 +122,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					owner_->_yolo->get_servo_flag());
 				if (owner_->Doshot(shot_counter)) { // 如果到达投弹点
 					// RCLCPP_INFO(owner_->get_logger(), "寻找完毕，投弹!!投弹!!");
+					RCLCPP_INFO(owner_->get_logger(), "已经锁定%d号桶，坐标为（%lf,%lf）", shot_counter - 1, owner_->tx_shot, owner_->ty_shot);
 					RCLCPP_INFO(owner_->get_logger(), "投弹!!投弹!!，总用时：%f", doshot_start.elapsed());
 					RCLCPP_INFO(owner_->get_logger(), "Arrive, 投弹 等待5秒");
 					// 设置舵机位置
@@ -137,9 +143,8 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 			case owner_->DoshotState::doshot_end: // 侦查投弹区
 				// RCLCPP_INFO(owner_->get_logger(), "投弹!!投弹!!，总用时：%f", doshot_start.elapsed());
 				// RCLCPP_INFO(owner_->get_logger(), "Arrive, 投弹 等待5秒");
-				// 设置舵机位置
-				// owner_->_servo_controller->set_servo(10 + shot_counter, 1864);
-
+				// 设置舵机位置+
+				owner_->_servo_controller->set_servo(10 + shot_counter, 1200);
 				if(shot_counter <= 1 && !timeout) // 投弹计数器小于1，再次执行投弹
 				{
 					if (owner_->get_cur_time() - doshot_halt_end_time < 0.5) { // 等待1秒
