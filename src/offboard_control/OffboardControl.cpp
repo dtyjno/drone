@@ -1,6 +1,6 @@
 #include "OffboardControl.h"
 #include "math.h"
-
+#include "clustering.h"
 /*
     北360|0偏航角            
 		  y+                       |y+
@@ -56,8 +56,8 @@ void OffboardControl::timer_callback(void)
 	camera1.height = 480;
 	
  	Vector2d image_point1(
-		_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE),
-		_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE)
+		_yolo->get_raw_x(YOLO::TARGET_TYPE::CIRCLE),
+		_yolo->get_raw_y(YOLO::TARGET_TYPE::CIRCLE)
 	);
 	
 	// 调试输出：像素坐标和相机位置
@@ -68,12 +68,41 @@ void OffboardControl::timer_callback(void)
 	
 	if (_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE))
 	{
-	 	this->target1 = calculateWorldPosition(image_point1, camera1, 0.0, 0.3);
-		// if (target1) {
-		// 		std::cout << "Example 1 - Target position: " << std::endl;
-		// 		std::cout << *target1 << std::endl;
-		// }
+		this->target1 = calculateWorldPosition(image_point1, camera1, 0.0, 0.3);
+		if (target1) {
+			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "Example 1 - Target position: %f, %f, %f",
+				target1->x(), target1->y(), target1->z());
+		}
 	}
+	if( doshot_state_ == DoshotState::doshot_scout)
+	{
+		Points Target;
+		if(target1)
+		{
+			Target.point = *target1;
+			Target.cluster_id = 0;
+            Target_Samples.push_back(Target);
+		    vector<Vector3d>cal_center = Clustering(Target_Samples);
+			uint8_t shot_count = 0;
+			for(size_t i = 0; i < cal_center.size(); ++i)
+			{
+				double tx, ty;
+				rotate_stand2global(cal_center[i].x(), cal_center[i].y(), tx, ty);
+				if (tx < dx_shot - 5 || tx > dx_shot + 5 ||
+					ty < dy_shot || ty > dy_shot + 5) {
+					RCLCPP_WARN(this->get_logger(), "侦查点坐标异常，跳过: %zu, x: %f, y: %f", i, cal_center[i].x(), cal_center[i].y());
+					continue; // 跳过无效坐标
+				}
+				RCLCPP_INFO(this->get_logger(), "侦查点坐标 %zu: x: %f, y: %f ,n_x: %f, n_y: %f", 
+					i, cal_center[i].x(), cal_center[i].y(), surround_shot_points[shot_count].x(), surround_shot_points[shot_count].y());
+				surround_shot_points[shot_count++] = Vector2f((tx - dx_shot) / 10, (ty - dy_shot)/ 5);
+				// for (size_t j = 0; j < surround_shot_points.size(); ++j)
+				// {
+				// 	RCLCPP_INFO(this->get_logger(), "侦查点坐标 %zu: x: %f, y: %f ", j, surround_shot_points[j].x(), surround_shot_points[j].y());
+				// }
+			}
+		}
+    }
 
 	if (_motors->mode == "LAND" && state_machine_.get_current_state() != FlyState::end && !print_info_)
 	{
@@ -117,11 +146,11 @@ void OffboardControl::FlyState_init()
 		// float ty_see = dy_see;
 		// 旋转到飞机坐标系当前机头朝向角度
 	float x_shot, y_shot, x_see, y_see;
-	rotate_global2stand(tx_shot, ty_shot, x_shot, y_shot);
-	rotate_global2stand(tx_see, ty_see, x_see, y_see);
+	rotate_global2stand(dx_shot, dy_shot, tx_shot, ty_shot);
+	rotate_global2stand(dx_see, dy_see, tx_see, ty_see);
 	RCLCPP_INFO(this->get_logger(), "默认方向下角度：%f", default_yaw);
-	RCLCPP_INFO(this->get_logger(), "起始点投弹区起点 x: %f   y: %f    angle: %f", x_shot, y_shot, default_yaw);
-    RCLCPP_INFO(this->get_logger(), "起始点侦查起点 x: %f   y: %f    angle: %f", x_see, y_see, default_yaw);
+	RCLCPP_INFO(this->get_logger(), "起始点投弹区起点 x: %f   y: %f    angle: %f", tx_shot, ty_shot, default_yaw);
+    RCLCPP_INFO(this->get_logger(), "起始点侦查起点 x: %f   y: %f    angle: %f", tx_see, ty_see, default_yaw);
 	rotate_2start(tx_shot, ty_shot, x_shot, y_shot);
 	rotate_2start(tx_see, ty_see, x_see, y_see);
 	RCLCPP_INFO(this->get_logger(), "飞机坐标投弹区起点 x: %f   y: %f    angle: %f", x_shot, y_shot, default_yaw);
@@ -190,7 +219,7 @@ bool OffboardControl::waypoint_goto_next(float x, float y, float length, float w
 		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "w_g_n,counter: %d, time=%lf", *count, state_timer_.elapsed());
 	x_temp = x + (length * way_points[count_n].x());
 	y_temp = y + (width * way_points[count_n].y());
-	if (state_timer_.elapsed() > time || (is_equal(get_x_pos(), x_temp, 0.3f) && is_equal(get_y_pos(), y_temp, 0.5f))) 
+	if (state_timer_.elapsed() > time || (is_equal(get_x_pos(), x_temp, 0.2f) && is_equal(get_y_pos(), y_temp, 0.2f))) 
 	{
 		if (static_cast<std::vector<Vector2f>::size_type>(count_n) >= way_points.size())
 		{
@@ -201,7 +230,7 @@ bool OffboardControl::waypoint_goto_next(float x, float y, float length, float w
 				return true;
 		} else {
 			count == nullptr? surround_cnt++ : (*count)++;
-			RCLCPP_INFO(this->get_logger(), "%s点位%d x: %lf   y: %lf, timeout=%s", description.c_str(), count_n, x_temp, y_temp, (is_equal(get_x_pos(), x_temp, 0.5f) && is_equal(get_y_pos(), y_temp, 0.5f))? "true" : "false");
+			RCLCPP_INFO(this->get_logger(), "%s点位%d x: %lf   y: %lf, timeout=%s", description.c_str(), count_n, x_temp, y_temp, (is_equal(get_x_pos(), x_temp, 0.2f) && is_equal(get_y_pos(), y_temp, 0.2f))? "true" : "false");
 
 			rotate_global2stand(x_temp, y_temp, x_temp, y_temp);
 
@@ -234,13 +263,14 @@ bool OffboardControl::catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYP
     // }
 	rotate_xy(now_x, now_y, get_yaw() + default_yaw); // 将目标坐标旋转到世界坐标系 headingangle_compass
 	rotate_xy(tar_x, tar_y, get_yaw() + default_yaw); // 将目标坐标旋转到世界坐标系
-	RCLCPP_INFO(this->get_logger(), "catch_target_bucket: yaw: %f, default_yaw: %f, headingangle_compass: %f", get_yaw(), default_yaw, headingangle_compass);
-	RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x, now_y, tar_x, tar_y);
-	RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x / _yolo->get_cap_frame_width(), now_y / _yolo->get_cap_frame_height(), (tar_x) / _yolo->get_cap_frame_width(), (tar_y) / _yolo->get_cap_frame_height());
-	RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_z: %f, tar_z: %f, now_yaw: %f, tar_yaw: %f", get_z_pos(), tar_z, get_yaw(), tar_yaw);
+	float max_frame = std::max(_yolo->get_cap_frame_width(), _yolo->get_cap_frame_height());
+	// RCLCPP_INFO(this->get_logger(), "catch_target_bucket: yaw: %f, default_yaw: %f, headingangle_compass: %f", get_yaw(), default_yaw, headingangle_compass);
+	// RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x, now_y, tar_x, tar_y);
+	// RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x / _yolo->get_cap_frame_width(), now_y / _yolo->get_cap_frame_height(), (tar_x) / _yolo->get_cap_frame_width(), (tar_y) / _yolo->get_cap_frame_height());
+	// RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_z: %f, tar_z: %f, now_yaw: %f, tar_yaw: %f", get_z_pos(), tar_z, get_yaw(), tar_yaw);
 	return _pose_control->trajectory_setpoint_world(
-		Vector4f{tar_x / _yolo->get_cap_frame_width(), tar_y / _yolo->get_cap_frame_height(), get_z_pos(), get_yaw()}, // 当前坐标
-		Vector4f{now_x / _yolo->get_cap_frame_width(), now_y / _yolo->get_cap_frame_height(), tar_z, tar_yaw + default_yaw}, // 目标坐标
+		Vector4f{tar_x / max_frame, tar_y / max_frame, get_z_pos(), get_yaw()}, // 当前坐标
+		Vector4f{now_x / max_frame, now_y / max_frame, tar_z, tar_yaw + default_yaw}, // 目标坐标
 		defaults,
 		accuracy
 	);	

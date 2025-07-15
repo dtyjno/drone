@@ -22,6 +22,8 @@
 // #include "math.h"
 #include "memory"
 #include "Readyaml.h"
+#include <yaml-cpp/yaml.h>
+#include<fstream>
 // #include <Eigen/Eigen>
 #include "math.h"
 // #include "Vector3.h"
@@ -44,7 +46,6 @@ using namespace std::chrono_literals;
 #include "CameraGimbal.h"
 
 #include "utils.h" // 包含自定义的工具函数
-
 
 class OffboardControl : public OffboardControl_Base
 {
@@ -305,6 +306,13 @@ public:
 	}
 
 	template <typename T>
+	void rotate_stand2global(T in_x, T in_y, T &out_x, T &out_y) {
+		rotate_angle(in_x, in_y, -headingangle_compass);
+		out_x = in_x;
+		out_y = in_y;
+	}
+
+	template <typename T>
 	void rotate_2start(T in_x, T in_y, T &out_x, T &out_y) {
 		rotate_angle(in_x, in_y, -start.w());
 		out_x = in_x;
@@ -398,6 +406,15 @@ public:
 		tar_y_stat.name = "tar_y_stat";
 		tar_y_stat.value = target1.has_value() ? target1.value().y() : 0.0;
 		statistics.push_back(tar_y_stat);
+
+		for(size_t i = 0; i < 3; ++i) {
+			auto point_stat = pal_statistics_msgs::msg::Statistic();
+			point_stat.name = "surround_shot_point_" + std::to_string(i);
+			point_stat.value = surround_shot_points[i].x();
+			statistics.push_back(point_stat);
+			point_stat.value = surround_shot_points[i].y();
+			statistics.push_back(point_stat);
+		}
 	}
 #endif
 	std::optional<Vector3d> target1;
@@ -453,10 +470,12 @@ private:
 	float ty_shot;
 	float tx_see;
 	float ty_see;
+	float global2stand_x;
+	float global2stand_y;
 
 	// 定义航点
 	vector<Vector2f> surround_shot_points{
-		{0.0, 1.0}, // 开始
+		// {0.0, 1.0}, // 开始
 		{-0.16667, 0.66667}, 
 		{-0.16667, 0.33333}, 
 		{0.0, 0.0}, 
@@ -526,10 +545,10 @@ private:
 		RCLCPP_INFO(this->get_logger(), "读取投弹区起点坐标: dx_shot: %f, dy_shot: %f shot_halt: %f", dx_shot, dy_shot, shot_halt);
 		RCLCPP_INFO(this->get_logger(), "读取侦查区起点坐标: dx_see: %f, dy_see: %f see_halt: %f", dx_see, dy_see, see_halt);
 		
-		tx_shot = dx_shot;
-		ty_shot = dy_shot - 0.5;
-		tx_see = dx_see;
-		ty_see = dy_see;
+		// tx_shot = dx_shot;
+		// ty_shot = dy_shot;
+		// tx_see = dx_see;
+		// ty_see = dy_see;
 	}
 	// control.cpp
 	Timer state_timer_;         // 通用计时器1
