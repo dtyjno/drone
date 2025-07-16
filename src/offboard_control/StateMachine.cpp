@@ -117,7 +117,6 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				// 	owner_->_yolo->get_servo_flag());
 				if (owner_->Doshot(shot_counter)) { // 如果到达投弹点
 					// RCLCPP_INFO(owner_->get_logger(), "寻找完毕，投弹!!投弹!!");
-					RCLCPP_INFO(owner_->get_logger(), "已经锁定%d号桶，坐标为（%lf,%lf）", shot_counter - 1, owner_->dx_shot, owner_->dy_shot);
 					RCLCPP_INFO(owner_->get_logger(), "投弹!!投弹!!，总用时：%f", doshot_start.elapsed());
 					RCLCPP_INFO(owner_->get_logger(), "Arrive, 投弹 等待5秒");
 					// 设置舵机位置
