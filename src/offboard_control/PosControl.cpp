@@ -113,7 +113,7 @@ bool PosControl::local_setpoint_command(Vector4f now, Vector4f target, double ac
 			// #endif
 	)
 	{
-		RCLCPP_INFO(node->get_logger(), "at_check_point");
+		RCLCPP_INFO(node->get_logger(), "pc-local_setpoint_command:at_check_point");
 		first = true;
 		return true;
 	}
