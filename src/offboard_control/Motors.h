@@ -54,8 +54,8 @@ public:
 	// void switch_to_rtl_mode();
     
 	void arm_motors(bool arm);
-	void set_home_position(double lat, double lon, double alt);
-	void set_home_position();
+	void set_home_position(float lat, float lon, float alt, float yaw = 0.0f);
+	void set_home_position(float yaw = 0.0f); // 使用当前位置
 
 	auto get_set_home_client() {
 		return set_home_client_;

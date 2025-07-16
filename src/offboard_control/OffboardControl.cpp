@@ -20,7 +20,7 @@ void OffboardControl::timer_callback(void)
 {
 	// 发布当前状态
 	publish_current_state();
-	// RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前时间：%f", get_cur_time());
+	RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "当前时间：%f", get_cur_time());
 	// if(!print_info_)
 	// {
 		// RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "收到坐标c(%f, %f) h(%f ,%f), flag_servo = %d yaw=%f",
@@ -70,7 +70,7 @@ void OffboardControl::timer_callback(void)
 	{
 		this->target1 = calculateWorldPosition(image_point1, camera1, 0.0, 0.3);
 		if (target1) {
-			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "Example 1 - Target position: %f, %f, %f",
+			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "(THROTTLE 0.5s) Example 1 - Target position: %f, %f, %f",
 				target1->x(), target1->y(), target1->z());
 		}
 	}
@@ -149,16 +149,16 @@ void OffboardControl::FlyState_init()
 	rotate_global2stand(dx_shot, dy_shot, tx_shot, ty_shot);
 	rotate_global2stand(dx_see, dy_see, tx_see, ty_see);
 	RCLCPP_INFO(this->get_logger(), "默认方向下角度：%f", default_yaw);
-	RCLCPP_INFO(this->get_logger(), "起始点投弹区起点 x: %f   y: %f    angle: %f", tx_shot, ty_shot, default_yaw);
-    RCLCPP_INFO(this->get_logger(), "起始点侦查起点 x: %f   y: %f    angle: %f", tx_see, ty_see, default_yaw);
+	RCLCPP_INFO(this->get_logger(), "罗盘方向投弹区起点 x: %f   y: %f    angle: %f", tx_shot, ty_shot, default_yaw);
+    RCLCPP_INFO(this->get_logger(), "罗盘方向侦查区起点 x: %f   y: %f    angle: %f", tx_see, ty_see, default_yaw);
 	rotate_2start(tx_shot, ty_shot, x_shot, y_shot);
 	rotate_2start(tx_see, ty_see, x_see, y_see);
-	RCLCPP_INFO(this->get_logger(), "飞机坐标投弹区起点 x: %f   y: %f    angle: %f", x_shot, y_shot, default_yaw);
-    RCLCPP_INFO(this->get_logger(), "飞机坐标侦查起点 x: %f   y: %f    angle: %f", x_see, y_see, default_yaw);
+	RCLCPP_INFO(this->get_logger(), "飞机起飞方向投弹区起点 x: %f   y: %f    angle: %f", x_shot, y_shot, default_yaw);
+    RCLCPP_INFO(this->get_logger(), "飞机起飞方向侦查区起点 x: %f   y: %f    angle: %f", x_see, y_see, default_yaw);
 	rotate_2local(tx_shot, ty_shot, x_shot, y_shot);
 	rotate_2local(tx_see, ty_see, x_see, y_see);
 	RCLCPP_INFO(this->get_logger(), "当前朝向投弹区起点 x: %f   y: %f    angle: %f", x_shot, y_shot, default_yaw);
-    RCLCPP_INFO(this->get_logger(), "当前朝向侦查起点 x: %f   y: %f    angle: %f", x_see, y_see, default_yaw);
+    RCLCPP_INFO(this->get_logger(), "当前朝向侦查区起点 x: %f   y: %f    angle: %f", x_see, y_see, default_yaw);
 		
 	_camera_gimbal->set_gimbal(
 		-90.0, 0.0, 0.0
@@ -195,6 +195,9 @@ void OffboardControl::FlyState_init()
 	RCLCPP_INFO(this->get_logger(), "初始旋转角: %f", get_yaw());
 	_pose_control->set_dt(0.1); // 设置执行周期（用于PID）
 
+	// 重新设置家地址
+	_motors->set_home_position(get_yaw());
+
 }
 
 // 发布状态
@@ -216,27 +219,27 @@ bool OffboardControl::waypoint_goto_next(float x, float y, float length, float w
 	float x_temp = 0.0, y_temp = 0.0;
 	int count_n = count == nullptr? surround_cnt : *count;
 	if(count!=nullptr)
-		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "w_g_n,counter: %d, time=%lf", *count, state_timer_.elapsed());
+		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) w_g_n,counter: %d, time=%lf", *count, waypoint_timer_.elapsed());
 	x_temp = x + (length * way_points[count_n].x());
 	y_temp = y + (width * way_points[count_n].y());
-	if (state_timer_.elapsed() > time || (is_equal(get_x_pos(), x_temp, 0.2f) && is_equal(get_y_pos(), y_temp, 0.2f))) 
+	if (waypoint_timer_.elapsed() > time || (is_equal(get_x_pos(), x_temp, 0.2f) && is_equal(get_y_pos(), y_temp, 0.2f))) 
 	{
 		if (static_cast<std::vector<Vector2f>::size_type>(count_n) >= way_points.size())
 		{
-				RCLCPP_INFO(this->get_logger(), "%s已经全部遍历", description.c_str());
+				RCLCPP_INFO(this->get_logger(), "w_g_n, %s已经全部遍历", description.c_str());
 				count == nullptr? surround_cnt = 0 : *count = 0;
-				// state_timer_.reset();
-				state_timer_.set_start_time_to_default();
+				// waypoint_timer_.reset();
+				waypoint_timer_.set_start_time_to_default();
 				return true;
 		} else {
 			count == nullptr? surround_cnt++ : (*count)++;
-			RCLCPP_INFO(this->get_logger(), "%s点位%d x: %lf   y: %lf, timeout=%s", description.c_str(), count_n, x_temp, y_temp, (is_equal(get_x_pos(), x_temp, 0.2f) && is_equal(get_y_pos(), y_temp, 0.2f))? "true" : "false");
+			RCLCPP_INFO(this->get_logger(), "w_g_n, %s点位%d x: %lf   y: %lf, timeout=%s", description.c_str(), count_n, x_temp, y_temp, (is_equal(get_x_pos(), x_temp, 0.2f) && is_equal(get_y_pos(), y_temp, 0.2f))? "true" : "false");
 
 			rotate_global2stand(x_temp, y_temp, x_temp, y_temp);
 
 			send_local_setpoint_command(x_temp, y_temp, halt, 0.0); // 发送本地坐标系下的航点指令
 			// RCLCPP_INFO(this->get_logger(), "前往下一点");
-			state_timer_.reset();
+			waypoint_timer_.reset();
 		}
 	}
 	return false;
@@ -347,13 +350,14 @@ bool OffboardControl::Doshot(int shot_count)
 					tar_x[shot_index], tar_y[shot_index], tar_z, tar_yaw, accuracy
 				))
 			{
-				RCLCPP_INFO(this->get_logger(), "Approach, Doshot, time = %fs", cur_shot_time - _t_time);
+				RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, time = %fs", cur_shot_time - _t_time);
 				// if(error_x<0.05 && error_y<0.05){
 					// RCLCPP_INFO(this->get_logger(), "Arrive, Doshot");
 					// catch_state_=CatchState::end;
 				// } else 
 				if(cur_shot_time - _t_time > shot_duration){ // 1.5秒
-					RCLCPP_INFO(this->get_logger(), "Approach, Doshot");
+					RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, time > %fs, tar_x = %f, tar_y = %f, tar_z = %f, tar_yaw = %f", 
+						shot_duration, tar_x[shot_index], tar_y[shot_index], tar_z, tar_yaw);
 					catch_state_=CatchState::end;
 					continue; // 直接跳到下一个状态;
 				}
