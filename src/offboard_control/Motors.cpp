@@ -24,13 +24,11 @@ using namespace std::chrono_literals;
 bool Motors::takeoff(float local_frame_z,float takeoff_altitude){
 	(void)local_frame_z;
 	static bool is_takeoff = false;
-	static uint8_t num_of_steps = 0;
+	static uint8_t num_of_steps = 0, num_of_takeoff = 0;
 	static Timer *timer;
 	switch (state_)
 	{
 	case State::init :
-		// 重新设置家地址
-		set_home_position();
 		RCLCPP_INFO_ONCE(node->get_logger(), "Entered guided mode");
 		switch_mode("GUIDED");
 		state_ = State::wait_for_takeoff_command;
@@ -61,19 +59,22 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude){
 		else{
 			//RCLCPP_INFO(this->get_logger(), "vehicle is armed");
 			timer->reset(); // 重置计时器
+			num_of_takeoff = 1;
 			command_takeoff_or_land("TAKEOFF",takeoff_altitude);
 			state_ = State::takeoff;
 		}
 		break;
 	case State::takeoff:
 		//RCLCPP_INFO(this->get_logger(), "vehicle is start");		
-		if(local_frame_z - home_position.z() < 0.5){
+		if (!armed){ // 如果无人机起飞失败重新上锁
+			state_ = State::arm_requested;
+		} else if (local_frame_z - home_position.z() < 0.5f && num_of_takeoff <= 5){ 
 			if(timer->elapsed() > 2.0){
 				// RCLCPP_INFO(node->get_logger(), "vehicle is taking off");
 				command_takeoff_or_land("TAKEOFF",takeoff_altitude);
 				timer->reset(); // 重置计时器
 			}
-		}else{
+		}else{ // 起飞或等待时间长于重新上锁时间
 			is_takeoff = true;
 			delete timer; // 删除计时器对象
 			timer = nullptr; // 设置指针为空，避免悬挂指针
@@ -274,14 +275,14 @@ void Motors::arm_motors(bool arm)
 
 // 设置无人机家的位置
 // /mavros/cmd/set_home [mavros_msgs/srv/CommandHome]
-void Motors::set_home_position(double lat, double lon, double alt)
+void Motors::set_home_position(float lat, float lon, float alt, float yaw)
 {
 	auto request = std::make_shared<mavros_msgs::srv::CommandHome::Request>();
 	request->current_gps = false;
 	request->latitude = lat;
 	request->longitude = lon;
 	request->altitude = alt;
-
+	request->yaw = yaw;
 	while (!set_home_client_->wait_for_service(std::chrono::seconds(1))) {
 		if (!rclcpp::ok()) {
 			RCLCPP_ERROR(node->get_logger(), "Interrupted while waiting for the service. Exiting.");
@@ -311,10 +312,11 @@ void Motors::set_home_position(double lat, double lon, double alt)
 		});
 }
 
-void Motors::set_home_position()
+void Motors::set_home_position(float yaw)
 {
 	auto request = std::make_shared<mavros_msgs::srv::CommandHome::Request>();
 	request->current_gps = true;
+	request->yaw = yaw;
 	while (!set_home_client_->wait_for_service(std::chrono::seconds(1))) {
 		if (!rclcpp::ok()) {
 			RCLCPP_ERROR(node->get_logger(), "Interrupted while waiting for the service. Exiting.");
