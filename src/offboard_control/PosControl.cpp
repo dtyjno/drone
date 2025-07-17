@@ -233,7 +233,7 @@ Vector3f PosControl::input_pos_xyz(Vector3f now, Vector3f target, bool fuzzy)
 }
 
 // 输入位置 pid控制速度 yaw
-Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy)
+Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy, bool calculate_vel)
 {
 	// 处理yaw跨越点问题
 	float yaw_diff_last = 0;
@@ -261,25 +261,25 @@ Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy
 		// 	kp, ki, kd);
 		fuzzy_pid.fuzzy_pid_control(now.x(), target.x(), 0, kp, ki, kd, delta_k);
 		pid_x.set_gains(kp, ki, kd);
-		f.x() = pid_x.update_all(now.x(), target.x(), dt, max_speed_xy, _inav->velocity.x());
+		f.x() = pid_x.update_all(now.x(), target.x(), dt, max_speed_xy, calculate_vel ? DEFAULT_VELOCITY : _inav->velocity.x());
 		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: x   p:%f i:%f d:%f", 
 		// 	kp, ki, kd);
 		pid_y.get_pid(kp, ki, kd);
 		fuzzy_pid.fuzzy_pid_control(now.y(), target.y(), 1, kp, ki, kd, delta_k);
 		pid_y.set_gains(kp, ki, kd);
-		f.y() = pid_y.update_all(now.y(), target.y(), dt, max_speed_xy, _inav->velocity.y());
+		f.y() = pid_y.update_all(now.y(), target.y(), dt, max_speed_xy, calculate_vel ? DEFAULT_VELOCITY : _inav->velocity.y());
 		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: y   p:%f i:%f d:%f", 
 		// 	kp, ki, kd);		
 		pid_z.get_pid(kp, ki, kd);
 		fuzzy_pid.fuzzy_pid_control(now.z(), target.z(), 2, kp, ki, kd, delta_k);
 		pid_z.set_gains(kp, ki, kd);
-		f.z() = pid_z.update_all(now.z(), target.z(), dt, max_speed_z, _inav->velocity.z());
+		f.z() = pid_z.update_all(now.z(), target.z(), dt, max_speed_z, calculate_vel ? DEFAULT_VELOCITY : _inav->velocity.z());
 		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: z   p:%f i:%f d:%f", 
 		// 	kp, ki, kd);
 		pid_yaw.get_pid(kp, ki, kd);
 		fuzzy_pid.fuzzy_pid_control(now.w(), target.w(), 3, kp, ki, kd, delta_k);
 		pid_yaw.set_gains(kp, ki, kd);
-		f.w() = pid_yaw.update_all(now.w() + yaw_diff_last, target.w(), dt, max_speed_yaw, _inav->velocity.w());
+		f.w() = pid_yaw.update_all(now.w() + yaw_diff_last, target.w(), dt, max_speed_yaw, calculate_vel ? DEFAULT_VELOCITY : _inav->velocity.w());
 		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: yaw p:%f i:%f d:%f", 
 		// 	kp, ki, kd);
 		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: px:%f py:%f pz:%f pyaw:%f",
@@ -291,10 +291,10 @@ Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy
 		return f;
 	} else{
 		Vector4f f;
-		f.x() = pid_x.update_all(now.x(), target.x(), dt, max_speed_xy, _inav->velocity.x());
-		f.y() = pid_y.update_all(now.y(), target.y(), dt, max_speed_xy, _inav->velocity.y());
-		f.z() = pid_z.update_all(now.z(), target.z(), dt, max_speed_z, _inav->velocity.z());
-		f.w() = pid_yaw.update_all(now.w(), target.w() + yaw_diff_last, dt, max_speed_yaw, _inav->velocity.w());
+		f.x() = pid_x.update_all(now.x(), target.x(), dt, max_speed_xy, calculate_vel ? DEFAULT_VELOCITY : _inav->velocity.x());
+		f.y() = pid_y.update_all(now.y(), target.y(), dt, max_speed_xy, calculate_vel ? DEFAULT_VELOCITY : _inav->velocity.y());
+		f.z() = pid_z.update_all(now.z(), target.z(), dt, max_speed_z, calculate_vel ? DEFAULT_VELOCITY : _inav->velocity.z());
+		f.w() = pid_yaw.update_all(now.w(), target.w() + yaw_diff_last, dt, max_speed_yaw, calculate_vel ? DEFAULT_VELOCITY : _inav->velocity.w());
 		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: vx:%f vy:%f vz:%f vyaw:%f", f.x(), f.y(), f.z(), f.w());
 		return f;
 	}
@@ -522,7 +522,7 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 }
 
 // pid飞行到指定位置(闭环)，指定pid参数（相对于起飞点/世界坐标系）
-bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target, PID::Defaults defaults, double accuracy, double yaw_accuracy)
+bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target, PID::Defaults defaults, bool calculate_vel, double accuracy, double yaw_accuracy)
 {
 	(void)yaw_accuracy;
 	RCLCPP_INFO(node->get_logger(), "p:%f i:%f d:%f", defaults.p, defaults.i, defaults.d);
@@ -553,7 +553,7 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 		// #endif
 		// #ifndef PID_P
 		// send_velocity_command_world(input_pos_xyz_yaw_without_vel(pos_now, pos_target));
-		send_velocity_command_world(input_pos_xyz_yaw(pos_now, pos_target, true));
+		send_velocity_command_world(input_pos_xyz_yaw(pos_now, pos_target, true, calculate_vel));
 		// #endif
 	}
 	else

@@ -67,6 +67,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 		static double doshot_halt_end_time; // 记录结束时间
 		static int shot_counter = 1; // 投弹计数器
 		static vector<array<double, 3>> surround_shot_scout_points;
+		
 		if (owner_->state_timer_.elapsed() > 100) // 超时 100 秒
 		{
 			RCLCPP_INFO(owner_->get_logger(), "超时");

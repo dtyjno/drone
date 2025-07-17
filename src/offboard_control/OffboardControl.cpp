@@ -18,8 +18,6 @@
 
 void OffboardControl::timer_callback(void)
 {
-	// 发布当前状态
-	publish_current_state();
 	RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "当前时间：%f", get_cur_time());
 	// if(!print_info_)
 	// {
@@ -130,6 +128,10 @@ void OffboardControl::timer_callback(void)
 		FlyState::MYPID
 
 	>();
+	// 发布当前状态
+	publish_current_state();
+	// 发布目标点
+	_yolo->publish_visualization_target();
 }
 
 
@@ -275,6 +277,7 @@ bool OffboardControl::catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYP
 		Vector4f{tar_x / max_frame, tar_y / max_frame, get_z_pos(), get_yaw()}, // 当前坐标
 		Vector4f{now_x / max_frame, now_y / max_frame, tar_z, tar_yaw + default_yaw}, // 目标坐标
 		defaults,
+		true,
 		accuracy
 	);	
 }
@@ -292,8 +295,7 @@ bool OffboardControl::Doshot(int shot_count)
 	static float _t_time = 0; 					        // 接近目标时单轮执行时间
 	static float accuracy = 0.1; 						// 声明精度
 	static float shot_duration = 2; 					// 稳定持续时间
-	static vector<float> tar_x;							// 声明目标x坐标（%）
-	static vector<float> tar_y;
+	static std::vector<YOLO::Target> targets; 			// 声明目标x和y坐标
 	static float tar_z = 1, tar_yaw = 0; 				// 声明目标偏航角（rad）
 	bool result = false;
 
@@ -314,19 +316,30 @@ bool OffboardControl::Doshot(int shot_count)
 			// 读取距离目标一定范围内退出的距离
 			YAML::Node config = Readyaml::readYAML("can_config.yaml");
 			accuracy = config["accuracy"].as<float>();
-			// shot_duration = config["shot_duration"].as<float>();
-			tar_x.clear();
-			tar_y.clear();
-			tar_x.push_back(config["tar_x_l"].as<float>(0.0f));
-			tar_y.push_back(config["tar_y_l"].as<float>(0.0f));
-			tar_x.push_back(config["tar_x_r"].as<float>(0.0f));
-			tar_y.push_back(config["tar_y_r"].as<float>(0.0f));
-			for (size_t i = 0; i < tar_x.size(); i++)
-			{
-				tar_x[i] = (is_equal(tar_x[i], 0.0f) ? _yolo->get_cap_frame_width() / 2 : tar_x[i]);
-				tar_y[i] = (is_equal(tar_y[i], 0.0f) ? _yolo->get_cap_frame_height() / 2 : tar_y[i]);
-			}
 			tar_z = config["tar_z"].as<float>();
+			std::vector<std::string> targets_str = {"_l", "_r"};
+			targets.clear();
+			for (size_t i = 0; i < targets_str.size(); i++)
+			{
+				YOLO::Target target;
+				target.x = config[std::string("tar_x").append(targets_str[i])].as<float>(0.0f);
+				target.y = config[std::string("tar_y").append(targets_str[i])].as<float>(0.0f);
+				target.z = config[std::string("tar_z").append(targets_str[i])].as<float>(0.0f);
+				target.x = (is_equal(target.x, 0.0f) ? _yolo->get_cap_frame_width() / 2 : target.x);
+				target.y = (is_equal(target.y, 0.0f) ? _yolo->get_cap_frame_height() / 2 : target.y);
+				target.z = (is_equal(target.z, 0.0f) ? tar_z : target.z);
+				target.r = 1.0f; 
+				target.g = 0.0f;
+				target.b = 0.0f;
+				target.radius = accuracy * std::max(_yolo->get_cap_frame_width(), _yolo->get_cap_frame_height()) * 2;
+				RCLCPP_INFO(this->get_logger(), "Doshot: cap_frame_width: %d, cap_frame_height: %d, radius: %f", 
+					_yolo->get_cap_frame_width(), _yolo->get_cap_frame_height(), target.radius);
+				target.category = config[std::string("tar_category").append(targets_str[i])].as<float>(1.0f);
+				RCLCPP_INFO(this->get_logger(), "Doshot: tar_x: %f, tar_y: %f, tar_z: %f", target.x, target.y, target.z);
+				targets.push_back(target);
+
+			}
+
 			time_find_start = get_cur_time();
 			_t_time = time_find_start;
 			tar_yaw = 0;			            // 设置目标偏航角（rad）
@@ -336,8 +349,18 @@ bool OffboardControl::Doshot(int shot_count)
 		case CatchState::fly_to_target:
 		{
 			double cur_shot_time = get_cur_time();
-			int shot_index = (shot_count - 1) % tar_x.size(); // 计算当前投弹桶的索引，shot_count从1开始计数， tar_x.size()!=0
-
+			int shot_index = (shot_count - 1) % targets.size(); // 计算当前投弹桶的索引，shot_count从1开始计数， tar_x.size()!=0
+			
+			for (size_t i = 0; i < targets.size(); i++)
+			{
+				targets[i].r = 1.0f; // 设置所有目标颜色为红色
+				targets[i].g = 0.0f;
+				targets[i].b = 0.0f;
+			}
+			targets[shot_index].r = 0.0f; // 设置当前目标颜色为绿色
+			targets[shot_index].g = 1.0f;
+			targets[shot_index].b = 0.0f;
+			
 			// yolo未识别到桶
 			if (!_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE))
 			{
@@ -347,7 +370,7 @@ bool OffboardControl::Doshot(int shot_count)
 			if (catch_target(
 					defaults,
 					YOLO::TARGET_TYPE::CIRCLE, // 目标类型
-					tar_x[shot_index], tar_y[shot_index], tar_z, tar_yaw, accuracy
+					targets[shot_index].x, targets[shot_index].y, targets[shot_index].z, tar_yaw, accuracy
 				))
 			{
 				RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, time = %fs", cur_shot_time - _t_time);
@@ -357,7 +380,7 @@ bool OffboardControl::Doshot(int shot_count)
 				// } else 
 				if(cur_shot_time - _t_time > shot_duration){ // 1.5秒
 					RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, time > %fs, tar_x = %f, tar_y = %f, tar_z = %f, tar_yaw = %f", 
-						shot_duration, tar_x[shot_index], tar_y[shot_index], tar_z, tar_yaw);
+						shot_duration, targets[shot_index].x, targets[shot_index].y, targets[shot_index].z, tar_yaw);
 					catch_state_=CatchState::end;
 					continue; // 直接跳到下一个状态;
 				}
@@ -383,6 +406,7 @@ bool OffboardControl::Doshot(int shot_count)
 		}
 		break;
 	}
+	_yolo->append_targets(targets); // 将目标添加到YOLO中准备发布
 	return result;
 }
 

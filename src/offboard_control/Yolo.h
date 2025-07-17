@@ -3,10 +3,18 @@
 
 #include "ros2_yolo_msgs/msg/detected_box.hpp"
 #include "sensor_msgs/msg/image.hpp"
+
+#include "visualization_msgs/msg/marker.hpp"
+#include "visualization_msgs/msg/marker_array.hpp"
+
+#include "vision_msgs/msg/detection2_d.hpp"
+#include "vision_msgs/msg/detection2_d_array.hpp"
+
 #include "Readyaml.h"
 #include <eigen3/Eigen/Eigen>
 #include <chrono>
 #include <memory>
+#include <rclcpp/rclcpp.hpp>
 //#include <opencv2/opencv.hpp>
 //#include "cv_bridge/cv_bridge.h"
 
@@ -96,6 +104,7 @@ public:
         //     std::chrono::milliseconds(100), 
         //     std::bind(&YOLO::timer_callback, this)
         // );
+        visualization_circles_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("visualization_targets", 10);
 
         subscriber_ = this->create_subscription<ros2_yolo_msgs::msg::DetectedBox>(
             "detected_boxes", 
@@ -113,6 +122,7 @@ public:
         // cap.set(CAP_PROP_FOURCC, VideoWriter::fourcc('M','J','P','G'));
         // cap.set(CAP_PROP_FRAME_WIDTH, SET_CAP_FRAME_HEIGHT);//图像的宽
         // cap.set(CAP_PROP_FRAME_HEIGHT, SET_CAP_FRAME_WIDTH);//图像的高
+
     }
     enum TARGET_TYPE{
         CIRCLE, //0
@@ -215,6 +225,59 @@ public:
     {
         return cap_frame_height;
     }
+    struct Target
+    {
+        float x, y, z;           // 圆心坐标
+        float r, g, b;           // 颜色
+        float radius;           // 半径
+        std::string category;   // 分类标签
+        int id;                 // 目标ID
+    };
+    
+    void append_targets(const std::vector<Target> &new_targets)
+    {
+        for (const auto &target : new_targets) {
+            targets.push_back(target);
+        }
+    }
+    void clear_targets()
+    {
+        targets.clear();
+    }
+    void publish_visualization_target(void)
+    {
+        visualization_msgs::msg::MarkerArray marker_array;
+
+        for (const auto &target : targets) {
+            visualization_msgs::msg::Marker marker;
+
+            marker.header.frame_id = "map"; // 或者其他适当的坐标系
+            marker.header.stamp = this->now();
+            marker.ns = target.category; // 使用目标ID作为命名空间
+            marker.id = target.id;
+            marker.type = visualization_msgs::msg::Marker::CYLINDER;
+            marker.action = visualization_msgs::msg::Marker::ADD;
+
+            marker.pose.position.x = target.x;
+            marker.pose.position.y = target.y;
+            marker.pose.position.z = target.z;
+            marker.scale.x = target.radius * 2; // 直径
+            marker.scale.y = target.radius * 2; // 直径
+            marker.scale.z = 0.1; // 高度
+
+            marker.color.r = target.r; // 使用目标颜色
+            marker.color.g = target.g; // 使用目标颜色
+            marker.color.b = target.b; // 使用目标颜色
+            marker.color.a = 1.0f; // 不透明
+
+            marker.lifetime = rclcpp::Duration(0, 0); // 永久存在
+
+            marker_array.markers.push_back(marker);
+        }
+        
+        visualization_circles_publisher_->publish(marker_array);
+        clear_targets();
+    }
 private:
     int cap_frame_width = 1920; // 待覆盖默认值 图像宽度
     int cap_frame_height = 1080; // 同上
@@ -227,6 +290,8 @@ private:
 	float y_circle_raw;
     float y_h_raw;
     int flag_servo;
+
+    std::vector<YOLO::Target> targets; // 目标点集合
     
     // 卡尔曼滤波器
     std::unique_ptr<KalmanFilter2D> circle_filter;
@@ -234,6 +299,9 @@ private:
     std::chrono::steady_clock::time_point last_update_time;
     
     // rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher_;
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr visualization_circles_publisher_;
+    // rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr circle_center_publisher_;
+
     rclcpp::Subscription<ros2_yolo_msgs::msg::DetectedBox>::SharedPtr subscriber_;
     rclcpp::TimerBase::SharedPtr timer_;
     // VideoCapture cap;

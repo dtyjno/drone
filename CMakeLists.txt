@@ -34,6 +34,7 @@ find_package(trajectory_msgs REQUIRED)
 #find_package(GeographicLib REQUIRED)
 #
 find_package(vision_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 list(APPEND CMAKE_PREFIX_PATH "~/ardupilot_ws/install/ros2_interfaces")
 find_package(ros2_interfaces REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -84,7 +85,7 @@ include_directories(
 file(GLOB SOURCES "src/offboard_control/*.cpp")
 add_executable(offboard_control ${SOURCES}
     src/offboard_control/FuzzyPID.cpp)
-ament_target_dependencies(offboard_control rclcpp mavros_msgs geometry_msgs nav_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs sensor_msgs OpenCV cv_bridge ament_index_cpp ros2_interfaces ros2_yolo_msgs ${PAL_STATISTICS_DEPS})
+ament_target_dependencies(offboard_control rclcpp mavros_msgs geometry_msgs nav_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs visualization_msgs sensor_msgs OpenCV cv_bridge ament_index_cpp ros2_interfaces ros2_yolo_msgs ${PAL_STATISTICS_DEPS})
 target_link_libraries(offboard_control yaml-cpp)  
 install(TARGETS offboard_control DESTINATION lib/${PROJECT_NAME})
 

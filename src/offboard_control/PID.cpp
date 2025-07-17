@@ -264,7 +264,7 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
     {
         _derivative = -(_pid_info.Dmod - _error) / dt;
 #ifdef pid_debug_print
-        // printf("deri:%10.6f, ", _derivative);
+        printf("PID: deri:%10.6f, ", _derivative);
 #endif
         if (!is_equal(_derivative, 0.0f, 0.0001f))
         {

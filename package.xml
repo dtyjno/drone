@@ -20,6 +20,8 @@
 
   <depend>geometry_msgs</depend>
   <depend>sensor_msgs</depend>
+  <depend>vision_msgs</depend>
+  <depend>visualization_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>pal_statistics_msgs</depend>
   
