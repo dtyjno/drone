@@ -105,8 +105,8 @@ public:
         read_configs("camera.yaml");
         
         // 初始化卡尔曼滤波器
-        circle_filter = std::make_unique<KalmanFilter2D>(0.01, 0.1);  // 圆形目标滤波器
-        h_filter = std::make_unique<KalmanFilter2D>(0.01, 0.1);       // H型目标滤波器
+        circle_filter = std::make_unique<KalmanFilter2D>(process_noise, measurement_noise);  // 圆形目标滤波器
+        h_filter = std::make_unique<KalmanFilter2D>(process_noise, measurement_noise);       // H型目标滤波器
         last_update_time = std::chrono::steady_clock::time_point{};   // 初始化时间
         
         // cap.open(0, CAP_V4L2);
@@ -161,7 +161,11 @@ public:
 	{
 		YAML::Node config = Readyaml::readYAML(filename);
 		cap_frame_width = config["cap_frame_width"].as<float>();
-        cap_frame_height = config["cap_frame_height"].as<float>();    }
+        cap_frame_height = config["cap_frame_height"].as<float>();  
+        process_noise = config["process_noise"].as<double>(0.01);
+        measurement_noise = config["measurement_noise"].as<double>(0.5);  
+
+    }
     
     // 获取原始未滤波的坐标
     float get_raw_x(enum TARGET_TYPE type){
@@ -214,6 +218,8 @@ public:
 private:
     int cap_frame_width = 1920; // 待覆盖默认值 图像宽度
     int cap_frame_height = 1080; // 同上
+    double process_noise = 0.01; // 过程噪声
+    double measurement_noise = 0.5; // 测量噪声
     
     // 原始坐标数据
 	float x_circle_raw;

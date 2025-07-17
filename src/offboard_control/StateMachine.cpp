@@ -16,7 +16,7 @@ void StateMachine::handle_state<FlyState::takeoff>() {
 	if (current_state_ == FlyState::takeoff){
 		RCLCPP_INFO_ONCE(owner_->get_logger(), "开始起飞");
 
-		if (owner_->_motors->takeoff(owner_->get_z_pos())) {
+		if (owner_->_motors->takeoff(owner_->get_z_pos(), 5.0f, owner_->get_yaw())) {
 				RCLCPP_INFO_ONCE(owner_->get_logger(), "起飞成功");
 				transition_to(FlyState::Goto_shotpoint);
 		} else {
