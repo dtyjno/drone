@@ -62,6 +62,9 @@ public:
     void print_update_info();
 
     float smooth_data(float current_value, float alpha);
+    
+    // 使用历史数据计算改进的微分项
+    float calculate_improved_derivative(float current_time, float dt);
 
     // internal variables
     float _integrator; // integrator value
@@ -69,6 +72,13 @@ public:
     float _error;      // error value to enable filtering
     float _derivative; // derivative value to enable filtering
     std::string pid_name = "pid"; // PID name for debugging
+    
+    // 历史数据存储，用于改进微分计算
+    static const int HISTORY_SIZE = 5;
+    float _error_history[HISTORY_SIZE];
+    float _time_history[HISTORY_SIZE];
+    int _history_index;
+    bool _history_full;
     struct PIDInfo
     {
         float target;
