@@ -30,8 +30,8 @@ void OffboardControl::timer_callback(void)
 	// 	get_x_pos(), get_y_pos(), get_z_pos(), get_yaw());
 
 	// 桶1（1 -31） 2 (2 -32) 3 (-1 -33)
-	CameraParams camera1;
-	camera1.position = Vector3d(get_x_pos(), get_y_pos(), get_z_pos());
+	
+	_camera_gimbal->position = Vector3d(get_x_pos(), get_y_pos(), get_z_pos());
 	
 	// 相机坐标系：相对于飞机机体坐标系，向前旋转90度后垂直向下
 	// 飞机偏航角 + 相机相对偏航角(90度) + 俯仰角(-90度向下)
@@ -41,17 +41,9 @@ void OffboardControl::timer_callback(void)
 	// 	roll, roll * 180.0 / M_PI, pitch, pitch * 180.0 / M_PI, yaw, yaw * 180.0 / M_PI);
 	
 	// 设置相机姿态：垂直向下看（pitch = -90°）
-	camera1.rotation = Vector3d(roll, pitch - M_PI/2, yaw);  // roll=0, pitch=-90°(垂直向下), yaw=0
+	_camera_gimbal->rotation = Vector3d(roll, pitch - M_PI/2, yaw);  // roll=0, pitch=-90°(垂直向下), yaw=0
 	
 	// std::cout << "相机旋转角度: roll=" << camera1.rotation[0] << " pitch=" << camera1.rotation[1] << " (" << camera1.rotation[1] * 180.0/M_PI << "°) yaw=" << camera1.rotation[2] << std::endl;
-	
-	// 设置正确的相机内参
-	camera1.fx = 360;  // 与配置文件一致
-	camera1.fy = 360;  // 与配置文件一致
-	camera1.cx = 320;  // 配置文件中的cx值
-	camera1.cy = 240;  // 配置文件中的cy值
-	camera1.width = 640;
-	camera1.height = 480;
 	
  	Vector2d image_point1(
 		_yolo->get_raw_x(YOLO::TARGET_TYPE::CIRCLE),
@@ -66,13 +58,13 @@ void OffboardControl::timer_callback(void)
 	
 	if (_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE))
 	{
-		this->target1 = calculateWorldPosition(image_point1, camera1, 0.0, 0.3);
+		this->target1 = _camera_gimbal->pixelToWorldPosition(image_point1, bucket_height);
 		if (target1) {
 			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "(THROTTLE 0.5s) Example 1 - Target position: %f, %f, %f",
 				target1->x(), target1->y(), target1->z());
 		}
 	}
-	if( doshot_state_ == DoshotState::doshot_scout)
+	if( doshot_state_ == DoshotState::doshot_scout || doshot_state_ == DoshotState::doshot_shot)
 	{
 		Points Target;
 		if(target1)
@@ -273,12 +265,13 @@ bool OffboardControl::catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYP
 	// RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x, now_y, tar_x, tar_y);
 	// RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x / _yolo->get_cap_frame_width(), now_y / _yolo->get_cap_frame_height(), (tar_x) / _yolo->get_cap_frame_width(), (tar_y) / _yolo->get_cap_frame_height());
 	// RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_z: %f, tar_z: %f, now_yaw: %f, tar_yaw: %f", get_z_pos(), tar_z, get_yaw(), tar_yaw);
+	RCLCPP_INFO(this->get_logger(), "catch_target_bucket: accuracy: %f, max_frame: %f", accuracy, max_frame);
 	return _pose_control->trajectory_setpoint_world(
 		Vector4f{tar_x / max_frame, tar_y / max_frame, get_z_pos(), get_yaw()}, // 当前坐标
 		Vector4f{now_x / max_frame, now_y / max_frame, tar_z, tar_yaw + default_yaw}, // 目标坐标
 		defaults,
 		true,
-		accuracy
+		accuracy / max_frame
 	);	
 }
 
@@ -293,7 +286,7 @@ bool OffboardControl::Doshot(int shot_count)
 	} catch_state_ = CatchState::init;
 	static double time_find_start = 0;			 		// 开始时间
 	static float _t_time = 0; 					        // 接近目标时单轮执行时间
-	static float accuracy = 0.1; 						// 声明精度
+	static float radius = 0.1; 						    // 声明精度
 	static float shot_duration = 2; 					// 稳定持续时间
 	static std::vector<YOLO::Target> targets; 			// 声明目标x和y坐标
 	static float tar_z = 1, tar_yaw = 0; 				// 声明目标偏航角（rad）
@@ -315,7 +308,7 @@ bool OffboardControl::Doshot(int shot_count)
 			_pose_control->set_limits(limits);
 			// 读取距离目标一定范围内退出的距离
 			YAML::Node config = Readyaml::readYAML("can_config.yaml");
-			accuracy = config["accuracy"].as<float>();
+			radius = config["radius"].as<float>();
 			tar_z = config["tar_z"].as<float>();
 			std::vector<std::string> targets_str = {"_l", "_r"};
 			targets.clear();
@@ -331,7 +324,8 @@ bool OffboardControl::Doshot(int shot_count)
 				target.r = 1.0f; 
 				target.g = 0.0f;
 				target.b = 0.0f;
-				target.radius = accuracy * std::max(_yolo->get_cap_frame_width(), _yolo->get_cap_frame_height()) * 2;
+				target.fx = _camera_gimbal->fx;
+				target.radius = radius;
 				RCLCPP_INFO(this->get_logger(), "Doshot: cap_frame_width: %d, cap_frame_height: %d, radius: %f", 
 					_yolo->get_cap_frame_width(), _yolo->get_cap_frame_height(), target.radius);
 				target.category = config[std::string("tar_category").append(targets_str[i])].as<float>(1.0f);
@@ -356,6 +350,7 @@ bool OffboardControl::Doshot(int shot_count)
 				targets[i].r = 1.0f; // 设置所有目标颜色为红色
 				targets[i].g = 0.0f;
 				targets[i].b = 0.0f;
+				targets[i].z = _camera_gimbal->position.z() - bucket_height; // 设置目标的高度为相机高度
 			}
 			targets[shot_index].r = 0.0f; // 设置当前目标颜色为绿色
 			targets[shot_index].g = 1.0f;
@@ -370,7 +365,7 @@ bool OffboardControl::Doshot(int shot_count)
 			if (catch_target(
 					defaults,
 					YOLO::TARGET_TYPE::CIRCLE, // 目标类型
-					targets[shot_index].x, targets[shot_index].y, targets[shot_index].z, tar_yaw, accuracy
+					targets[shot_index].x, targets[shot_index].y, targets[shot_index].z, tar_yaw, targets[shot_index].caculate_pixel_radius()
 				))
 			{
 				RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, time = %fs", cur_shot_time - _t_time);

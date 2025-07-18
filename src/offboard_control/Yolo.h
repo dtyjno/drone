@@ -170,8 +170,8 @@ public:
     void read_configs(const std::string &filename)
 	{
 		YAML::Node config = Readyaml::readYAML(filename);
-		cap_frame_width = config["cap_frame_width"].as<float>();
-        cap_frame_height = config["cap_frame_height"].as<float>();  
+		cap_frame_width = config["width"].as<float>();
+        cap_frame_height = config["height"].as<float>();  
         process_noise = config["process_noise"].as<double>(0.01);
         measurement_noise = config["measurement_noise"].as<double>(0.5);  
 
@@ -225,15 +225,24 @@ public:
     {
         return cap_frame_height;
     }
-    struct Target
+    class Target
     {
+    public:
+        Target() = default; // 默认构造函数
+        Target(float x, float y, float z, float r, float g, float b, float radius, const std::string &category, int id)
+            : x(x), y(y), z(z), r(r), g(g), b(b), radius(radius), category(category), id(id) {}
         float x, y, z;           // 圆心坐标
         float r, g, b;           // 颜色
         float radius;           // 半径
         std::string category;   // 分类标签
         int id;                 // 目标ID
+        float fx = 1;
+        float caculate_pixel_radius(void) const {
+            float pixel_radius = (radius / z) * fx; // 使用fx作为代表焦距
+            return std::max(pixel_radius, 5.0f); // 最小半径为5像素
+        }
     };
-    
+
     void append_targets(const std::vector<Target> &new_targets)
     {
         for (const auto &target : new_targets) {
@@ -261,8 +270,8 @@ public:
             marker.pose.position.x = target.x;
             marker.pose.position.y = target.y;
             marker.pose.position.z = target.z;
-            marker.scale.x = target.radius * 2; // 直径
-            marker.scale.y = target.radius * 2; // 直径
+            marker.scale.x = target.caculate_pixel_radius() * 2; // 直径
+            marker.scale.y = target.caculate_pixel_radius() * 2; // 直径
             marker.scale.z = 0.1; // 高度
 
             marker.color.r = target.r; // 使用目标颜色

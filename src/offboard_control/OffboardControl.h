@@ -481,8 +481,8 @@ private:
 	float ty_shot;
 	float tx_see;
 	float ty_see;
-	float global2stand_x;
-	float global2stand_y;
+
+	float bucket_height = 0.3; // 桶高度
 
 	// 定义航点
 	vector<Vector2f> surround_shot_points{

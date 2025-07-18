@@ -561,6 +561,8 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 		RCLCPP_INFO(node->get_logger(), "change point");
 		first = true;
 	}
+	RCLCPP_INFO(node->get_logger(), "trajectory_setpoint_world: x_err: %f y_err:%f z_err:%f, accuracy, :%f",
+			abs(pos_now.x() - pos_target.x()), abs(pos_now.y() - pos_target.y()), abs(pos_now.z() - pos_target.z()), accuracy);
 	if (abs(pos_now.x() - pos_target.x()) <= accuracy &&
 			abs(pos_now.y() - pos_target.y()) <= accuracy &&
 			abs(pos_now.z() - pos_target.z()) <= accuracy
