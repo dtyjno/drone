@@ -1,7 +1,6 @@
 #ifndef MATH_H // 如果MATH_H没有被定义
 #define MATH_H // 定义MATH_H
 
-#include <cmath>
 #include "math_utils.h"
 #include <Eigen/Core>
 #include <Eigen/Geometry>

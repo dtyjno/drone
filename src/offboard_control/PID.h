@@ -1,7 +1,7 @@
 #ifndef PID_H
 #define PID_H
 #include <cfloat>
-#define DEFAULT_VELOCITY FLT_MAX
+#define DEFAULT_VELOCITY INFINITY
 #include "Readyaml.h"
 
 #define pid_debug_print

@@ -165,6 +165,13 @@ public:
         
         return std::max(pixel_radius, 5.0); // 最小半径为5像素
     }
+    
+    // 计算物体的实际直径（基于像素直径和距离）
+    double calculateRealDiameter(double pixel_diameter, double distance_to_object) const {
+        // 使用透视投影公式：pixel_diameter = (real_diameter * focal_length) / distance
+        // 因此：real_diameter = (pixel_diameter * distance) / focal_length
+        return (pixel_diameter * distance_to_object) / fx;
+    }
         
     // 计算固定高度目标的世界坐标
     std::optional<Vector3d> pixelToWorldPosition(
@@ -191,31 +198,40 @@ public:
         
         // 3. 对于垂直向下的相机，使用简化的变换
         // 检查是否为垂直向下的相机 (pitch ≈ -90°)
-        // if (abs(camera.rotation[1] + M_PI/2) < 0.1) {
-        //     // std::cout << "检测到垂直向下相机，使用简化变换" << std::endl;
+        // if (abs(rotation[1] + M_PI/2) < 0.1) {
+        //     std::cout << "检测到垂直向下相机，使用简化变换" << std::endl;
             
-        //     // 对于垂直向下的相机，射线变换非常简单：
-        //     // 相机坐标(x, y, 1) -> 世界坐标(x, y, -1)（仅翻转Z轴）
-        //     Vector3d ray_world(norm_point.x(), norm_point.y(), -1.0);
-        //     ray_world.normalize();
+        //     // 对于垂直向下的相机，射线变换更加直接：
+        //     // 1. 归一化坐标直接对应于地面上的相对位置
+        //     // 2. 考虑相机的偏航角rotation[2]来正确旋转坐标
             
-        //     // std::cout << "简化射线方向: (" << ray_world.x() << "," << ray_world.y() << "," << ray_world.z() << ")" << std::endl;
+        //     // 计算从相机到目标的水平距离
+        //     double height_diff = position.z() - object_height;
+        //     std::cout << "相机高度: " << position.z() << ", 目标高度: " << object_height << ", 高度差: " << height_diff << std::endl;
             
-        //     // 计算交点
-        //     double target_z = ground_height + object_height;
-        //     if (ray_world.z() >= -0.1) {
-        //         std::cerr << "错误: 射线不向下" << std::endl;
+        //     if (height_diff <= 0) {
+        //         std::cerr << "错误: 相机高度(" << position.z() << ")小于等于目标高度(" << object_height << ")" << std::endl;
+        //         std::cerr << "无法进行坐标转换，相机必须在目标上方" << std::endl;
         //         return std::nullopt;
         //     }
             
-        //     double s = (target_z - camera.position.z()) / ray_world.z();
-        //     if (s <= 0) {
-        //         std::cerr << "错误: 交点在相机后方, s = " << s << std::endl;
-        //         return std::nullopt;
-        //     }
+        //     // 在相机坐标系中，归一化坐标对应的世界位移
+        //     double world_x_offset = norm_point.x() * height_diff;
+        //     double world_y_offset = norm_point.y() * height_diff;
             
-        //     Vector3d target_relative = s * ray_world;
-        //     Vector3d target_world = camera.position + target_relative;
+        //     // 应用相机偏航角旋转
+        //     double cos_yaw = cos(rotation[2]);
+        //     double sin_yaw = sin(rotation[2]);
+            
+        //     double rotated_x = cos_yaw * world_x_offset - sin_yaw * world_y_offset;
+        //     double rotated_y = sin_yaw * world_x_offset + cos_yaw * world_y_offset;
+            
+        //     Vector3d target_world;
+        //     target_world.x() = position.x() + rotated_x;
+        //     target_world.y() = position.y() + rotated_y;
+        //     target_world.z() = object_height;
+            
+        //     std::cout << "简化计算结果: (" << target_world.x() << ", " << target_world.y() << ", " << target_world.z() << ")" << std::endl;
             
         //     return target_world;
         // }
@@ -289,145 +305,6 @@ public:
         return target_world;
     }
     
-    // 垂直位移分析结果结构体
-    struct VerticalShiftResult {
-        Vector2d original_pixel;      // 原始像素坐标
-        Vector2d new_pixel;          // 抬升后的像素坐标
-        Vector2d pixel_displacement; // 像素位移量 (dx, dy)
-        Vector3d original_world;     // 原始世界坐标
-        Vector3d new_world;          // 抬升后的世界坐标
-        double height_change;        // 高度变化量
-        bool is_valid;              // 是否计算成功
-        std::string error_message;   // 错误信息
-    };
-    
-    // 计算图像点垂直抬升后的像素位置变化
-    VerticalShiftResult calculatePixelVerticalShift(
-        const Vector2d& pixel_point,    // 输入的图像像素坐标
-        double original_height,         // 原始高度（相对于地面）
-        double height_lift             // 垂直抬升高度（米）
-    ) const {
-        VerticalShiftResult result;
-        result.original_pixel = pixel_point;
-        result.height_change = height_lift;
-        result.is_valid = false;
-        
-        // 1. 计算原始像素点对应的世界坐标
-        auto original_world_opt = pixelToWorldPosition(pixel_point, original_height);
-        if (!original_world_opt.has_value()) {
-            result.error_message = "无法计算原始像素点的世界坐标";
-            return result;
-        }
-        result.original_world = original_world_opt.value();
-        
-        // 2. 计算抬升后的世界坐标（仅Z坐标变化）
-        result.new_world = result.original_world;
-        result.new_world.z() += height_lift;  // 垂直抬升
-        
-        // 3. 将抬升后的世界坐标转换回像素坐标
-        auto new_pixel_opt = worldToPixel(result.new_world);
-        if (!new_pixel_opt.has_value()) {
-            result.error_message = "抬升后的点不在相机视野内";
-            return result;
-        }
-        result.new_pixel = new_pixel_opt.value();
-        
-        // 4. 计算像素位移
-        result.pixel_displacement = result.new_pixel - result.original_pixel;
-        result.is_valid = true;
-        
-        return result;
-    }
-    
-    // 批量计算多个高度抬升的像素位置变化
-    std::vector<VerticalShiftResult> calculateMultipleVerticalShifts(
-        const Vector2d& pixel_point,              // 输入的图像像素坐标
-        double original_height,                   // 原始高度
-        const std::vector<double>& height_lifts   // 多个抬升高度
-    ) const {
-        std::vector<VerticalShiftResult> results;
-        
-        for (double lift : height_lifts) {
-            results.push_back(calculatePixelVerticalShift(pixel_point, original_height, lift));
-        }
-        
-        return results;
-    }
-    
-    // 计算垂直抬升轨迹（连续高度变化）
-    std::vector<VerticalShiftResult> calculateVerticalTrajectory(
-        const Vector2d& pixel_point,    // 输入的图像像素坐标
-        double original_height,         // 原始高度
-        double max_lift,               // 最大抬升高度
-        double step_size = 0.5         // 高度步长（米）
-    ) const {
-        std::vector<VerticalShiftResult> trajectory;
-        
-        for (double lift = 0.0; lift <= max_lift; lift += step_size) {
-            trajectory.push_back(calculatePixelVerticalShift(pixel_point, original_height, lift));
-        }
-        
-        return trajectory;
-    }
-    
-    // 示例使用函数：垂直位移分析
-    void verticalShiftAnalysisExample() const {
-        std::cout << "\n=== 垂直位移分析示例 ===" << std::endl;
-        
-        // 示例像素点（图像中心附近）
-        Vector2d test_pixel(320, 240);
-        double original_height = 0.0;  // 地面高度
-        
-        std::cout << "原始像素坐标: (" << test_pixel.x() << ", " << test_pixel.y() << ")" << std::endl;
-        std::cout << "原始高度: " << original_height << "m" << std::endl;
-        
-        // 1. 单次抬升分析
-        std::cout << "\n--- 单次抬升分析 ---" << std::endl;
-        double lift_height = 5.0;  // 抬升5米
-        auto result = calculatePixelVerticalShift(test_pixel, original_height, lift_height);
-        
-        if (result.is_valid) {
-            std::cout << "抬升 " << lift_height << "m 后:" << std::endl;
-            std::cout << "  新像素坐标: (" << result.new_pixel.x() << ", " << result.new_pixel.y() << ")" << std::endl;
-            std::cout << "  像素位移: (" << result.pixel_displacement.x() << ", " << result.pixel_displacement.y() << ")" << std::endl;
-            std::cout << "  位移幅度: " << result.pixel_displacement.norm() << " 像素" << std::endl;
-        } else {
-            std::cout << "计算失败: " << result.error_message << std::endl;
-        }
-        
-        // 2. 多高度分析
-        std::cout << "\n--- 多高度分析 ---" << std::endl;
-        std::vector<double> test_heights = {1.0, 2.0, 3.0, 5.0, 10.0};
-        auto multi_results = calculateMultipleVerticalShifts(test_pixel, original_height, test_heights);
-        
-        for (const auto& res : multi_results) {
-            if (res.is_valid) {
-                std::cout << "抬升 " << res.height_change << "m: "
-                         << "像素位移(" << res.pixel_displacement.x() << ", " << res.pixel_displacement.y() << "), "
-                         << "幅度 " << res.pixel_displacement.norm() << " px" << std::endl;
-            } else {
-                std::cout << "抬升 " << res.height_change << "m: 失败 - " << res.error_message << std::endl;
-            }
-        }
-        
-        // 3. 轨迹分析
-        std::cout << "\n--- 垂直轨迹分析 ---" << std::endl;
-        auto trajectory = calculateVerticalTrajectory(test_pixel, original_height, 10.0, 1.0);
-        
-        std::cout << "高度(m)\t像素X\t像素Y\t位移X\t位移Y\t位移幅度" << std::endl;
-        for (const auto& point : trajectory) {
-            if (point.is_valid) {
-                std::cout << point.height_change << "\t"
-                         << std::fixed << std::setprecision(1)
-                         << point.new_pixel.x() << "\t"
-                         << point.new_pixel.y() << "\t"
-                         << point.pixel_displacement.x() << "\t"
-                         << point.pixel_displacement.y() << "\t"
-                         << point.pixel_displacement.norm() << std::endl;
-            }
-        }
-    }
-    
 };
 
 
@@ -484,64 +361,3 @@ private:
   double gimbal_pitch, gimbal_roll, gimbal_yaw;
 
 };
-
-// 工具函数：批量处理世界坐标到像素坐标的转换
-struct ProjectedTarget {
-    int id;
-    std::string category;
-    Vector2d pixel_center;
-    double pixel_radius;
-    Vector3d world_position;
-    double world_radius;
-    bool is_visible;
-};
-
-// 示例使用函数
-inline void exampleUsage() {
-    // 创建相机参数
-    Camera camera;
-    camera.position = Vector3d(0, 0, 10);  // 相机在10米高度
-    camera.rotation = Vector3d(0, -M_PI/2, 0);  // 垂直向下
-    camera.fx = camera.fy = 500;  // 焦距
-    camera.cx = 320; camera.cy = 240;  // 图像中心
-    camera.width = 640; camera.height = 480;
-    
-    // 示例：世界坐标点
-    Vector3d world_point(5, 3, 0);  // 地面上的一个点
-    
-    // 转换为像素坐标
-    auto pixel_result = camera.worldToPixel(world_point);
-    if (pixel_result.has_value()) {
-        Vector2d pixel = pixel_result.value();
-        std::cout << "世界坐标 (" << world_point.transpose() << ") "
-                  << "对应像素坐标 (" << pixel.transpose() << ")" << std::endl;
-    } else {
-        std::cout << "世界坐标点不在相机视野内" << std::endl;
-    }
-    
-    // 计算目标的像素半径
-    double world_radius = 0.5;  // 0.5米半径
-    double pixel_radius = camera.calculatePixelRadius(world_point, world_radius);
-    std::cout << "世界半径 " << world_radius << "m 对应像素半径 " << pixel_radius << "px" << std::endl;
-    
-    // 垂直位移分析示例
-    camera.verticalShiftAnalysisExample();
-    
-    // 单点垂直位移测试
-    std::cout << "\n=== 单点垂直位移测试 ===" << std::endl;
-    Vector2d test_pixel(400, 300);  // 测试像素点
-    double original_height = 0.0;   // 地面高度
-    double lift_height = 3.0;       // 抬升3米
-    
-    auto shift_result = camera.calculatePixelVerticalShift(test_pixel, original_height, lift_height);
-    if (shift_result.is_valid) {
-        std::cout << "像素点 (" << test_pixel.x() << ", " << test_pixel.y() << ") 垂直抬升 " << lift_height << "m:" << std::endl;
-        std::cout << "  原始世界坐标: (" << shift_result.original_world.transpose() << ")" << std::endl;
-        std::cout << "  抬升后世界坐标: (" << shift_result.new_world.transpose() << ")" << std::endl;
-        std::cout << "  新像素坐标: (" << shift_result.new_pixel.x() << ", " << shift_result.new_pixel.y() << ")" << std::endl;
-        std::cout << "  像素位移: (" << shift_result.pixel_displacement.x() << ", " << shift_result.pixel_displacement.y() << ")" << std::endl;
-        std::cout << "  位移距离: " << shift_result.pixel_displacement.norm() << " 像素" << std::endl;
-    } else {
-        std::cout << "计算失败: " << shift_result.error_message << std::endl;
-    }
-}

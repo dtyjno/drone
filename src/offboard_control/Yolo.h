@@ -7,7 +7,6 @@
 #include "visualization_msgs/msg/marker.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
 
-#include "vision_msgs/msg/detection2_d.hpp"
 #include "vision_msgs/msg/detection2_d_array.hpp"
 
 #include "Readyaml.h"
@@ -15,6 +14,7 @@
 #include <chrono>
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
+#include <algorithm>
 //#include <opencv2/opencv.hpp>
 //#include "cv_bridge/cv_bridge.h"
 
@@ -98,31 +98,18 @@ class YOLO : public rclcpp::Node
 public:
     YOLO() : Node("image_pub")
     {
-        // publisher_ = this->create_publisher<sensor_msgs::msg::Image>("image", 10);
-
-        // timer_ = this->create_wall_timer(
-        //     std::chrono::milliseconds(100), 
-        //     std::bind(&YOLO::timer_callback, this)
-        // );
-        visualization_circles_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("visualization_targets", 10);
-
-        subscriber_ = this->create_subscription<ros2_yolo_msgs::msg::DetectedBox>(
-            "detected_boxes", 
-            10, 
-            std::bind(&YOLO::coord_callback, this, std::placeholders::_1)
+        visualization_circles_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
+            "visualization_targets", 10);
+        // 新增Detection2DArray订阅者
+        detection2d_array_sub_ = this->create_subscription<vision_msgs::msg::Detection2DArray>(
+            "detection2d_array", 10,
+            std::bind(&YOLO::detection2d_array_callback, this, std::placeholders::_1)
         );
         read_configs("camera.yaml");
-        
         // 初始化卡尔曼滤波器
         circle_filter = std::make_unique<KalmanFilter2D>(process_noise, measurement_noise);  // 圆形目标滤波器
         h_filter = std::make_unique<KalmanFilter2D>(process_noise, measurement_noise);       // H型目标滤波器
         last_update_time = std::chrono::steady_clock::time_point{};   // 初始化时间
-        
-        // cap.open(0, CAP_V4L2);
-        // cap.set(CAP_PROP_FOURCC, VideoWriter::fourcc('M','J','P','G'));
-        // cap.set(CAP_PROP_FRAME_WIDTH, SET_CAP_FRAME_HEIGHT);//图像的宽
-        // cap.set(CAP_PROP_FRAME_HEIGHT, SET_CAP_FRAME_WIDTH);//图像的高
-
     }
     enum TARGET_TYPE{
         CIRCLE, //0
@@ -138,65 +125,61 @@ public:
         }
         return false;
     }
-	float get_x(enum TARGET_TYPE type){
+    std::vector<vision_msgs::msg::BoundingBox2D> get_raw_targets(enum TARGET_TYPE type){
         if(type == CIRCLE){
-            return circle_filter->isInitialized() ? circle_filter->getX() : x_circle_raw;
+            return circle_raw;
         }
         else if(type == H){
-            return h_filter->isInitialized() ? h_filter->getX() : x_h_raw;
+            return h_raw;
         }
-        return 0;
+        return {};
     }
-    float get_y(enum TARGET_TYPE type){
-        if(type == CIRCLE){
-            return circle_filter->isInitialized() ? circle_filter->getY() : y_circle_raw;
-        }
-        else if(type == H){
-            return h_filter->isInitialized() ? h_filter->getY() : y_h_raw;
-        }
-        return 0;
-    }
-	float get_width(enum TARGET_TYPE type){
-        (void)type;
-		return 0;
-	}
-	float get_height(enum TARGET_TYPE type){
-        (void)type;
-		return 0;
-	}
-    int get_servo_flag(){
-        return flag_servo;
-    }
-    void read_configs(const std::string &filename)
-	{
-		YAML::Node config = Readyaml::readYAML(filename);
-		cap_frame_width = config["width"].as<float>();
-        cap_frame_height = config["height"].as<float>();  
-        process_noise = config["process_noise"].as<double>(0.01);
-        measurement_noise = config["measurement_noise"].as<double>(0.5);  
-
-    }
-    
     // 获取原始未滤波的坐标
     float get_raw_x(enum TARGET_TYPE type){
         if(type == CIRCLE){
-            return x_circle_raw;
+            return circle_raw.size() > 0 ? circle_raw[0].center.position.x : 0.0f;
         }
         else if(type == H){
-            return x_h_raw;
+            return h_raw.size() > 0 ? h_raw[0].center.position.x : 0.0f;
         }
         return 0;
     }
     float get_raw_y(enum TARGET_TYPE type){
         if(type == CIRCLE){
-            return y_circle_raw;
+            return circle_raw.size() > 0 ? circle_raw[0].center.position.y : 0.0f;
         }
         else if(type == H){
-            return y_h_raw;
+            return h_raw.size() > 0 ? h_raw[0].center.position.y : 0.0f;
         }
         return 0;
     }
     
+    float get_x(enum TARGET_TYPE type){
+        if(type == CIRCLE){
+            return circle_filter->isInitialized() ? circle_filter->getX() : get_raw_x(CIRCLE);
+        }
+        else if(type == H){
+            return h_filter->isInitialized() ? h_filter->getX() : get_raw_x(H);
+        }
+        return 0;
+    }
+    float get_y(enum TARGET_TYPE type){
+        if(type == CIRCLE){
+            return circle_filter->isInitialized() ? circle_filter->getY() : get_raw_y(CIRCLE);
+        }
+        else if(type == H){
+            return h_filter->isInitialized() ? h_filter->getY() : get_raw_y(H);
+        }
+        return 0;
+    }
+    float get_width(enum TARGET_TYPE type){
+        (void)type;
+        return 0;
+    }
+    float get_height(enum TARGET_TYPE type){
+        (void)type;
+        return 0;
+    }
     // 获取滤波器的速度信息
     float get_velocity_x(enum TARGET_TYPE type){
         if(type == CIRCLE && circle_filter->isInitialized()){
@@ -216,6 +199,16 @@ public:
         }
         return 0;
     }
+    void read_configs(const std::string &filename)
+    {
+        YAML::Node config = Readyaml::readYAML(filename);
+        cap_frame_width = config["width"].as<float>();
+        cap_frame_height = config["height"].as<float>();  
+        process_noise = config["process_noise"].as<double>(0.01);
+        measurement_noise = config["measurement_noise"].as<double>(0.5);  
+
+    }
+    
     
     int get_cap_frame_width()
     {
@@ -237,12 +230,16 @@ public:
         std::string category;   // 分类标签
         int id;                 // 目标ID
         float fx = 1;
+        float relative_z = 1; // 相对高度
         float caculate_pixel_radius(void) const {
-            float pixel_radius = (radius / z) * fx; // 使用fx作为代表焦距
+            float pixel_radius = (radius / relative_z) * fx; // 使用fx作为代表焦距
             return std::max(pixel_radius, 5.0f); // 最小半径为5像素
         }
     };
-
+    void append_target(const Target &target)
+    {
+        targets.push_back(target);
+    }
     void append_targets(const std::vector<Target> &new_targets)
     {
         for (const auto &target : new_targets) {
@@ -273,7 +270,7 @@ public:
             marker.scale.x = target.caculate_pixel_radius() * 2; // 直径
             marker.scale.y = target.caculate_pixel_radius() * 2; // 直径
             marker.scale.z = 0.1; // 高度
-
+ 
             marker.color.r = target.r; // 使用目标颜色
             marker.color.g = target.g; // 使用目标颜色
             marker.color.b = target.b; // 使用目标颜色
@@ -294,11 +291,8 @@ private:
     double measurement_noise = 0.5; // 测量噪声
     
     // 原始坐标数据
-	float x_circle_raw;
-    float x_h_raw;
-	float y_circle_raw;
-    float y_h_raw;
-    int flag_servo;
+    std::vector<vision_msgs::msg::BoundingBox2D> circle_raw;
+    std::vector<vision_msgs::msg::BoundingBox2D> h_raw;
 
     std::vector<YOLO::Target> targets; // 目标点集合
     
@@ -311,20 +305,47 @@ private:
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr visualization_circles_publisher_;
     // rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr circle_center_publisher_;
 
-    rclcpp::Subscription<ros2_yolo_msgs::msg::DetectedBox>::SharedPtr subscriber_;
+    rclcpp::Subscription<vision_msgs::msg::Detection2DArray>::SharedPtr detection2d_array_sub_;
     rclcpp::TimerBase::SharedPtr timer_;
     // VideoCapture cap;
 
 
-    void coord_callback(const ros2_yolo_msgs::msg::DetectedBox::SharedPtr msg)
+    // 新增Detection2DArray回调
+    void detection2d_array_callback(const vision_msgs::msg::Detection2DArray::SharedPtr msg)
     {
-        // 保存原始数据
-        x_circle_raw = msg->x1;
-        y_circle_raw = msg->y1;
-        x_h_raw = msg->x2;
-        y_h_raw = msg->y2;
-        flag_servo = msg->servo;
-        
+        std::vector<vision_msgs::msg::BoundingBox2D> circle_raw, h_raw;
+        for (const auto &det : msg->detections) {
+            // if (det.results[0].score < 0.5) {
+            //     continue; // 忽略低置信度的检测
+            // }
+            if (det.results[0].hypothesis.class_id == "circle") {
+                circle_raw.push_back(det.bbox);
+            } else if (det.results[0].hypothesis.class_id == "h") {
+                h_raw.push_back(det.bbox);
+            }
+            // det.bbox.center.x, det.bbox.center.y, det.results 等
+        }
+
+        // 更新原始数据
+        sort(circle_raw.begin(), circle_raw.end(), [this](const vision_msgs::msg::BoundingBox2D &a, const vision_msgs::msg::BoundingBox2D &b) {
+            return abs(a.center.position.x - cap_frame_width / 2) + abs(a.center.position.y - cap_frame_height / 2) <
+                    abs(b.center.position.x - cap_frame_width / 2) + abs(b.center.position.y - cap_frame_height / 2);
+        });
+        if (circle_raw.size() > 0) {
+            this->circle_raw = circle_raw;
+        } else {
+            this->circle_raw.clear();
+        }
+        sort(h_raw.begin(), h_raw.end(), [this](const vision_msgs::msg::BoundingBox2D &a, const vision_msgs::msg::BoundingBox2D &b) {
+            return abs(a.center.position.x - cap_frame_width / 2) + abs(a.center.position.y - cap_frame_height / 2) <
+                    abs(b.center.position.x - cap_frame_width / 2) + abs(b.center.position.y - cap_frame_height / 2);
+        });
+        if (h_raw.size() > 0) {
+            this->h_raw = h_raw;
+        } else {
+            this->h_raw.clear();
+        }
+
         // 计算时间间隔
         auto current_time = std::chrono::steady_clock::now();
         double dt = 0.1; // 默认时间间隔
@@ -334,18 +355,21 @@ private:
         last_update_time = current_time;
         
         // 更新卡尔曼滤波器
-        if (fabs(x_circle_raw) > 0.0001 && fabs(y_circle_raw) > 0.0001) {
-            circle_filter->update(x_circle_raw, y_circle_raw, dt);
+        if (is_get_target(CIRCLE)) {
+            circle_filter->update(get_raw_x(CIRCLE), get_raw_y(CIRCLE), dt);
+        }
+
+        if (is_get_target(H)) {
+            h_filter->update(get_raw_x(H), get_raw_y(H), dt);
         }
         
-        if (fabs(x_h_raw) > 0.0001 && fabs(y_h_raw) > 0.0001) {
-            h_filter->update(x_h_raw, y_h_raw, dt);
-        }
-        
-        // RCLCPP_INFO(this->get_logger(), "收到坐标c(%f, %f) h(%f ,%f), flag_servo = %d", x_circle_raw, y_circle_raw, x_h_raw, y_h_raw, flag_servo);
-        // RCLCPP_INFO(this->get_logger(), "滤波后c(%f, %f) h(%f ,%f)", get_x(CIRCLE), get_y(CIRCLE), get_x(H), get_y(H));
+        // RCLCPP_INFO(this->get_logger(), "收到坐标c(%f, %f) h(%f ,%f)", get_raw_x(CIRCLE), get_raw_y(CIRCLE), get_raw_x(H), get_raw_y(H));
+        // RCLCPP_INFO(this->get_logger(), "滤波后c(%f, %f) h(%f ,%f) vc(%f, %f) vh(%f, %f)",
+        //     get_x(CIRCLE), get_y(CIRCLE), get_x(H), get_y(H),
+        //     get_velocity_x(CIRCLE), get_velocity_y(CIRCLE),
+        //     get_velocity_x(H), get_velocity_y(H));
     }
-    
+
 };
 
 #endif // YOLO_H

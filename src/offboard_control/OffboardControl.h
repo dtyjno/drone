@@ -578,7 +578,7 @@ private:
 	void send_local_setpoint_command(float x, float y, float z, float yaw);
 	bool local_setpoint_command(float x, float y, float z, float yaw, double accuracy);
 	bool trajectory_setpoint(float x, float y, float z, float yaw, double accuracy = DEFAULT_ACCURACY);
-	bool trajectory_setpoint_world(float x, float y, float z, float yaw, PID::Defaults defaults, double accuracy = DEFAULT_ACCURACY);
+	// bool trajectory_setpoint_world(float x, float y, float z, float yaw, PID::Defaults defaults, double accuracy = DEFAULT_ACCURACY);
 	bool trajectory_setpoint_world(float x, float y, float z, float yaw, double accuracy = DEFAULT_ACCURACY);
 	bool publish_setpoint_world(float x, float y, float z, float yaw, double accuracy = DEFAULT_ACCURACY);
 	void send_velocity_command(float x, float y, float z, float yaw);

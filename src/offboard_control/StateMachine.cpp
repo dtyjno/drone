@@ -139,11 +139,11 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 			case owner_->DoshotState::doshot_wait: // 等待再次投弹
 				if(shot_counter <= 1) // 投弹计数器小于1，再次执行投弹
 				{
-					if (owner_->get_cur_time() - doshot_halt_end_time < 0.5) { // 等待1秒
-						owner_->_pose_control->send_velocity_command_world(0, 0, 0, 0); // 停止飞行
-						// owner_->_servo_controller->set_servo(10 + shot_counter, 1864);
-						RCLCPP_INFO(owner_->get_logger(), "等待0.5秒，准备投弹");
-					}
+					// if (owner_->get_cur_time() - doshot_halt_end_time < 0.5) { // 等待1秒
+					// 	owner_->_pose_control->send_velocity_command_world(0, 0, 0, 0); // 停止飞行
+					// 	// owner_->_servo_controller->set_servo(10 + shot_counter, 1864);
+					// 	RCLCPP_INFO(owner_->get_logger(), "等待0.5秒，准备投弹");
+					// }
 					owner_->waypoint_goto_next(
 						owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
 						owner_->shot_halt, owner_->surround_shot_points, owner_->shot_halt, &counter, "投弹区");

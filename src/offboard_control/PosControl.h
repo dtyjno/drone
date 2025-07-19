@@ -23,7 +23,6 @@
 #include <pal_statistics_msgs/msg/statistic.hpp>
 #endif
 
-
 //
  # define POSCONTROL_Z_P                    0.6f    // vertical velocity controller P gain default
  # define POSCONTROL_Z_I                    0.0f    // vertical velocity controller I gain default
@@ -254,7 +253,7 @@ public:
 	bool publish_setpoint_world(Vector4f now, Vector4f target, double accuracy = DEFAULT_ACCURACY, double yaw_accuracy = DEFAULT_YAW_ACCURACY);
 	bool trajectory_setpoint(Vector4f pos_now,Vector4f pos_target,double accuracy = DEFAULT_ACCURACY,double yaw_accuracy = DEFAULT_YAW_ACCURACY);
 	bool trajectory_setpoint_world(Vector4f pos_now,Vector4f pos_target,double accuracy = DEFAULT_ACCURACY,double yaw_accuracy = DEFAULT_YAW_ACCURACY);
-	bool trajectory_setpoint_world(Vector4f pos_now,Vector4f pos_target,PID::Defaults defaults, bool calculate_vel, double accuracy = DEFAULT_ACCURACY,double yaw_accuracy = DEFAULT_YAW_ACCURACY);
+	bool trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target, PID::Defaults defaults, double accuracy, double yaw_accuracy, bool calculate_or_get_vel, float vel_x = DEFAULT_VELOCITY, float vel_y = DEFAULT_VELOCITY);
 	bool trajectory_circle(float a,float b,float height,float dt,float default_yaw = DEFAULT_YAW,float yaw = DEFAULT_YAW);
 	bool trajectory_generator_world(double speed_factor, std::array<double, 3> q_goal, Vector3f max_speed = {100,100,100}, Vector3f max_accel = {100,100,100}, float tar_yaw = DEFAULT_YAW);
 	float get_speed_max();
@@ -346,7 +345,7 @@ private:
 	float dt_pid_p_v = 1;
 
 	Vector3f input_pos_xyz(Vector3f now, Vector3f target, bool fuzzy = false);
-	Vector4f input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy = false, bool calculate_vel = false);
+	Vector4f input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy = false, bool calculate_or_get_vel = false, float vel_x = DEFAULT_VELOCITY, float vel_y = DEFAULT_VELOCITY);
 	Vector4f input_pos_xyz_yaw_without_vel(Vector4f now, Vector4f target);
 	Vector4f input_pos_vel_1_xyz_yaw(Vector4f now, Vector4f target);
 	Vector4f input_pos_vel_xyz_yaw(Vector4f now, Vector4f target);

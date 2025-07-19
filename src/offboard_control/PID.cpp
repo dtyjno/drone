@@ -286,7 +286,7 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
     update_i(dt, limit);
 
     // Calculate the derivative term
-    if (!is_equal(velocity, DEFAULT_VELOCITY))
+    if (isfinite(velocity))
     {
         _derivative = -velocity;
         _pid_info.D = velocity * _pid_info._kD;
@@ -297,7 +297,7 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
         _derivative = calculate_improved_derivative(current_time, dt);
         
 #ifdef pid_debug_print
-        printf("PID: improved_deri:%10.6f, ", _derivative);
+        printf("PID%s: improved_deri:%10.6f, ", pid_name.c_str(), _derivative);
 #endif
         if (!is_equal(_derivative, 0.0f, 0.0001f))
         {
@@ -335,8 +335,8 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
     // Set the slew rate
     _pid_info.slew_rate = srmax;
 #ifdef pid_debug_print
-    printf("PID: tar:%+10f mea:%+5f kp:%+5f ki:%+5f kd:%+5f\n", target, measurement, _pid_info._kP, _pid_info._kI, _pid_info._kD);
-    printf("PID: err:%+5f P:%+10f I:%+10f D:%+10f Out:%f\n",  _pid_info.error, _pid_info.P, _pid_info.I, _pid_info.D, _pid_info.output);
+    printf("PID%s: tar:%+10f mea:%+5f kp:%+5f ki:%+5f kd:%+5f\n", pid_name.c_str(), target, measurement, _pid_info._kP, _pid_info._kI, _pid_info._kD);
+    printf("PID%s: err:%+5f P:%+10f I:%+10f D:%+10f Out:%f\n", pid_name.c_str(), _pid_info.error, _pid_info.P, _pid_info.I, _pid_info.D, _pid_info.output);
 // std::cout <<"target:"<<target<<" meadurement:"<<measurement<<" error:"<<_pid_info.error <<" P:"
 // <<_pid_info.P<<" I:"
 // <<_pid_info.I<<" D:"
@@ -397,7 +397,7 @@ void PID::update_i(float dt, float limit)
 
 void PID::print_update_info()
 {
-    printf("tar:%+10f mea:%+5f err:%+5f P:%+10f I:%+10f D:%+10f Out:%f _MAX:%f\n", _pid_info.target, _pid_info.actual, _pid_info.error, _pid_info.P, _pid_info.I, _pid_info.D, _pid_info.output, _pid_info.output_max);
+    printf("PID%s:tar:%+10f mea:%+5f err:%+5f P:%+10f I:%+10f D:%+10f Out:%f _MAX:%f\n", pid_name.c_str(), _pid_info.target, _pid_info.actual, _pid_info.error, _pid_info.P, _pid_info.I, _pid_info.D, _pid_info.output, _pid_info.output_max);
 }
 /**
  * 使用滑动平均滤波器平滑数据。

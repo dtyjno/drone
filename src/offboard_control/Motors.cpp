@@ -70,6 +70,7 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude, float yaw){
 			state_ = State::arm_requested;
 		} else if (local_frame_z - home_position.z() < 0.5f && num_of_takeoff <= 5){ 
 			if(timer->elapsed() > 2.0){
+				num_of_takeoff++;
 				// RCLCPP_INFO(node->get_logger(), "vehicle is taking off");
 				command_takeoff_or_land("TAKEOFF", takeoff_altitude, yaw);
 				timer->reset(); // 重置计时器
