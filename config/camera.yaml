@@ -9,7 +9,7 @@ p2: 0.0
 k3: 0.0
 width: 640 # 1920 1280*1080
 height: 480 # 1080
-process_noise: 0.01
-measurement_noise: 0.5
+process_noise: 0.50
+measurement_noise: 1.0
 # cap_frame_width: 1920
 # cap_frame_height: 1080

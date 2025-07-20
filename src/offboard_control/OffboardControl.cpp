@@ -37,62 +37,63 @@ void OffboardControl::timer_callback(void)
 		RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "位置数据无效，等待有效GPS信号...");
 		return;
 	}
-	
-	_camera_gimbal->position = Vector3d(get_x_pos() + 0.15, get_y_pos(), get_z_pos() + 0.21);
-	
+	_camera_gimbal->position = Vector3d(get_x_pos() + drone_to_camera[0], get_y_pos() + drone_to_camera[1], get_z_pos() + drone_to_camera[2]);
+
 	// 相机坐标系：相对于飞机机体坐标系，向前旋转90度后垂直向下
 	// 飞机偏航角 + 相机相对偏航角(90度) + 俯仰角(-90度向下)
 	float roll, pitch, yaw;
 	get_euler(roll, pitch, yaw);
 	
 	// 设置相机姿态：垂直向下看（pitch = -90°）
-	_camera_gimbal->rotation = Vector3d(roll, pitch - M_PI/2, M_PI/2 - yaw);  // roll=0, pitch=-90°(垂直向下), yaw=0
+	
+
+	_camera_gimbal->rotation = Vector3d(roll, pitch + M_PI, M_PI/2 - yaw);  // roll=0, pitch=-90°(垂直向下), yaw=0
 	
 	// 调试输出：像素坐标和相机位置
 	// std::cout << "相机当前位置: (" << _camera_gimbal->position[0] << ", " << _camera_gimbal->position[1] << ", " << _camera_gimbal->position[2] << ")" << std::endl;
 	// std::cout << "相机旋转角度: roll=" << _camera_gimbal->rotation[0] << " pitch=" << _camera_gimbal->rotation[1] << " yaw=" << _camera_gimbal->rotation[2] << std::endl;
 	// std::cout << "相机内参: fx=" << _camera_gimbal->fx << " fy=" << _camera_gimbal->fy << " cx=" << _camera_gimbal->cx << " cy=" << _camera_gimbal->cy << std::endl;
 	
-	// std::vector<vision_msgs::msg::BoundingBox2D> raw_circles = _yolo->get_raw_targets(YOLO::TARGET_TYPE::CIRCLE);
-	// for (const auto& circle : raw_circles) 
-	// {
-	// 	// std::cout << "检测到的像素坐标: (" << circle.center.position.x << ", " << circle.center.position.y << ")" << std::endl;
+	std::vector<vision_msgs::msg::BoundingBox2D> raw_circles = _yolo->get_raw_targets(YOLO::TARGET_TYPE::CIRCLE);
+	for (const auto& circle : raw_circles) 
+	{
+		// std::cout << "检测到的像素坐标: (" << circle.center.position.x << ", " << circle.center.position.y << ")" << std::endl;
 		
-	// 	this->target1 = _camera_gimbal->pixelToWorldPosition(
-	// 		Vector2d(circle.center.position.x, circle.center.position.y), 
-	// 		bucket_height // 桶顶高度
-	// 	);
-	// 	// double diameter = _camera_gimbal->calculateRealDiameter((circle.size_x + circle.size_y) / 2.0, _camera_gimbal->position.z() - bucket_height);
-	// 	if (target1.has_value()) {
-	// 		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "(THROTTLE 0.5s) Example 1 - Target position: %f, %f, %f",
-	// 			target1->x(), target1->y(), target1->z());
-	// 		Points Target;
-	// 		Target.point = *target1;
-	// 		Target.cluster_id = 0;
-	// 		Target_Samples.push_back({*target1, 0});
-	// 	}
-	// 	else {
-	// 		RCLCPP_WARN(this->get_logger(), "Example 1 - 无效的目标位置");
-	// 	}
-	// }
-	// if(!Target_Samples.empty() ) // && (doshot_state_ == DoshotState::doshot_scout || doshot_state_ == DoshotState::doshot_shot)
-	// {
-	// 	vector<Vector3d>cal_center = Clustering(Target_Samples);
-	// 	uint8_t shot_count = 0;
-	// 	for(size_t i = 0; i < cal_center.size(); ++i)
-	// 	{
-	// 		double tx, ty;
-	// 		rotate_stand2global(cal_center[i].x(), cal_center[i].y(), tx, ty);
-	// 		if (tx < dx_shot - 5 || tx > dx_shot + 5 ||
-	// 			ty < dy_shot || ty > dy_shot + 5) {
-	// 			RCLCPP_WARN(this->get_logger(), "侦查点坐标异常，跳过: %zu, x: %f, y: %f", i, cal_center[i].x(), cal_center[i].y());
-	// 			continue; // 跳过无效坐标
-	// 		}
-	// 		RCLCPP_INFO(this->get_logger(), "侦查点坐标 %zu: x: %f, y: %f ,n_x: %f, n_y: %f", 
-	// 			i, cal_center[i].x(), cal_center[i].y(), surround_shot_points[shot_count].x(), surround_shot_points[shot_count].y());
-	// 		surround_shot_points[shot_count++] = Vector2f((tx - dx_shot) / 10, (ty - dy_shot)/ 5);
-	// 	}
-    // }
+		this->target1 = _camera_gimbal->pixelToWorldPosition(
+			Vector2d(circle.center.position.x, circle.center.position.y), 
+			bucket_height // 桶顶高度
+		);
+		// double diameter = _camera_gimbal->calculateRealDiameter((circle.size_x + circle.size_y) / 2.0, _camera_gimbal->position.z() - bucket_height);
+		if (target1.has_value()) {
+			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "(THROTTLE 0.5s) Example 1 - Target position: %f, %f, %f",
+				target1->x(), target1->y(), target1->z());
+			Points Target;
+			Target.point = *target1;
+			Target.cluster_id = 0;
+			Target_Samples.push_back({*target1, 0});
+		}
+		else {
+			RCLCPP_WARN(this->get_logger(), "Example 1 - 无效的目标位置");
+		}
+	}
+	if(!Target_Samples.empty() && (doshot_state_ == DoshotState::doshot_scout || doshot_state_ == DoshotState::doshot_shot))
+	{
+		vector<Vector3d>cal_center = Clustering(Target_Samples);
+		uint8_t shot_count = 0;
+		for(size_t i = 0; i < cal_center.size(); ++i)
+		{
+			double tx, ty;
+			rotate_stand2global(cal_center[i].x(), cal_center[i].y(), tx, ty);
+			if (tx < dx_shot - 5 || tx > dx_shot + 5 ||
+				ty < dy_shot || ty > dy_shot + 5) {
+				RCLCPP_WARN(this->get_logger(), "侦查点坐标异常，跳过: %zu, x: %f, y: %f", i, cal_center[i].x(), cal_center[i].y());
+				continue; // 跳过无效坐标
+			}
+			RCLCPP_INFO(this->get_logger(), "侦查点坐标 %zu: x: %f, y: %f ,n_x: %f, n_y: %f", 
+				i, cal_center[i].x(), cal_center[i].y(), surround_shot_points[shot_count].x(), surround_shot_points[shot_count].y());
+			surround_shot_points[shot_count++] = Vector2f((tx - dx_shot) / 10, (ty - dy_shot)/ 5);
+		}
+    }
 
 	if (_motors->mode == "LAND" && state_machine_.get_current_state() != FlyState::end && !print_info_)
 	{
@@ -301,7 +302,7 @@ bool OffboardControl::Doshot(int shot_count)
 	static float shot_duration = 2; 					// 稳定持续时间
 	static std::vector<YOLO::Target> targets; 			// 声明目标x和y坐标
 	static float tar_z = 1, tar_yaw = 0; 				// 声明目标偏航角（rad）
-	static bool shot_flag = false; 			// 投弹标志
+	static bool shot_flag = false; 				// 投弹标志
 	bool result = false;
 
 	// 读取PID参数
@@ -341,15 +342,14 @@ bool OffboardControl::Doshot(int shot_count)
 				target.radius = radius;
 				RCLCPP_INFO(this->get_logger(), "Doshot: cap_frame_width: %d, cap_frame_height: %d, radius: %f", 
 					_yolo->get_cap_frame_width(), _yolo->get_cap_frame_height(), target.radius);
-				target.category = config[std::string("tar_category").append(targets_str[i])].as<float>(1.0f);
 				RCLCPP_INFO(this->get_logger(), "Doshot: tar_x: %f, tar_y: %f, tar_z: %f", target.x, target.y, target.z);
 				targets.push_back(target);
-
 			}
 
 			time_find_start = get_cur_time();
 			_t_time = time_find_start;
 			tar_yaw = 0;			            // 设置目标偏航角（rad）
+			shot_flag = false;  // 重置投弹标志
 			catch_state_ = CatchState::fly_to_target;
 			continue; // 继续执行下一个case;
 		}
@@ -373,6 +373,7 @@ bool OffboardControl::Doshot(int shot_count)
 			if (!_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE))
 			{
 				if (shot_flag){
+					RCLCPP_INFO(this->get_logger(), "Doshot: yolo未识别到桶，等待");
 					_pose_control->send_velocity_command_world(0, 0, 0, 0); // 停止飞行
 				}
 				// RCLCPP_INFO(this->get_logger(), "Doshot: yolo未识别到桶，等待");
@@ -393,18 +394,19 @@ bool OffboardControl::Doshot(int shot_count)
 				if(!shot_flag && cur_shot_time - _t_time > shot_duration){ // 1.5秒
 					RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, time > %fs, tar_x = %f, tar_y = %f, tar_z = %f, tar_yaw = %f", 
 						shot_duration, targets[shot_index].x, targets[shot_index].y, targets[shot_index].z, tar_yaw);
-					_servo_controller->set_servo(10 + shot_count, 1864);
-					shot_flag = true; // 设置投弹标志为true
+					shot_flag = true; // 设置投弹标志
+					_servo_controller->set_servo(10 + shot_count, 1864); // 设置舵机位置，投弹
 				} 
-				else if (shot_flag && cur_shot_time - _t_time <= shot_duration + 0.5) // 0.5秒内继续等待
+				else if (shot_flag) // 0.5秒内继续等待
 				{
-					RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, wait"); 
+					if (cur_shot_time - _t_time < shot_duration + 0.5) {
+						RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, wait");
+					} else {
+						catch_state_ = CatchState::end;
+						continue; // 直接跳到下一个状态;
+					}
 					// _servo_controller->set_servo(10 + shot_count, 1864);
-				} else if (shot_flag && cur_shot_time - _t_time > shot_duration + 0.5){
-					catch_state_ = CatchState::end;
-					shot_flag = false;
-					continue; // 直接跳到下一个状态;
-				}		
+				}			
 			}
 			else if (!shot_flag)
 			{

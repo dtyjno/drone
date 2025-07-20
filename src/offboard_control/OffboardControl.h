@@ -119,6 +119,8 @@ public:
 		stats_publisher_ = this->create_publisher<pal_statistics_msgs::msg::Statistics>("/statistics", 10);
 		stats_timer_ = this->create_wall_timer(50ms,std::bind(&OffboardControl::publish_statistics, this));
 		#endif
+
+		rotate_global2stand(drone_to_camera[0], drone_to_camera[1], drone_to_camera[0], drone_to_camera[1]);
 	}
 
 	float get_x_pos(void)
@@ -483,6 +485,7 @@ private:
 	float ty_see;
 
 	float bucket_height = 0.3; // 桶高度
+	Vector3d drone_to_camera = {0.15, 0, 0.21};
 
 	// 定义航点
 	vector<Vector2f> surround_shot_points{

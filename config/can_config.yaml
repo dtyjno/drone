@@ -1,13 +1,13 @@
 pid:
-  p: 0.40
-  i: 0.25
-  d: 0.10
+  p: 0.30
+  i: 0.050
+  d: 0.25
   ff: 0
   dff: 0
-  imax: 4
+  imax: 1
 limits:
   speed_max_xy: 0.5
-  speed_max_z: 0.2
+  speed_max_z: 0.18
   speed_max_yaw: 0.05
   accel_max_xy: 0.5
   accel_max_z: 0.1
@@ -17,4 +17,4 @@ tar_x_l: 0.0     # 左侧舵机 目标x坐标，单位：px  0使用默认值
 tar_y_l: 0.0     # 左侧舵机 目标y坐标，单位：px  0使用默认值
 tar_x_r: 150.0     # 右侧舵机 目标x坐标，单位：px  0使用默认值
 tar_y_r: 150.0     # 右侧舵机 目标y坐标，单位：px  0使用默认值
-tar_z: 1.5         # 目标y坐标 单位：m
+tar_z: 1.2         # 目标y坐标 单位：m

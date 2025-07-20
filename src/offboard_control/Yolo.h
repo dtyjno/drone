@@ -260,6 +260,8 @@ public:
             marker.header.frame_id = "map"; // 或者其他适当的坐标系
             marker.header.stamp = this->now();
             marker.ns = target.category; // 使用目标ID作为命名空间
+            std::cout << "Publishing target: " << target.category << " at (" 
+                      << target.x << ", " << target.y << ", " << target.z << ")" << std::endl;
             marker.id = target.id;
             marker.type = visualization_msgs::msg::Marker::CYLINDER;
             marker.action = visualization_msgs::msg::Marker::ADD;

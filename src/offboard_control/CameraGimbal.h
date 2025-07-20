@@ -90,8 +90,12 @@ public:
     }
     Matrix3d eulerAnglesToRotationMatrix() const {
         double roll = rotation[0];
-        double pitch = rotation[1]; 
+        double pitch = rotation[1];
         double yaw = rotation[2];
+        
+        // 添加调试输出
+        // std::cout << "欧拉角 (弧度): roll=" << roll << ", pitch=" << pitch << ", yaw=" << yaw << std::endl;
+        // std::cout << "欧拉角 (角度): roll=" << roll*180/M_PI << "°, pitch=" << pitch*180/M_PI << "°, yaw=" << yaw*180/M_PI << "°" << std::endl;
         
         Matrix3d R_x; // 绕X轴旋转(roll)
         R_x << 1, 0, 0,
@@ -108,9 +112,17 @@ public:
             sin(yaw), cos(yaw), 0,
             0, 0, 1;
         
-        // 使用 Z-Y-X 顺序 (yaw-pitch-roll) 来正确处理相机到世界的变换
-        // 这样俯仰角-90度会正确地将相机Z轴(前方)指向世界-Z方向(下方)
-        return R_z * R_y * R_x; // 注意顺序：先绕Z轴，再Y轴，最后X轴
+        // 添加中间矩阵调试
+        // std::cout << "R_x (roll):" << std::endl << R_x << std::endl;
+        // std::cout << "R_y (pitch):" << std::endl << R_y << std::endl; 
+        // std::cout << "R_z (yaw):" << std::endl << R_z << std::endl;
+        
+        // 使用 Z-Y-X 顺序 (yaw-pitch-roll)
+        Matrix3d result = R_z * R_y * R_x;
+        
+        // std::cout << "最终旋转矩阵:" << std::endl << result << std::endl;
+        
+        return result;
     }
     
     // 世界坐标转换为像素坐标
@@ -187,6 +199,11 @@ public:
             return std::nullopt;
         }
         
+        // 添加调试输出
+        // std::cout << "像素坐标: (" << pixel_point.x() << ", " << pixel_point.y() << ")" << std::endl;
+        // std::cout << "归一化坐标: (" << norm_point.x() << ", " << norm_point.y() << ")" << std::endl;
+        // std::cout << "相机姿态 (roll, pitch, yaw): (" << rotation[0] << ", " << rotation[1] << ", " << rotation[2] << ")" << std::endl;
+        
         // 2. 处理垂直向下特殊情况(俯仰角≈-90度)
         // if (abs(camera.rotation[1] + M_PI/2) < 1e-4) {
         //     Vector3d target_relative;
@@ -239,18 +256,30 @@ public:
         // 4. 复杂相机姿态的通用处理
         Matrix3d R = eulerAnglesToRotationMatrix();
         
+        // 添加旋转矩阵调试输出
+        // std::cout << "旋转矩阵 R:" << std::endl;
+        // std::cout << R << std::endl;
+        
         // 4. 创建归一化相机坐标系中的射线方向 (Z=1)
         Vector3d ray_cam(norm_point.x(), norm_point.y(), 1.0);
         // std::cout << "ray_cam" << std::endl;
-        // std::cout << ray_cam << std::endl;
+        // std::cout << ray_cam.transpose() << std::endl;  // 横向显示
         
         // 5. 转换到世界坐标系(ENU)
         // R 将相机坐标系中的方向向量转换到世界坐标系
         // 对于向下看的相机(-90度俯仰)，相机的Z轴应该指向世界的-Z方向
         Vector3d ray_world = R * ray_cam;
+        // std::cout << "变换前 ray_world:" << std::endl;
+        // std::cout << ray_world.transpose() << std::endl;  // 横向显示
+        
         ray_world.normalize();
-        // std::cout << "ray_world" << std::endl;
-        // std::cout << ray_world << std::endl;
+        // std::cout << "归一化后 ray_world:" << std::endl;
+        // std::cout << ray_world.transpose() << std::endl;  // 横向显示
+        
+        // 验证旋转矩阵的正交性
+        Matrix3d RTR = R.transpose() * R;
+        // std::cout << "R^T * R (应该接近单位矩阵):" << std::endl;
+        // std::cout << RTR << std::endl;
 
         // 6. 计算射线到目标平面的距离参数
         double target_z = object_height;  // 目标的世界Z坐标
@@ -271,9 +300,6 @@ public:
             return std::nullopt;
         }
         
-        double s = (target_z - position.z()) / ray_world.z();
-        // std::cout << "s = (" << target_z << " - " << position.z() << ") / " << ray_world.z() << " = " << s << std::endl;
-        
         // 检查射线方向与目标位置的兼容性
         if (ray_world.z() > 0 && target_z < position.z()) {
             std::cerr << "错误: 射线向上 (ray_z > 0) 但目标在相机下方 (target_z < camera_z)" << std::endl;
@@ -281,26 +307,19 @@ public:
             
             return std::nullopt;
         }
-        
-        if (ray_world.z() < 0 && target_z > position.z()) {
-            std::cerr << "错误: 射线向下 (ray_z < 0) 但目标在相机上方 (target_z > camera_z)" << std::endl;
-            std::cerr << "这种情况下射线永远不会到达目标高度" << std::endl;
+        double s = (target_z - position.z()) / ray_world.z();
+        // std::cout << "s = (" << target_z << " - " << position.z() << ") / " << ray_world.z() << " = " << s << std::endl;
+                
+        // 9. 检查射线参数的有效性
+        if (s < 0) {
+            std::cerr << "错误: 射线参数 s < 0，表示目标在射线反方向" << std::endl;
             return std::nullopt;
         }
         
-        // 检查交点是否在射线前方
-        if (s <= 0) {
-            std::cerr << "警告: 计算的交点在相机后方或相机位置, s = " << s << std::endl;
-            return std::nullopt;
-        }
+        // 10. 计算最终的世界坐标
+        Vector3d target_world = position + s * ray_world;
         
-        // 7. 计算目标相对于相机的位置向量
-        Vector3d target_relative = s * ray_world;
-        // std::cout << "target_relative" << std::endl;
-        // std::cout << target_relative << std::endl;
-        
-        // 8. 目标的世界坐标 = 相机世界坐标 + 目标相对坐标
-        Vector3d target_world = position + target_relative;
+        // std::cout << "最终目标世界坐标: (" << target_world.x() << ", " << target_world.y() << ", " << target_world.z() << ")" << std::endl;
         
         return target_world;
     }

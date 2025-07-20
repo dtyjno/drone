@@ -125,8 +125,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					owner_->doshot_state_ = owner_->DoshotState::doshot_wait; // 设置投弹状态为结束
 					doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
 					continue; // 继续执行下一次循环
-				} else 
-				if (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE)) { // 如果没有找到投弹目标
+				} else if (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE)) { // 如果没有找到投弹目标
 					pre_counter = counter; // 记录上一次的计数器值
 					owner_->waypoint_goto_next(
 						owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
@@ -139,11 +138,6 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 			case owner_->DoshotState::doshot_wait: // 等待再次投弹
 				if(shot_counter <= 1) // 投弹计数器小于1，再次执行投弹
 				{
-					// if (owner_->get_cur_time() - doshot_halt_end_time < 0.5) { // 等待1秒
-					// 	owner_->_pose_control->send_velocity_command_world(0, 0, 0, 0); // 停止飞行
-					// 	// owner_->_servo_controller->set_servo(10 + shot_counter, 1864);
-					// 	RCLCPP_INFO(owner_->get_logger(), "等待0.5秒，准备投弹");
-					// }
 					owner_->waypoint_goto_next(
 						owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
 						owner_->shot_halt, owner_->surround_shot_points, owner_->shot_halt, &counter, "投弹区");
