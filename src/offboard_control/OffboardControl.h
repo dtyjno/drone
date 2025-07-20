@@ -300,14 +300,14 @@ public:
 	// 顺时针旋转
 	template <typename T>
 	void rotate_global2stand(T in_x,T in_y, T &out_x, T &out_y) {
-		rotate_angle(in_x, in_y, headingangle_compass);
+		rotate_angle(in_x, in_y, -headingangle_compass);
 		out_x = in_x;
 		out_y = in_y;
 	}
 
 	template <typename T>
 	void rotate_stand2global(T in_x, T in_y, T &out_x, T &out_y) {
-		rotate_angle(in_x, in_y, -headingangle_compass);
+		rotate_angle(in_x, in_y, headingangle_compass);
 		out_x = in_x;
 		out_y = in_y;
 	}
@@ -377,6 +377,16 @@ public:
 		current_state_stat.value = static_cast<int>(state_machine_.get_current_state());
 		statistics.push_back(current_state_stat);	
 		
+		auto yolo_x_circle_raw_stat = pal_statistics_msgs::msg::Statistic();
+		yolo_x_circle_raw_stat.name ="yolo_x_circle_raw";
+		yolo_x_circle_raw_stat.value = _yolo->get_raw_x(YOLO::TARGET_TYPE::CIRCLE);
+		statistics.push_back(yolo_x_circle_raw_stat);	
+
+		auto yolo_y_circle_raw_stat = pal_statistics_msgs::msg::Statistic();
+		yolo_y_circle_raw_stat.name ="yolo_y_circle_raw";
+		yolo_y_circle_raw_stat.value = _yolo->get_raw_y(YOLO::TARGET_TYPE::CIRCLE);
+		statistics.push_back(yolo_y_circle_raw_stat);	
+
 		auto yolo_x_circle_stat = pal_statistics_msgs::msg::Statistic();
 		yolo_x_circle_stat.name ="yolo_x_circle";
 		yolo_x_circle_stat.value = _yolo->get_x(YOLO::TARGET_TYPE::CIRCLE);
@@ -441,7 +451,8 @@ private:
 	{
 		doshot_init,
 		doshot_scout,
-		doshot_halt,
+		doshot_shot,
+		doshot_wait,
 		doshot_end
 	} doshot_state_ = DoshotState::doshot_init;
 
@@ -516,12 +527,12 @@ private:
   void publish_current_state();
 
 	rclcpp::TimerBase::SharedPtr timer_;
-	void set_pose();
-	void set_gps();
-	void set_velocity();
-	void set_altitude();
-	void set_state();
-	void set_home_position();
+	// void set_pose();
+	// void set_gps();
+	// void set_velocity();
+	// void set_altitude();
+	// void set_state();
+	// void set_home_position();
 
 	void timer_callback(void);
 	void FlyState_init(void);
@@ -551,7 +562,9 @@ private:
 		// ty_see = dy_see;
 	}
 	// control.cpp
-	Timer state_timer_;         // 通用计时器1
+	Timer waypoint_timer_;         // 航点计时器
+	Timer state_timer_;		       // 状态计时器
+	bool is_first_run_=true;
 	bool waypoint_goto_next(float x, float y, float length, float width, float halt, vector<Vector2f> &way_points, float time, int *count = nullptr, const std::string &description = "");
 	// bool surround_shot_goto_next(double x, double y, double length, double width);
 	// bool surround_see(double x, double y, double length, double width);
