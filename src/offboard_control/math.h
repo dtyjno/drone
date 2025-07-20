@@ -1,7 +1,6 @@
 #ifndef MATH_H // 如果MATH_H没有被定义
 #define MATH_H // 定义MATH_H
 
-#include <cmath>
 #include "math_utils.h"
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -9,12 +8,12 @@
 using namespace Eigen;
 
 // 使用 Eigen 固定尺寸向量模板
-typedef Matrix<float, 2, 1> Vector2f;  // 二维浮点向量
-typedef Matrix<float, 3, 1> Vector3f;  // 三维浮点向量
-typedef Matrix<float, 4, 1> Vector4f;  // 四维浮点向量
-typedef Matrix<float, 4, 1> Vector4b;  // 四维布尔向量
-typedef Matrix<float, 3, 1> Vector3b;  // 四维布尔向量
-typedef Quaternion<float> Quaternionf;  // 四元数类型
+// typedef Matrix<float, 2, 1> Vector2f;  // 二维浮点向量
+// typedef Matrix<float, 3, 1> Vector3f;  // 三维浮点向量
+// typedef Matrix<float, 4, 1> Vector4f;  // 四维浮点向量
+// typedef Matrix<float, 4, 1> Vector4b;  // 四维布尔向量
+// typedef Matrix<float, 3, 1> Vector3b;  // 四维布尔向量
+// typedef Quaternion<float> Quaternionf;  // 四元数类型
 
 
 // #include "Location.h"

@@ -62,10 +62,10 @@ public:
 	}
 
 	//"TAKEOFF" or "LAND"
-	void command_takeoff_or_land(std::string mode, double altitude = 5.0);
+	void command_takeoff_or_land(std::string mode, float altitude = 5.0f, float yaw = 0.0f);
 
-	bool takeoff(float local_frame_z ,float takeoff_altitude = 5.0);
-	
+	bool takeoff(float local_frame_z ,float takeoff_altitude = 5.0f, float yaw = 0.0f);
+
 	bool takeoff_command = false;
 	bool _arm_done; //arm_motor's reply
 	enum class State{

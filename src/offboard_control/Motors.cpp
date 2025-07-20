@@ -21,7 +21,7 @@ using namespace std::chrono_literals;
 // 4. 请求解锁
 // 5. 起飞
 // 6. 若未解锁则回到第3步
-bool Motors::takeoff(float local_frame_z,float takeoff_altitude){
+bool Motors::takeoff(float local_frame_z,float takeoff_altitude, float yaw){
 	(void)local_frame_z;
 	static bool is_takeoff = false;
 	static uint8_t num_of_steps = 0, num_of_takeoff = 0;
@@ -60,7 +60,7 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude){
 			//RCLCPP_INFO(this->get_logger(), "vehicle is armed");
 			timer->reset(); // 重置计时器
 			num_of_takeoff = 1;
-			command_takeoff_or_land("TAKEOFF",takeoff_altitude);
+			command_takeoff_or_land("TAKEOFF", takeoff_altitude, yaw);
 			state_ = State::takeoff;
 		}
 		break;
@@ -70,8 +70,9 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude){
 			state_ = State::arm_requested;
 		} else if (local_frame_z - home_position.z() < 0.5f && num_of_takeoff <= 5){ 
 			if(timer->elapsed() > 2.0){
+				num_of_takeoff++;
 				// RCLCPP_INFO(node->get_logger(), "vehicle is taking off");
-				command_takeoff_or_land("TAKEOFF",takeoff_altitude);
+				command_takeoff_or_land("TAKEOFF", takeoff_altitude, yaw);
 				timer->reset(); // 重置计时器
 			}
 		}else{ // 起飞或等待时间长于重新上锁时间
@@ -357,7 +358,7 @@ void Motors::set_home_position(float yaw)
 // uint8 result
 
 // #### Common type for GLOBAL Take Off and Landing
-void Motors::command_takeoff_or_land(std::string mode, double altitude)
+void Motors::command_takeoff_or_land(std::string mode, float altitude, float yaw)
 {
 	std::string mode_str(mode);
     OffboardControl_Base* node = this->node;
@@ -369,6 +370,7 @@ void Motors::command_takeoff_or_land(std::string mode, double altitude)
 		takeoff_request->latitude = 0.0;
 		takeoff_request->longitude = 0.0;
 		takeoff_request->altitude = altitude;
+		takeoff_request->yaw = yaw;
 		
 		auto takeoff_result_future = takeoff_client_->async_send_request(takeoff_request,
 			[this,node](rclcpp::Client<mavros_msgs::srv::CommandTOL>::SharedFuture future) {

@@ -50,6 +50,15 @@ PID::PID(std::string pid_name, float kp, float ki, float kd, float kff, float kd
     _integrator = 0.0f;
     _error = 0.0f;
     _derivative = 0.0f;
+    
+    // 初始化历史数据
+    _history_index = 0;
+    _history_full = false;
+    for (int i = 0; i < HISTORY_SIZE; i++) {
+        _error_history[i] = 0.0f;
+        _time_history[i] = 0.0f;
+    }
+    
     _pid_info._kP = _kp;
     _pid_info._kI = _ki;
     _pid_info._kD = _kd;
@@ -79,6 +88,15 @@ PID::PID(float kp, float ki, float kd, float kff, float kdff, float kimax, float
     _integrator = 0.0f;
     _error = 0.0f;
     _derivative = 0.0f;
+    
+    // 初始化历史数据
+    _history_index = 0;
+    _history_full = false;
+    for (int i = 0; i < HISTORY_SIZE; i++) {
+        _error_history[i] = 0.0f;
+        _time_history[i] = 0.0f;
+    }
+    
     _pid_info._kP = _kp;
     _pid_info._kI = _ki;
     _pid_info._kD = _kd;
@@ -108,6 +126,15 @@ PID::PID(const PID::Defaults &defaults)
     _integrator = 0.0f;
     _error = 0.0f;
     _derivative = 0.0f;
+    
+    // 初始化历史数据
+    _history_index = 0;
+    _history_full = false;
+    for (int i = 0; i < HISTORY_SIZE; i++) {
+        _error_history[i] = 0.0f;
+        _time_history[i] = 0.0f;
+    }
+    
     _pid_info._kP = _kp;
     _pid_info._kI = _ki;
     _pid_info._kD = _kd;
@@ -220,6 +247,10 @@ void PID::get_pid(float &kp, float &ki, float &kd)
 #include <iostream>
 float PID::update_all(float measurement, float target, float dt, float limit, float velocity)
 {
+    // 计算当前时间（累积时间）
+    static float current_time = 0.0f;
+    current_time += dt;
+    
 #ifdef pid_debug_print
     // printf("p:%3.2f i:%3.2f d:%3.2f ", _pid_info._kP, _pid_info._kI, _pid_info._kD);
 #endif
@@ -255,20 +286,26 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
     update_i(dt, limit);
 
     // Calculate the derivative term
-    if (!is_equal(velocity, DEFAULT_VELOCITY))
+    if (isfinite(velocity))
     {
         _derivative = -velocity;
         _pid_info.D = velocity * _pid_info._kD;
     }
     else
     {
-        _derivative = -(_pid_info.Dmod - _error) / dt;
+        // 使用改进的微分计算方法（基于历史数据）
+        _derivative = calculate_improved_derivative(current_time, dt);
+        
 #ifdef pid_debug_print
-        // printf("deri:%10.6f, ", _derivative);
+        printf("PID%s: improved_deri:%10.6f, ", pid_name.c_str(), _derivative);
 #endif
         if (!is_equal(_derivative, 0.0f, 0.0001f))
         {
             _pid_info.D = _derivative * _pid_info._kD;
+        }
+        else
+        {
+            _pid_info.D = 0.0f;
         }
     }
     // Calculate the feed forward term
@@ -298,8 +335,8 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
     // Set the slew rate
     _pid_info.slew_rate = srmax;
 #ifdef pid_debug_print
-    printf("PID: tar:%+10f mea:%+5f kp:%+5f ki:%+5f kd:%+5f\n", target, measurement, _pid_info._kP, _pid_info._kI, _pid_info._kD);
-    printf("PID: err:%+5f P:%+10f I:%+10f D:%+10f Out:%f\n",  _pid_info.error, _pid_info.P, _pid_info.I, _pid_info.D, _pid_info.output);
+    printf("PID%s: tar:%+10f mea:%+5f kp:%+5f ki:%+5f kd:%+5f\n", pid_name.c_str(), target, measurement, _pid_info._kP, _pid_info._kI, _pid_info._kD);
+    printf("PID%s: err:%+5f P:%+10f I:%+10f D:%+10f Out:%f\n", pid_name.c_str(), _pid_info.error, _pid_info.P, _pid_info.I, _pid_info.D, _pid_info.output);
 // std::cout <<"target:"<<target<<" meadurement:"<<measurement<<" error:"<<_pid_info.error <<" P:"
 // <<_pid_info.P<<" I:"
 // <<_pid_info.I<<" D:"
@@ -455,7 +492,7 @@ void PID::update_i(float dt, float limit)
 
 void PID::print_update_info()
 {
-    printf("tar:%+10f mea:%+5f err:%+5f P:%+10f I:%+10f D:%+10f Out:%f _MAX:%f\n", _pid_info.target, _pid_info.actual, _pid_info.error, _pid_info.P, _pid_info.I, _pid_info.D, _pid_info.output, _pid_info.output_max);
+    printf("PID%s:tar:%+10f mea:%+5f err:%+5f P:%+10f I:%+10f D:%+10f Out:%f _MAX:%f\n", pid_name.c_str(), _pid_info.target, _pid_info.actual, _pid_info.error, _pid_info.P, _pid_info.I, _pid_info.D, _pid_info.output, _pid_info.output_max);
 }
 /**
  * 使用滑动平均滤波器平滑数据。
@@ -475,6 +512,52 @@ float PID::smooth_data(float current_value, float alpha)
     last_smoothed_value = smoothed_value;
 
     return smoothed_value;
+}
+
+// 使用历史数据计算改进的微分项
+float PID::calculate_improved_derivative(float current_time, float dt)
+{
+    // 更新历史数据
+    _error_history[_history_index] = _error;
+    _time_history[_history_index] = current_time;
+    
+    // 移动到下一个索引
+    _history_index = (_history_index + 1) % HISTORY_SIZE;
+    if (!_history_full && _history_index == 0) {
+        _history_full = true;
+    }
+    
+    // 如果历史数据不足，使用传统方法
+    if (!_history_full) {
+        return -(_pid_info.Dmod - _error) / dt;
+    }
+    
+    // 使用最小二乘法拟合直线来计算微分
+    // 计算时间和误差的平均值
+    float sum_time = 0.0f, sum_error = 0.0f;
+    for (int i = 0; i < HISTORY_SIZE; i++) {
+        sum_time += _time_history[i];
+        sum_error += _error_history[i];
+    }
+    float mean_time = sum_time / HISTORY_SIZE;
+    float mean_error = sum_error / HISTORY_SIZE;
+    
+    // 计算斜率（微分）
+    float numerator = 0.0f, denominator = 0.0f;
+    for (int i = 0; i < HISTORY_SIZE; i++) {
+        float time_diff = _time_history[i] - mean_time;
+        float error_diff = _error_history[i] - mean_error;
+        numerator += time_diff * error_diff;
+        denominator += time_diff * time_diff;
+    }
+    
+    // 避免除零
+    if (fabs(denominator) < 1e-6) {
+        return -(_pid_info.Dmod - _error) / dt;
+    }
+    
+    // 返回负的斜率（因为我们需要 -d(error)/dt）
+    return -(numerator / denominator);
 }
 
 #ifndef POSCONTROL_H

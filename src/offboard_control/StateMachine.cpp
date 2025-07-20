@@ -16,7 +16,7 @@ void StateMachine::handle_state<FlyState::takeoff>() {
 	if (current_state_ == FlyState::takeoff){
 		RCLCPP_INFO_ONCE(owner_->get_logger(), "开始起飞");
 
-		if (owner_->_motors->takeoff(owner_->get_z_pos())) {
+		if (owner_->_motors->takeoff(owner_->get_z_pos(), 5.0f, owner_->get_yaw())) {
 				RCLCPP_INFO_ONCE(owner_->get_logger(), "起飞成功");
 				transition_to(FlyState::Goto_shotpoint);
 		} else {
@@ -67,6 +67,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 		static double doshot_halt_end_time; // 记录结束时间
 		static int shot_counter = 1; // 投弹计数器
 		static vector<array<double, 3>> surround_shot_scout_points;
+		
 		if (owner_->state_timer_.elapsed() > 100) // 超时 100 秒
 		{
 			RCLCPP_INFO(owner_->get_logger(), "超时");
@@ -84,7 +85,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 						{owner_->dx_shot - 2.4, owner_->dy_shot + 3.7, 4},
 						{owner_->dx_shot - 2.4, owner_->dy_shot + 1.3, 4},
 					};
-					owner_->doshot_state_ = owner_->DoshotState::doshot_scout; // 设置投弹状态为侦查
+					owner_->doshot_state_ = owner_->DoshotState::doshot_shot; // 设置投弹状态为侦查
 					counter = 0; // 重置计数器
 					shot_counter = 1; // 重置投弹计数器
 				}
@@ -124,8 +125,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					owner_->doshot_state_ = owner_->DoshotState::doshot_wait; // 设置投弹状态为结束
 					doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
 					continue; // 继续执行下一次循环
-				} else 
-				if (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE)) { // 如果没有找到投弹目标
+				} else if (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE)) { // 如果没有找到投弹目标
 					pre_counter = counter; // 记录上一次的计数器值
 					owner_->waypoint_goto_next(
 						owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
@@ -138,11 +138,6 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 			case owner_->DoshotState::doshot_wait: // 等待再次投弹
 				if(shot_counter <= 1) // 投弹计数器小于1，再次执行投弹
 				{
-					if (owner_->get_cur_time() - doshot_halt_end_time < 0.5) { // 等待1秒
-						owner_->_pose_control->send_velocity_command_world(0, 0, 0, 0); // 停止飞行
-						// owner_->_servo_controller->set_servo(10 + shot_counter, 1864);
-						RCLCPP_INFO(owner_->get_logger(), "等待0.5秒，准备投弹");
-					}
 					owner_->waypoint_goto_next(
 						owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
 						owner_->shot_halt, owner_->surround_shot_points, owner_->shot_halt, &counter, "投弹区");

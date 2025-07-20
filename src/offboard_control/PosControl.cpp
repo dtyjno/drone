@@ -233,7 +233,7 @@ Vector3f PosControl::input_pos_xyz(Vector3f now, Vector3f target, bool fuzzy)
 }
 
 // 输入位置 pid控制速度 yaw
-Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy)
+Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy, bool calculate_or_get_vel, float vel_x, float vel_y)
 {
 	// 处理yaw跨越点问题
 	float yaw_diff_last = 0;
@@ -250,6 +250,7 @@ Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy
 		yaw_diff_last += 2 * M_PI;
 	}
 	std::cout << "yaw_diff: " << yaw_diff << ", yaw_diff_last: " << yaw_diff_last << std::endl;
+	std::cout << "now: " << now.x() << ", " << now.y() << ", " << now.z() << ", " << now.w() + yaw_diff_last << std::endl;
 	if(fuzzy){
 		float delta_k = 2.0f;
 
@@ -261,13 +262,13 @@ Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy
 		// 	kp, ki, kd);
 		fuzzy_pid.fuzzy_pid_control(now.x(), target.x(), 0, kp, ki, kd, delta_k);
 		pid_x.set_gains(kp, ki, kd);
-		f.x() = pid_x.update_all(now.x(), target.x(), dt, max_speed_xy, _inav->velocity.x());
+		f.x() = pid_x.update_all(now.x(), target.x(), dt, max_speed_xy, calculate_or_get_vel ? vel_x : _inav->velocity.x());
 		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: x   p:%f i:%f d:%f", 
 		// 	kp, ki, kd);
 		pid_y.get_pid(kp, ki, kd);
 		fuzzy_pid.fuzzy_pid_control(now.y(), target.y(), 1, kp, ki, kd, delta_k);
 		pid_y.set_gains(kp, ki, kd);
-		f.y() = pid_y.update_all(now.y(), target.y(), dt, max_speed_xy, _inav->velocity.y());
+		f.y() = pid_y.update_all(now.y(), target.y(), dt, max_speed_xy, calculate_or_get_vel ? vel_y : _inav->velocity.y());
 		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: y   p:%f i:%f d:%f", 
 		// 	kp, ki, kd);		
 		pid_z.get_pid(kp, ki, kd);
@@ -291,8 +292,8 @@ Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy
 		return f;
 	} else{
 		Vector4f f;
-		f.x() = pid_x.update_all(now.x(), target.x(), dt, max_speed_xy, _inav->velocity.x());
-		f.y() = pid_y.update_all(now.y(), target.y(), dt, max_speed_xy, _inav->velocity.y());
+		f.x() = pid_x.update_all(now.x(), target.x(), dt, max_speed_xy, calculate_or_get_vel ? vel_x : _inav->velocity.x());
+		f.y() = pid_y.update_all(now.y(), target.y(), dt, max_speed_xy, calculate_or_get_vel ? vel_y : _inav->velocity.y());
 		f.z() = pid_z.update_all(now.z(), target.z(), dt, max_speed_z, _inav->velocity.z());
 		f.w() = pid_yaw.update_all(now.w(), target.w() + yaw_diff_last, dt, max_speed_yaw, _inav->velocity.w());
 		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: vx:%f vy:%f vz:%f vyaw:%f", f.x(), f.y(), f.z(), f.w());
@@ -521,8 +522,8 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 	return false;
 }
 
-// pid飞行到指定位置(闭环)，指定pid参数（相对于起飞点/世界坐标系）
-bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target, PID::Defaults defaults, double accuracy, double yaw_accuracy)
+// pid飞行到指定位置(闭环)，指定xy方向的pid参数（相对于起飞点/世界坐标系）
+bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target, PID::Defaults defaults, double accuracy, double yaw_accuracy, bool calculate_or_get_vel, float vel_x, float vel_y)
 {
 	(void)yaw_accuracy;
 	RCLCPP_INFO(node->get_logger(), "p:%f i:%f d:%f", defaults.p, defaults.i, defaults.d);
@@ -553,7 +554,7 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 		// #endif
 		// #ifndef PID_P
 		// send_velocity_command_world(input_pos_xyz_yaw_without_vel(pos_now, pos_target));
-		send_velocity_command_world(input_pos_xyz_yaw(pos_now, pos_target, true));
+		send_velocity_command_world(input_pos_xyz_yaw(pos_now, pos_target, true, calculate_or_get_vel, vel_x, vel_y));
 		// #endif
 	}
 	else
