@@ -14,15 +14,15 @@ mypid:
   outputlimit: 2.0217
   p: 0.6277
 pos_x:
-  p: 0.2
-  i: 0.08
+  p: 0.3
+  i: 0.05
   d: 0.10
   dff: 0
   ff: 0
   imax: 5
 pos_y:
-  p: 0.2
-  i: 0.08
+  p: 0.3
+  i: 0.05
   d: 0.10
   dff: 0
   ff: 0
@@ -36,7 +36,7 @@ pos_yaw:
   imax: 5
 pos_z:
   p: 0.1
-  i: 0.01
+  i: 0.005
   d: 0.005
   dff: 0
   ff: 0

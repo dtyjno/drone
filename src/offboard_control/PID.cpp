@@ -362,42 +362,141 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
 //  If the limit flag is set the integral is only allowed to shrink
 void PID::update_i(float dt, float limit)
 {
-    if (!is_zero(_ki) && is_positive(dt))
+    // 检查Ki和dt的有效性
+    if (is_zero(_pid_info._kI) || !is_positive(dt))
     {
-        // Ensure that integrator can only be reduced if the output is saturated
-        if (!limit || (_pid_info.I <= 0 && _error <= 0) || (_pid_info.I >= 0 && _error >= 0))
+        _pid_info.I = 0.0f;
+        _pid_info.limit = (limit > 0);
+        return;
+    }
+    
+    // 计算基本积分项增量
+    float integral_increment = _error * _pid_info._kI * dt;
+    printf("PID%s: integral_increment:%+10f, dt:%+10f, kI:%+10f\n", pid_name.c_str(), integral_increment, dt, _pid_info._kI);
+    
+    // 如果没有输出限制，直接更新积分项
+    if (limit <= 0)
+    {
+        _pid_info.I += integral_increment;
+        _pid_info.I = constrain_float(_pid_info.I, _kimax, -_kimax);
+        _pid_info.limit = false;
+        return;
+    }
+    
+    // 计算当前输出的饱和状态
+    float saturated_output = constrain_float(_pid_info.output, limit, -limit);
+    bool is_saturated = (fabs(_pid_info.output - saturated_output) > 1e-6);
+    
+    // 抗饱和处理
+    if (is_saturated)
+    {
+        // 输出饱和时的抗积分饱和策略
+        if ((_pid_info.output > limit && _error > 0) || (_pid_info.output < -limit && _error < 0))
         {
-            // Update the integrator
-
-            //     float _kb = _pid_info._kI / _pid_info._kP;
-            //     // 计算抗饱和项
-            //     float anti_windup = (_pid_info.output - constrain_float(_pid_info.output, _pid_info.output_max, -_pid_info.output_max)) * _kb;
-            // 更新积分项，加入抗饱和项
-            _pid_info.I += ((float)_error * _pid_info._kI) * dt;
-            // Limit the integrator
-            _pid_info.I = constrain_float(_pid_info.I, _kimax, -_kimax);
+            // 如果误差会使饱和更严重，则不增加积分项
+            // 但允许积分项朝减少饱和的方向变化
+            if ((_pid_info.I > 0 && _error < 0) || (_pid_info.I < 0 && _error > 0))
+            {
+                _pid_info.I += integral_increment;
+            }
+            // 否则保持积分项不变或使用条件积分
+            else
+            {
+                // 使用条件积分：如果积分项很大，允许其缓慢衰减
+                if (fabs(_pid_info.I) > _kimax * 0.9f)
+                {
+                    _pid_info.I *= 0.95f; // 缓慢衰减
+                }
+            }
         }
         else
         {
-            // Reset the integrator
-            _pid_info.I = 0.0f;
+            // 误差有助于减少饱和，正常更新积分项
+            _pid_info.I += integral_increment;
+        }
+        
+        // 使用抗饱和反馈（基于饱和量）
+        if (!is_zero(_pid_info._kP))
+        {
+            float kb = _pid_info._kI / _pid_info._kP; // 抗饱和增益
+            float saturation_error = _pid_info.output - saturated_output;
+            float anti_windup_correction = -saturation_error * kb * dt;
+            _pid_info.I += anti_windup_correction;
+            printf("PID%s: Anti-windup correction: %f\n", pid_name.c_str(), anti_windup_correction);
         }
     }
     else
     {
-        _pid_info.I = 0.0f;
+        // 输出未饱和，正常更新积分项
+        _pid_info.I += integral_increment;
     }
-    // _pid_info.I = _integrator;
-    _pid_info.limit = limit;
-
-    // // Set I set flag for logging and clear
-    // _pid_info.I_term_set = _flags._I_set;
-    // _flags._I_set = false;
+    
+    // 限制积分项幅值
+    _pid_info.I = constrain_float(_pid_info.I, _kimax, -_kimax);
+    
+    // 积分项衰减机制（当误差接近零时）
+    if (fabs(_error) < 0.15f && fabs(_pid_info.I) > 0.005f)
+    {
+        printf("PID%s: Integral decay applied: %f\n", pid_name.c_str(), _pid_info.I);
+        _pid_info.I *= 0.97f; // 轻微衰减，避免长期偏差
+    }
+    
+    // 设置限制标志
+    _pid_info.limit = (limit > 0);
+    
+#ifdef pid_debug_print
+    if (is_saturated)
+    {
+        printf("PID%s: SATURATED - output:%f, limit:%f, I:%f\n", 
+               pid_name.c_str(), _pid_info.output, limit, _pid_info.I);
+    }
+#endif
 }
 
 void PID::print_update_info()
 {
     printf("PID%s:tar:%+10f mea:%+5f err:%+5f P:%+10f I:%+10f D:%+10f Out:%f _MAX:%f\n", pid_name.c_str(), _pid_info.target, _pid_info.actual, _pid_info.error, _pid_info.P, _pid_info.I, _pid_info.D, _pid_info.output, _pid_info.output_max);
+}
+
+// 重置积分项
+void PID::reset_I()
+{
+    _pid_info.I = 0.0f;
+    _integrator = 0.0f;
+}
+
+// 重置所有PID状态
+void PID::reset_all()
+{
+    _pid_info.I = 0.0f;
+    _pid_info.D = 0.0f;
+    _pid_info.P = 0.0f;
+    _pid_info.output = 0.0f;
+    _integrator = 0.0f;
+    _error = 0.0f;
+    _derivative = 0.0f;
+    _pid_info.Dmod = 0.0f;
+    
+    // 重置历史数据
+    _history_index = 0;
+    _history_full = false;
+    for (int i = 0; i < HISTORY_SIZE; i++) {
+        _error_history[i] = 0.0f;
+        _time_history[i] = 0.0f;
+    }
+}
+
+// 获取积分项值
+float PID::get_integrator() const
+{
+    return _pid_info.I;
+}
+
+// 设置积分项值（用于外部控制）
+void PID::set_integrator(float integrator)
+{
+    _pid_info.I = constrain_float(integrator, _kimax, -_kimax);
+    _integrator = _pid_info.I;
 }
 /**
  * 使用滑动平均滤波器平滑数据。

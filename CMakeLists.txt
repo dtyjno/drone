@@ -35,8 +35,6 @@ find_package(trajectory_msgs REQUIRED)
 #
 find_package(vision_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
-list(APPEND CMAKE_PREFIX_PATH "~/ardupilot_ws/install/ros2_interfaces")
-find_package(ros2_interfaces REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(cv_bridge REQUIRED)
@@ -71,10 +69,10 @@ add_executable(pose_subscriber src/listeners/pose_subscriber.cpp)
 ament_target_dependencies(pose_subscriber rclcpp geometry_msgs nav_msgs)
 install(TARGETS pose_subscriber DESTINATION lib/${PROJECT_NAME})
 
-# listeners/yolo_subscriber
-add_executable(yolo_subscriber src/listeners/yolo_subscriber.cpp)
-ament_target_dependencies(yolo_subscriber rclcpp sensor_msgs nav_msgs ros2_interfaces)
-install(TARGETS yolo_subscriber DESTINATION lib/${PROJECT_NAME})
+# # listeners/yolo_subscriber
+# add_executable(yolo_subscriber src/listeners/yolo_subscriber.cpp)
+# ament_target_dependencies(yolo_subscriber rclcpp sensor_msgs nav_msgs ros2_interfaces)
+# install(TARGETS yolo_subscriber DESTINATION lib/${PROJECT_NAME})
 
 # offboard/offboard_control
 include_directories(
@@ -84,7 +82,7 @@ include_directories(
 file(GLOB SOURCES "src/offboard_control/*.cpp")
 add_executable(offboard_control ${SOURCES}
     src/offboard_control/FuzzyPID.cpp)
-ament_target_dependencies(offboard_control rclcpp mavros_msgs geometry_msgs nav_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs visualization_msgs sensor_msgs OpenCV cv_bridge ament_index_cpp ros2_interfaces ${PAL_STATISTICS_DEPS})
+ament_target_dependencies(offboard_control rclcpp mavros_msgs geometry_msgs nav_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs visualization_msgs sensor_msgs OpenCV cv_bridge ament_index_cpp ${PAL_STATISTICS_DEPS})
 target_link_libraries(offboard_control yaml-cpp)  
 install(TARGETS offboard_control DESTINATION lib/${PROJECT_NAME})
 

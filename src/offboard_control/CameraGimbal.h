@@ -277,7 +277,7 @@ public:
         // std::cout << ray_world.transpose() << std::endl;  // 横向显示
         
         // 验证旋转矩阵的正交性
-        Matrix3d RTR = R.transpose() * R;
+        // Matrix3d RTR = R.transpose() * R;
         // std::cout << "R^T * R (应该接近单位矩阵):" << std::endl;
         // std::cout << RTR << std::endl;
 

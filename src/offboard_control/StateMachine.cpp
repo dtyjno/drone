@@ -80,10 +80,10 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				{
 					RCLCPP_INFO(owner_->get_logger(), "开始投弹任务");
 					surround_shot_scout_points = {
-						{owner_->dx_shot + 2.4, owner_->dy_shot + 1.3, 4},
-						{owner_->dx_shot + 2.4, owner_->dy_shot + 3.7, 4},
-						{owner_->dx_shot - 2.4, owner_->dy_shot + 3.7, 4},
-						{owner_->dx_shot - 2.4, owner_->dy_shot + 1.3, 4},
+						{owner_->dx_shot + 2.4, owner_->dy_shot + 1.3, 4.5},
+						{owner_->dx_shot + 2.4, owner_->dy_shot + 3.7, 4.5},
+						{owner_->dx_shot - 2.4, owner_->dy_shot + 3.7, 4.5},
+						{owner_->dx_shot - 2.4, owner_->dy_shot + 1.3, 4.5},
 					};
 					owner_->doshot_state_ = owner_->DoshotState::doshot_scout; // 设置投弹状态为侦查
 					counter = 0; // 重置计数器
@@ -95,7 +95,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				if (!surround_shot_scout_points.empty()) {
 					if (owner_->trajectory_generator_world_points(
 						1, surround_shot_scout_points, surround_shot_scout_points.size(),
-						{1.7, 1.7, 1.7}, {0.15, 0.15, 0.15} // 设置最大速度和加速度
+						{1.5, 1.5, 1.5}, {0.15, 0.15, 0.15} // 设置最大速度和加速度
 					)) {
 					// if (owner_->waypoint_goto_next(
 					// 	owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 

@@ -92,7 +92,7 @@ public:
 		// 发布当前状态 
 		state_publisher_ = this->create_publisher<std_msgs::msg::Int32>("current_state", 10);
 
-		while (!mode_switch_client_->wait_for_service(std::chrono::seconds(1)))
+		while (!mode_switch_client_->wait_for_service(std::chrono::seconds(2)))
 		{
 			if (!rclcpp::ok() || get_x_pos() == DEFAULT_X_POS)
 			{
@@ -102,7 +102,7 @@ public:
 			RCLCPP_INFO(this->get_logger(), "模式切换服务未准备好, 正在等待...");
 			// rate.sleep();
 		}
-		while (!_motors->get_set_home_client()->wait_for_service(std::chrono::seconds(1)))
+		while (!_motors->get_set_home_client()->wait_for_service(std::chrono::seconds(2)))
 		{
 			if (!rclcpp::ok())
 			{
@@ -114,6 +114,7 @@ public:
 		}
 		
 		timestamp_init = get_cur_time();
+		_motors->switch_mode("GUIDED");
 		timer_ = this->create_wall_timer(100ms, std::bind(&OffboardControl::timer_callback, this));
 		#ifdef PAL_STATISTIC_VISIBILITY
 		stats_publisher_ = this->create_publisher<pal_statistics_msgs::msg::Statistics>("/statistics", 10);
@@ -510,7 +511,7 @@ private:
 		{-0.5, 1.0}, 
 		{0.5, 0.0}, 
 		{0.5, 1.0}, 
-		{0.0, 0.0}
+		// {0.0, 0.0}
 	};
 
 	class GlobalFrame

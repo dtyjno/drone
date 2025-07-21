@@ -60,6 +60,12 @@ public:
     float update_all(float measurement, float target, float dt, float limit, float velocity = DEFAULT_VELOCITY);
     void update_i(float dt, float limit);
     void print_update_info();
+    
+    // 积分项管理方法
+    void reset_I();                    // 重置积分项
+    void reset_all();                  // 重置所有PID状态
+    float get_integrator() const;      // 获取积分项值
+    void set_integrator(float integrator); // 设置积分项值
 
     float smooth_data(float current_value, float alpha);
     

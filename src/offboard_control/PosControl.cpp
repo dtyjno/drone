@@ -571,8 +571,12 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 		
 		RCLCPP_INFO(node->get_logger(), "at_check_point");
 		// 重设为默认pid参数
-		set_pid(pid_px, pid_px_defaults);
-		set_pid(pid_py, pid_py_defaults);
+		set_pid(pid_x, pid_x_defaults);
+		set_pid(pid_y, pid_y_defaults);
+		pid_x.reset_all();
+		pid_y.reset_all();
+		pid_z.reset_all();
+		pid_yaw.reset_all();
 		first = true;
 		return true;
 	}
@@ -649,6 +653,10 @@ bool PosControl::trajectory_generator_world(double speed_factor, std::array<doub
 		{
 			RCLCPP_INFO(node->get_logger(), "trajectory_generator: Motion completed!");
 			first = true; // Reset first to true to reinitialize the trajectory generator
+			pid_x.reset_all();
+			pid_y.reset_all();
+			pid_z.reset_all();
+			pid_yaw.reset_all();
 			return true; // 返回完成状态
 		}
 	}
