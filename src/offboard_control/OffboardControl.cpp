@@ -400,12 +400,12 @@ bool OffboardControl::Doshot(int shot_count)
 				else if (shot_flag) // 0.5秒内继续等待
 				{
 					if (cur_shot_time - _t_time < shot_duration + 0.5) {
+						_servo_controller->set_servo(10 + shot_count, 1864);
 						RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, wait");
 					} else {
 						catch_state_ = CatchState::end;
 						continue; // 直接跳到下一个状态;
 					}
-					// _servo_controller->set_servo(10 + shot_count, 1864);
 				}			
 			}
 			else if (!shot_flag)
