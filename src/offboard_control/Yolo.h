@@ -1,7 +1,6 @@
 #ifndef YOLO_H
 #define YOLO_H
 
-#include "ros2_yolo_msgs/msg/detected_box.hpp"
 #include "sensor_msgs/msg/image.hpp"
 
 #include "visualization_msgs/msg/marker.hpp"

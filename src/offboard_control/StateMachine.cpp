@@ -85,7 +85,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 						{owner_->dx_shot - 2.4, owner_->dy_shot + 3.7, 4},
 						{owner_->dx_shot - 2.4, owner_->dy_shot + 1.3, 4},
 					};
-					owner_->doshot_state_ = owner_->DoshotState::doshot_shot; // 设置投弹状态为侦查
+					owner_->doshot_state_ = owner_->DoshotState::doshot_scout; // 设置投弹状态为侦查
 					counter = 0; // 重置计数器
 					shot_counter = 1; // 重置投弹计数器
 				}
