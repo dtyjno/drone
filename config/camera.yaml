@@ -9,5 +9,5 @@ p2: 0.001
 k3: 0.050
 width: 1280
 height: 720
-process_noise: 0.5
-measurement_noise: 1.0
+process_noise: 5.0
+measurement_noise: 5.0

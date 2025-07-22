@@ -249,8 +249,8 @@ Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy
 		yaw_diff += 2 * M_PI; // 如果差值小于-π，加上2π调整
 		yaw_diff_last += 2 * M_PI;
 	}
-	std::cout << "yaw_diff: " << yaw_diff << ", yaw_diff_last: " << yaw_diff_last << std::endl;
-	std::cout << "now: " << now.x() << ", " << now.y() << ", " << now.z() << ", " << now.w() + yaw_diff_last << std::endl;
+	// std::cout << "yaw_diff: " << yaw_diff << ", yaw_diff_last: " << yaw_diff_last << std::endl;
+	// std::cout << "now: " << now.x() << ", " << now.y() << ", " << now.z() << ", " << now.w() + yaw_diff_last << std::endl;
 	if(fuzzy){
 		float delta_k = 2.0f;
 
@@ -526,7 +526,7 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target, PID::Defaults defaults, double accuracy, double yaw_accuracy, bool calculate_or_get_vel, float vel_x, float vel_y)
 {
 	(void)yaw_accuracy;
-	RCLCPP_INFO(node->get_logger(), "p:%f i:%f d:%f", defaults.p, defaults.i, defaults.d);
+	// RCLCPP_INFO(node->get_logger(), "p:%f i:%f d:%f", defaults.p, defaults.i, defaults.d);
 	static bool first = true;
 	static Vector4f pos_target_temp;
 	if (first)

@@ -289,7 +289,7 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
     if (isfinite(velocity))
     {
         _derivative = -velocity;
-        _pid_info.D = velocity * _pid_info._kD;
+        _pid_info.D = _derivative * _pid_info._kD;
     }
     else
     {
@@ -372,8 +372,13 @@ void PID::update_i(float dt, float limit)
     
     // 计算基本积分项增量
     float integral_increment = _error * _pid_info._kI * dt;
-    printf("PID%s: integral_increment:%+10f, dt:%+10f, kI:%+10f\n", pid_name.c_str(), integral_increment, dt, _pid_info._kI);
-    
+    // printf("PID%s: integral_increment:%+10f, dt:%+10f, kI:%+10f\n", pid_name.c_str(), integral_increment, dt, _pid_info._kI);
+
+    if ((_pid_info.I >= 0 && _error <= 0) || (_pid_info.I <= 0 && _error >= 0))
+    {
+        _pid_info.I *= 0.8f;
+    }
+
     // 如果没有输出限制，直接更新积分项
     if (limit <= 0)
     {
@@ -405,7 +410,7 @@ void PID::update_i(float dt, float limit)
                 // 使用条件积分：如果积分项很大，允许其缓慢衰减
                 if (fabs(_pid_info.I) > _kimax * 0.9f)
                 {
-                    _pid_info.I *= 0.95f; // 缓慢衰减
+                    _pid_info.I *= 0.97f; // 缓慢衰减
                 }
             }
         }
@@ -422,7 +427,7 @@ void PID::update_i(float dt, float limit)
             float saturation_error = _pid_info.output - saturated_output;
             float anti_windup_correction = -saturation_error * kb * dt;
             _pid_info.I += anti_windup_correction;
-            printf("PID%s: Anti-windup correction: %f\n", pid_name.c_str(), anti_windup_correction);
+            // printf("PID%s: Anti-windup correction: %f\n", pid_name.c_str(), anti_windup_correction);
         }
     }
     else
@@ -435,10 +440,10 @@ void PID::update_i(float dt, float limit)
     _pid_info.I = constrain_float(_pid_info.I, _kimax, -_kimax);
     
     // 积分项衰减机制（当误差接近零时）
-    if (fabs(_error) < 0.15f && fabs(_pid_info.I) > 0.005f)
+    if (fabs(_error) < 0.1f && fabs(_pid_info.I) > 0.005f)
     {
-        printf("PID%s: Integral decay applied: %f\n", pid_name.c_str(), _pid_info.I);
-        _pid_info.I *= 0.97f; // 轻微衰减，避免长期偏差
+        // printf("PID%s: Integral decay applied: %f\n", pid_name.c_str(), _pid_info.I);
+        _pid_info.I *= 0.98f; // 轻微衰减，避免长期偏差
     }
     
     // 设置限制标志

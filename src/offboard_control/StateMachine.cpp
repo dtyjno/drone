@@ -28,7 +28,7 @@ void StateMachine::handle_state<FlyState::takeoff>() {
 template<>
 void StateMachine::handle_state<FlyState::end>() {
     if (current_state_ == FlyState::end) {
-        RCLCPP_INFO_ONCE(owner_->get_logger(), "任务结束");
+        RCLCPP_INFO_ONCE(owner_->get_logger(), "任务结束, 运行时间: %f 秒", owner_->get_cur_time());
         // 如果需要，可以在这里添加清理或退出逻辑
         rclcpp::shutdown();  // 停止 ROS 2 节点
     }
@@ -66,71 +66,85 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 		static int counter = 0, pre_counter; // 航点计数器
 		static double doshot_halt_end_time; // 记录结束时间
 		static int shot_counter = 1; // 投弹计数器
-		static vector<array<double, 3>> surround_shot_scout_points;
+		static int max_px = 50;
+
+		// static vector<array<double, 3>> surround_shot_scout_points;
 		
 		if (owner_->state_timer_.elapsed() > 100) // 超时 100 秒
 		{
 			RCLCPP_INFO(owner_->get_logger(), "超时");
 			owner_->doshot_state_ = owner_->DoshotState::doshot_end; // 设置投弹状态为结束
 		} 
+		if (counter != pre_counter) {
+			max_px = 50; // 重置最大像素值
+		}
 		while(true){
 			switch (owner_->doshot_state_)  // 根据投弹状态执行不同的操作
 			{
 			case owner_->DoshotState::doshot_init: // 初始化投弹状态
 				{
 					RCLCPP_INFO(owner_->get_logger(), "开始投弹任务");
-					surround_shot_scout_points = {
-						{owner_->dx_shot + 2.4, owner_->dy_shot + 1.3, 4.5},
-						{owner_->dx_shot + 2.4, owner_->dy_shot + 3.7, 4.5},
-						{owner_->dx_shot - 2.4, owner_->dy_shot + 3.7, 4.5},
-						{owner_->dx_shot - 2.4, owner_->dy_shot + 1.3, 4.5},
-					};
-					owner_->doshot_state_ = owner_->DoshotState::doshot_scout; // 设置投弹状态为侦查
+					// surround_shot_scout_points = {
+					// 	{owner_->dx_shot + 2.4, owner_->dy_shot + 1.3, 4.5},
+					// 	{owner_->dx_shot + 2.4, owner_->dy_shot + 3.7, 4.5},
+					// 	{owner_->dx_shot - 2.4, owner_->dy_shot + 3.7, 4.5},
+					// 	{owner_->dx_shot - 2.4, owner_->dy_shot + 1.3, 4.5},
+					// };
+					owner_->doshot_state_ = owner_->DoshotState::doshot_shot; // 设置投弹状态为侦查
+					pre_counter = 0;
 					counter = 0; // 重置计数器
 					shot_counter = 1; // 重置投弹计数器
+
+					owner_->waypoint_timer_.reset();
+
 				}
 				continue;
-			case owner_->DoshotState::doshot_scout: // 侦查投弹区
-				RCLCPP_INFO_ONCE(owner_->get_logger(), "开始侦查投弹区");
-				if (!surround_shot_scout_points.empty()) {
-					if (owner_->trajectory_generator_world_points(
-						1, surround_shot_scout_points, surround_shot_scout_points.size(),
-						{1.5, 1.5, 1.5}, {0.15, 0.15, 0.15} // 设置最大速度和加速度
-					)) {
-					// if (owner_->waypoint_goto_next(
-					// 	owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
-					// 	owner_->shot_halt, surround_shot_scout_points, 4.0, &counter, "侦查投弹区"))
-					// {
+			// case owner_->DoshotState::doshot_scout: // 侦查投弹区
+			// 	RCLCPP_INFO_ONCE(owner_->get_logger(), "开始侦查投弹区");
+			// 	if (!surround_shot_scout_points.empty()) {
+			// 		if (owner_->trajectory_generator_world_points(
+			// 			1, surround_shot_scout_points, surround_shot_scout_points.size(),
+			// 			{1.6, 1.6, 1.6}, {0.14, 0.14, 0.14} // 设置最大速度和加速度
+			// 		)) {
+			// 		// if (owner_->waypoint_goto_next(
+			// 		// 	owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
+			// 		// 	owner_->shot_halt, surround_shot_scout_points, 4.0, &counter, "侦查投弹区"))
+			// 		// {
 						
-						owner_->doshot_state_ = owner_->DoshotState::doshot_shot; // 设置投弹状态为侦查完成
-						owner_->waypoint_timer_.reset();
-					}
-				} else {
-					RCLCPP_WARN(owner_->get_logger(), "surround_shot_scout_points为空，跳转到doshot_init");
-					owner_->doshot_state_ = owner_->DoshotState::doshot_shot;
-				}
-				break;
+			// 			owner_->doshot_state_ = owner_->DoshotState::doshot_shot; // 设置投弹状态为侦查完成
+			// 			owner_->waypoint_timer_.reset();
+			// 		}
+			// 	} else {
+			// 		RCLCPP_WARN(owner_->get_logger(), "surround_shot_scout_points为空，跳转到doshot_init");
+			// 		owner_->doshot_state_ = owner_->DoshotState::doshot_shot;
+			// 	}
+			// 	break;
 			case owner_->DoshotState::doshot_shot: // 投弹
 				// RCLCPP_INFO(owner_->get_logger(), "收到坐标c(%f, %f) h(%f ,%f), flag_servo = %d",
 				// 	owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE),
 				// 	owner_->_yolo->get_x(YOLO::TARGET_TYPE::H), owner_->_yolo->get_y(YOLO::TARGET_TYPE::H),
 				// 	owner_->_yolo->get_servo_flag());
-				if (owner_->Doshot(shot_counter)) { // 如果到达投弹点
-					// RCLCPP_INFO(owner_->get_logger(), "寻找完毕，投弹!!投弹!!");
-					RCLCPP_INFO(owner_->get_logger(), "已经锁定%d号桶，坐标为（%f,%f）", shot_counter, owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE));
-					RCLCPP_INFO(owner_->get_logger(), "投弹!!投弹!!，总用时：%f", owner_->state_timer_.elapsed());
-					RCLCPP_INFO(owner_->get_logger(), "Arrive, 投弹 等待5秒");
-					// 设置舵机位置
-					owner_->_servo_controller->set_servo(10 + shot_counter, 1864); // 舵机闭合
-					owner_->doshot_state_ = owner_->DoshotState::doshot_wait; // 设置投弹状态为结束
-					doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
-					continue; // 继续执行下一次循环
-				} else if (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE)) { // 如果没有找到投弹目标
+				RCLCPP_INFO(owner_->get_logger(), "counter=%d x:%f, y:%f max:%d", counter,
+					abs(owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_width()/2), abs(owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_height()/2), max_px);
+				if (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE) || 
+					(counter < 3 &&
+					(abs(owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_width()/2) > max_px ||
+					abs(owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_height()/2) > max_px)
+					)) {
 					pre_counter = counter; // 记录上一次的计数器值
 					owner_->waypoint_goto_next(
 						owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
 						owner_->shot_halt, owner_->surround_shot_points, 3, &counter, "投弹区");
+				} else if (owner_->Doshot(shot_counter)) { // 如果到达投弹点
+					
+					// RCLCPP_INFO(owner_->get_logger(), "寻找完毕，投弹!!投弹!!");
+					RCLCPP_INFO(owner_->get_logger(), "已经锁定%d号桶，坐标为（%f,%f）", shot_counter, owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE));
+					RCLCPP_INFO(owner_->get_logger(), "投弹!!投弹!!，总用时：%f", owner_->state_timer_.elapsed());
+					owner_->doshot_state_ = owner_->DoshotState::doshot_wait; // 设置投弹状态为结束
+					doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
+					continue; // 继续执行下一次循环
 				} else { // 如果找到投弹目标但未到达目标上方
+					max_px = 300;
 					counter = pre_counter; // 恢复上一次的计数器值
 					owner_->waypoint_timer_.reset(); // 重置航点计时器
 				}
@@ -139,7 +153,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				if(shot_counter <= 1) // 投弹计数器小于1，再次执行投弹
 				{
 					owner_->waypoint_goto_next(
-						owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
+						owner_->dx_shot, owner_->dy_shot + 2.5, owner_->shot_length, owner_->shot_width, 
 						owner_->shot_halt, owner_->surround_shot_points, owner_->shot_halt, &counter, "投弹区");
 					if (owner_->get_cur_time() - doshot_halt_end_time < 5.0 || counter == pre_counter) {   // 非阻塞等待至第5秒或抵达下一个航点
 						break;

@@ -47,11 +47,11 @@ void OffboardControl::timer_callback(void)
 	// 设置相机姿态：垂直向下看（pitch = -90°）
 	
 
-	_camera_gimbal->rotation = Vector3d(roll, pitch + M_PI, M_PI/2 - yaw);  // roll=0, pitch=-90°(垂直向下), yaw=0
+	_camera_gimbal->rotation = Vector3d(roll, pitch + M_PI, M_PI/2 - yaw - M_PI);  // roll=0, pitch=-90°(垂直向下), yaw=0
 	
 	// 调试输出：像素坐标和相机位置
-	// std::cout << "相机当前位置: (" << _camera_gimbal->position[0] << ", " << _camera_gimbal->position[1] << ", " << _camera_gimbal->position[2] << ")" << std::endl;
-	// std::cout << "相机旋转角度: roll=" << _camera_gimbal->rotation[0] << " pitch=" << _camera_gimbal->rotation[1] << " yaw=" << _camera_gimbal->rotation[2] << std::endl;
+	std::cout << "相机当前位置: (" << _camera_gimbal->position[0] << ", " << _camera_gimbal->position[1] << ", " << _camera_gimbal->position[2] << ")" << std::endl;
+	std::cout << "相机旋转角度: roll=" << _camera_gimbal->rotation[0] << " pitch=" << _camera_gimbal->rotation[1] << " yaw=" << _camera_gimbal->rotation[2] << std::endl;
 	// std::cout << "相机内参: fx=" << _camera_gimbal->fx << " fy=" << _camera_gimbal->fy << " cx=" << _camera_gimbal->cx << " cy=" << _camera_gimbal->cy << std::endl;
 	
 	std::vector<vision_msgs::msg::BoundingBox2D> raw_circles = _yolo->get_raw_targets(YOLO::TARGET_TYPE::CIRCLE);
@@ -63,10 +63,12 @@ void OffboardControl::timer_callback(void)
 			Vector2d(circle.center.position.x, circle.center.position.y), 
 			bucket_height // 桶顶高度
 		);
-		// double diameter = _camera_gimbal->calculateRealDiameter((circle.size_x + circle.size_y) / 2.0, _camera_gimbal->position.z() - bucket_height);
+		double diameter = _camera_gimbal->calculateRealDiameter((circle.size_x + circle.size_y) / 2.0, _camera_gimbal->position.z() - bucket_height);
 		if (target1.has_value()) {
-			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "(THROTTLE 0.5s) Example 1 - Target position: %f, %f, %f",
-				target1->x(), target1->y(), target1->z());
+			// RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "(THROTTLE 0.5s) Example 1 - Target position: %f, %f, %f. Diameter: %f",
+			// 	target1->x(), target1->y(), target1->z(), diameter);
+			RCLCPP_INFO(this->get_logger(), "Example 1 - Target position: %f, %f, %f. Diameter: %f",
+				target1->x(), target1->y(), target1->z(), diameter);
 			Points Target;
 			Target.point = *target1;
 			Target.cluster_id = 0;
@@ -76,7 +78,7 @@ void OffboardControl::timer_callback(void)
 			RCLCPP_WARN(this->get_logger(), "Example 1 - 无效的目标位置");
 		}
 	}
-	if(!Target_Samples.empty() && (doshot_state_ == DoshotState::doshot_scout || doshot_state_ == DoshotState::doshot_shot))
+	if(!Target_Samples.empty() && (doshot_state_ == DoshotState::doshot_scout || doshot_state_ == DoshotState::doshot_shot || state_machine_.get_current_state() == FlyState::Goto_shotpoint))
 	{
 		vector<Vector3d>cal_center = Clustering(Target_Samples);
 		uint8_t shot_count = 0;
@@ -266,7 +268,7 @@ bool OffboardControl::catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYP
 	// RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x, now_y, tar_x, tar_y);
 	// RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_x: %f, tar_y: %f", now_x / _yolo->get_cap_frame_width(), now_y / _yolo->get_cap_frame_height(), (tar_x) / _yolo->get_cap_frame_width(), (tar_y) / _yolo->get_cap_frame_height());
 	// RCLCPP_INFO(this->get_logger(), "catch_target_bucket: now_z: %f, tar_z: %f, now_yaw: %f, tar_yaw: %f", get_z_pos(), tar_z, get_yaw(), tar_yaw);
-	RCLCPP_INFO(this->get_logger(), "catch_target_bucket: accuracy: %f, max_frame: %f", accuracy, max_frame);
+	// RCLCPP_INFO(this->get_logger(), "catch_target: accuracy: %f, max_frame: %f", accuracy, max_frame);
 		bool trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target, PID::Defaults defaults, double accuracy, double yaw_accuracy, bool calculate_or_get_vel, float vel_x = DEFAULT_VELOCITY, float vel_y = DEFAULT_VELOCITY);
 
 	_pose_control->trajectory_setpoint_world(
@@ -281,7 +283,7 @@ bool OffboardControl::catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYP
 	);
 	if (abs(now_x - tar_x) <= accuracy && abs(now_y - tar_y) <= accuracy)
 	{
-		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: 到达目标点, x_err: %f, y_err: %f", abs(now_x - tar_x), abs(now_y - tar_y)); 
+		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: 到达目标点, x_err: %f像素, y_err: %f像素", abs(now_x - tar_x), abs(now_y - tar_y)); 
 		return true;
 	}
 	return false;
