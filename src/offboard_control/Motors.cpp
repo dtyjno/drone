@@ -366,7 +366,6 @@ void Motors::command_takeoff_or_land(std::string mode, float altitude, float yaw
 	if(mode=="TAKEOFF"){
 		auto takeoff_request = std::make_shared<mavros_msgs::srv::CommandTOL::Request>();
 		takeoff_request->min_pitch = 0.0;
-		takeoff_request->yaw = 0.0;
 		takeoff_request->latitude = 0.0;
 		takeoff_request->longitude = 0.0;
 		takeoff_request->altitude = altitude;
@@ -393,7 +392,7 @@ void Motors::command_takeoff_or_land(std::string mode, float altitude, float yaw
 			});
 	} else if(mode=="LAND"){
 		auto land_request = std::make_shared<mavros_msgs::srv::CommandTOL::Request>();
-		land_request->yaw = 0.0;
+		land_request->yaw = yaw;
 		land_request->latitude = 0.0;
 		land_request->longitude = 0.0;
 		land_request->altitude = 0.0;

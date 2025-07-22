@@ -1,20 +1,20 @@
 pid:
-  p: 0.20
-  i: 0.10
-  d: 0.01
+  p: 0.319
+  i: 0.100
+  d: 0.410
   ff: 0
   dff: 0
-  imax: 1
+  imax: 0.1
 limits:
-  speed_max_xy: 0.5
-  speed_max_z: 0.18
+  speed_max_xy: 0.3
+  speed_max_z: 0.16
   speed_max_yaw: 0.05
   accel_max_xy: 0.5
   accel_max_z: 0.1
-radius: 0.08     # 到达目标范围内的精度 单位：m
-shot_duration: 1.5   # 到达范围内稳定时间后投弹 的持续时间 单位：s
-tar_x_l: 0.0     # 左侧舵机 目标x坐标，单位：px  0使用默认值
-tar_y_l: 0.0     # 左侧舵机 目标y坐标，单位：px  0使用默认值
-tar_x_r: 150.0     # 右侧舵机 目标x坐标，单位：px  0使用默认值
-tar_y_r: 150.0     # 右侧舵机 目标y坐标，单位：px  0使用默认值
-tar_z: 1.5         # 目标y坐标 单位：m
+radius: 0.001     # 到达目标范围内的精度 单位：m
+shot_duration: 2.5   # 到达范围内稳定时间后投弹 的持续时间 单位：s
+tar_x_l: 700.0    # 左侧舵机 目标x坐标，单位：px  0使用默认值
+tar_y_l: 450.0     # 左侧舵机 目标y坐标，单位：px  0使用默认值
+tar_x_r: 620.0     # 右侧舵机 目标x坐标，单位：px  0使用默认值
+tar_y_r: 450.0     # 右侧舵机 目标y坐标，单位：px  0使用默认值
+tar_z: 1.2         # 目标y坐标 单位：m
