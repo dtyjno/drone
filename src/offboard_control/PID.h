@@ -57,7 +57,7 @@ public:
     void set_pid(float kp, float ki, float kd);
     void set_pid(const PID::Defaults &defaults);
     void get_pid(float &kp, float &ki, float &kd);
-    float update_all(float measurement, float target, float dt, float limit, float velocity = DEFAULT_VELOCITY);
+    float update_all(float measurement, float target, float dt, float limit, float velocity = DEFAULT_VELOCITY, bool use_increment = true);
     float update_all_increment(float measurement, float target, float dt, float limit);
     void update_i(float dt, float limit);
     void print_update_info();

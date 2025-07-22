@@ -245,7 +245,7 @@ void PID::get_pid(float &kp, float &ki, float &kd)
 }
 
 #include <iostream>
-float PID::update_all(float measurement, float target, float dt, float limit, float velocity)
+float PID::update_all(float measurement, float target, float dt, float limit, float velocity, bool use_increment)
 {
     // 计算当前时间（累积时间）
     static float current_time = 0.0f;
@@ -259,7 +259,18 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
     _pid_info.output_max = limit;
     // Calculate the error
     _error = target - measurement;
-    _pid_info.error = _error;
+    if(use_increment == true)
+    {
+        
+        _pid_info.last_last_error = _pid_info.last_error;
+        _pid_info.last_error = _pid_info.error;
+        _pid_info.error = _error;
+    }
+    else
+    {
+        _pid_info.error = _error; // Absolute error
+    }
+   
 
 #ifdef fuzzy_pid_dead_zone
     float dead_zone = 100.0f;
@@ -280,7 +291,13 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
 #endif
 
     // Calculate the proportional term
-    _pid_info.P = _error * _pid_info._kP;
+    if (use_increment == true)
+    {
+         _pid_info.P = (_error - _pid_info.last_error) * _pid_info._kP;
+    } else
+    {
+         _pid_info.P = _error * _pid_info._kP;
+    }
 
     // Calculate the integral term
     update_i(dt, limit);
@@ -288,8 +305,15 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
     // Calculate the derivative term
     if (isfinite(velocity))
     {
-        _derivative = -velocity;
-        _pid_info.D = velocity * _pid_info._kD;
+        if (use_increment == true)
+        {
+            _derivative = ((_error - 2 * _pid_info.last_error + _pid_info.last_last_error) / dt);
+        } else
+        {
+            _derivative = -velocity;
+            _pid_info.D = velocity * _pid_info._kD;
+        }
+
     }
     else
     {
@@ -355,6 +379,8 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
             return -limit;
         }
     }
+
+    _pid_info.last_output = _pid_info.output;
     return _pid_info.output;
 }
 
