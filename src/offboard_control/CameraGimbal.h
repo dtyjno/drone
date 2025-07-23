@@ -367,11 +367,12 @@ public:
     // 相机间坐标映射：将输入相机的像素坐标映射到垂直向下相机的像素坐标
     std::optional<Vector2d> mapPixelToVerticalDownCamera(
         const Vector2d& input_pixel,           // 输入相机的像素坐标
-        const Camera& input_camera,            // 输入相机对象
         double target_height = 0.0             // 目标所在的世界高度
     ) const {
         // 步骤1：将输入相机的像素坐标转换为世界坐标
-        auto world_pos = input_camera.pixelToWorldPosition(input_pixel, target_height);
+        auto world_pos = pixelToWorldPosition(input_pixel, target_height);
+        // std::cout << "输入像素坐标: (" << input_pixel.x() << ", " << input_pixel.y() << ")" << std::endl;
+        // std::cout << "转换后的世界坐标: (" << world_pos->x() << ", " << world_pos->y() << ", " << world_pos->z() << ")" << std::endl;
         if (!world_pos.has_value()) {
             return std::nullopt; // 转换失败
         }

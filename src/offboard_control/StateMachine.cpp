@@ -153,7 +153,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				if(shot_counter <= 1) // 投弹计数器小于1，再次执行投弹
 				{
 					owner_->waypoint_goto_next(
-						owner_->dx_shot, owner_->dy_shot + 2.5, owner_->shot_length, owner_->shot_width, 
+						owner_->dx_shot, owner_->dy_shot + 2.6, owner_->shot_length, owner_->shot_width, 
 						owner_->shot_halt, owner_->surround_shot_points, owner_->shot_halt, &counter, "投弹区");
 					if (owner_->get_cur_time() - doshot_halt_end_time < 5.0 || counter == pre_counter) {   // 非阻塞等待至第5秒或抵达下一个航点
 						break;

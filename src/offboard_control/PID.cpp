@@ -311,7 +311,7 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
         } else
         {
             _derivative = -velocity;
-            _pid_info.D = velocity * _pid_info._kD;
+            _pid_info.D = _derivative * _pid_info._kD;
         }
 
     }
@@ -561,10 +561,10 @@ void PID::update_i(float dt, float limit)
     _pid_info.I = constrain_float(_pid_info.I, _kimax, -_kimax);
     
     // 积分项衰减机制（当误差接近零时）
-    if (fabs(_error) < 0.1f && fabs(_pid_info.I) > 0.005f)
+    if (fabs(_error) < 0.07f && fabs(_pid_info.I) > 0.005f)
     {
         // printf("PID%s: Integral decay applied: %f\n", pid_name.c_str(), _pid_info.I);
-        _pid_info.I *= 0.98f; // 轻微衰减，避免长期偏差
+        _pid_info.I *= 0.97f; // 轻微衰减，避免长期偏差
     }
     
     // 设置限制标志

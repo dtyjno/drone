@@ -44,6 +44,7 @@ using namespace std::chrono_literals;
 #include <iostream>
 
 #include "CameraGimbal.h"
+#include "clustering.h"
 
 #include "utils.h" // 包含自定义的工具函数
 
@@ -487,6 +488,8 @@ private:
 
 	float bucket_height = 0.3; // 桶高度
 	Vector3d drone_to_camera = {0.15, 0, 0.21};
+
+	vector<Circles> cal_center;
 
 	// 定义航点
 	vector<Vector2f> surround_shot_points{

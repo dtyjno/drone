@@ -1,6 +1,5 @@
 #include "OffboardControl.h"
 #include "math.h"
-#include "clustering.h"
 #include <cmath>
 /*
     北360|0偏航角 顺时针          90
@@ -77,13 +76,13 @@ void OffboardControl::timer_callback(void)
 	}
 	if(!Target_Samples.empty() && (doshot_state_ == DoshotState::doshot_scout || doshot_state_ == DoshotState::doshot_shot || state_machine_.get_current_state() == FlyState::Goto_shotpoint))
 	{
-		vector<Circles>cal_center = Clustering(Target_Samples);
+		this->cal_center = Clustering(Target_Samples);
 		uint8_t shot_count = 0;
 		for(size_t i = 0; i < cal_center.size(); ++i)
 		{
 			double tx, ty;
 			rotate_stand2global(cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
-			if (tx < dx_shot - 5 || tx > dx_shot + 5 ||
+			if (tx < dx_shot - 2 || tx > dx_shot + 2 ||
 				ty < dy_shot || ty > dy_shot + 5) {
 				RCLCPP_WARN(this->get_logger(), "侦查点坐标异常，跳过: %zu, x: %f, y: %f", i, cal_center[i].point.x(), cal_center[i].point.y());
 				continue; // 跳过无效坐标
@@ -372,7 +371,33 @@ bool OffboardControl::Doshot(int shot_count)
 			targets[shot_index].r = 1.0f; // 设置当前目标颜色为黄色
 			targets[shot_index].g = 1.0f;
 			targets[shot_index].b = 0.0f;
-			
+
+			YOLO::Target temp_target = targets[shot_index];
+
+			if (static_cast<int>(cal_center.size()) > shot_count){
+				Vector3d world_point(cal_center[shot_count].point.x(), 
+									cal_center[shot_count].point.y(), 
+									bucket_height);
+				auto shot_center_opt = _camera_gimbal->worldToPixelVerticalDown(world_point);
+				if (shot_center_opt.has_value()) {
+					Vector2d shot_center = shot_center_opt.value();
+					temp_target.x = shot_center.x();
+					temp_target.y = shot_center.y();
+					temp_target.category = std::string("circle").append("_w2p");
+					_yolo->append_target(temp_target);
+				}
+			}
+
+			Vector2d input_pixel(targets[shot_index].x, targets[shot_index].y);
+			auto mapped_center_opt = _camera_gimbal->mapPixelToVerticalDownCamera(input_pixel, bucket_height);
+			if (mapped_center_opt.has_value()) {
+				Vector2d shot_center = mapped_center_opt.value();
+				temp_target.x = shot_center.x();
+				temp_target.y = shot_center.y();
+				temp_target.category = std::string("circle").append("_p2p");
+				_yolo->append_target(temp_target);
+			}
+
 			// yolo未识别到桶
 			if (!_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE))
 			{

@@ -9,5 +9,11 @@ p2: 0.001
 k3: 0.050
 width: 1280
 height: 720
-process_noise: 25.0
-measurement_noise: 1.0
+
+# 滤波器参数
+process_noise: 0.015             # 过程噪声 - 降低以获得更平滑的轨迹
+measurement_noise: 0.5         # 测量噪声 - 根据YOLO检测精度调整
+moving_average_window: 3        # 移动平均窗口大小 - 3-5帧的平滑
+outlier_threshold: 100.0         # 异常值阈值（像素）- 超过此距离的测量值被视为异常
+stability_threshold: 10.0       # 稳定性阈值（像素）- 连续测量变化小于此值认为稳定
+filter_confidence_threshold: 0.6 # 滤波器置信度阈值 - 高于此值时使用滤波结果
