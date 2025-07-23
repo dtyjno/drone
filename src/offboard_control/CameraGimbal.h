@@ -257,32 +257,32 @@ public:
         Matrix3d R = eulerAnglesToRotationMatrix();
         
         // 添加旋转矩阵调试输出
-        std::cout << "旋转矩阵 R:" << std::endl;
-        std::cout << R << std::endl;
+        // std::cout << "旋转矩阵 R:" << std::endl;
+        // std::cout << R << std::endl;
         
         // 4. 创建归一化相机坐标系中的射线方向 (Z=1)
         Vector3d ray_cam(norm_point.x(), norm_point.y(), 1.0);
-        std::cout << "ray_cam" << std::endl;
-        std::cout << ray_cam.transpose() << std::endl;  // 横向显示
+        // std::cout << "ray_cam" << std::endl;
+        // std::cout << ray_cam.transpose() << std::endl;  // 横向显示
         
         // 5. 转换到世界坐标系(ENU)
         // R 将相机坐标系中的方向向量转换到世界坐标系
         // 对于向下看的相机(-90度俯仰)，相机的Z轴应该指向世界的-Z方向
         Vector3d ray_world = R * ray_cam;
-        std::cout << "变换前 ray_world:" << std::endl;
-        std::cout << ray_world.transpose() << std::endl;  // 横向显示
+        // std::cout << "变换前 ray_world:" << std::endl;
+        // std::cout << ray_world.transpose() << std::endl;  // 横向显示
         
         ray_world.normalize();
-        std::cout << "归一化后 ray_world:" << std::endl;
-        std::cout << ray_world.transpose() << std::endl;  // 横向显示
+        // std::cout << "归一化后 ray_world:" << std::endl;
+        // std::cout << ray_world.transpose() << std::endl;  // 横向显示
         
         // 6. 计算射线到目标平面的距离参数
         double target_z = object_height;  // 目标的世界Z坐标
 
         // 调试输出
-        std::cout << "position.z(): " << position.z() << std::endl;
-        std::cout << "target_z: " << target_z << std::endl;
-        std::cout << "ray_world.z(): " << ray_world.z() << std::endl;
+        // std::cout << "position.z(): " << position.z() << std::endl;
+        // std::cout << "target_z: " << target_z << std::endl;
+        // std::cout << "ray_world.z(): " << ray_world.z() << std::endl;
         
         if (abs(ray_world.z()) < 1e-6) {
             std::cerr << "错误: 射线与目标平面平行" << std::endl;

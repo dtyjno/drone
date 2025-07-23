@@ -69,10 +69,7 @@ void OffboardControl::timer_callback(void)
 			// 	target1->x(), target1->y(), target1->z(), diameter);
 			RCLCPP_INFO(this->get_logger(), "Example 1 - Target position: %f, %f, %f. Diameter: %f",
 				target1->x(), target1->y(), target1->z(), diameter);
-			Points Target;
-			Target.point = *target1;
-			Target.cluster_id = 0;
-			Target_Samples.push_back({*target1, 0});
+			Target_Samples.push_back({*target1, 0, diameter});
 		}
 		else {
 			RCLCPP_WARN(this->get_logger(), "Example 1 - 无效的目标位置");
@@ -80,19 +77,24 @@ void OffboardControl::timer_callback(void)
 	}
 	if(!Target_Samples.empty() && (doshot_state_ == DoshotState::doshot_scout || doshot_state_ == DoshotState::doshot_shot || state_machine_.get_current_state() == FlyState::Goto_shotpoint))
 	{
-		vector<Vector3d>cal_center = Clustering(Target_Samples);
+		vector<Circles>cal_center = Clustering(Target_Samples);
 		uint8_t shot_count = 0;
 		for(size_t i = 0; i < cal_center.size(); ++i)
 		{
 			double tx, ty;
-			rotate_stand2global(cal_center[i].x(), cal_center[i].y(), tx, ty);
+			rotate_stand2global(cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
 			if (tx < dx_shot - 5 || tx > dx_shot + 5 ||
 				ty < dy_shot || ty > dy_shot + 5) {
-				RCLCPP_WARN(this->get_logger(), "侦查点坐标异常，跳过: %zu, x: %f, y: %f", i, cal_center[i].x(), cal_center[i].y());
+				RCLCPP_WARN(this->get_logger(), "侦查点坐标异常，跳过: %zu, x: %f, y: %f", i, cal_center[i].point.x(), cal_center[i].point.y());
 				continue; // 跳过无效坐标
 			}
+			sort(cal_center.begin(), cal_center.end(), [](const Circles& a, const Circles& b) {
+				return a.diameters < b.diameters;
+			});
 			RCLCPP_INFO(this->get_logger(), "侦查点坐标 %zu: x: %f, y: %f ,n_x: %f, n_y: %f", 
-				i, cal_center[i].x(), cal_center[i].y(), surround_shot_points[shot_count].x(), surround_shot_points[shot_count].y());
+				i, cal_center[i].point.x(), cal_center[i].point.y(), surround_shot_points[shot_count].x(), surround_shot_points[shot_count].y());
+			RCLCPP_INFO(this->get_logger(), "桶直径 %zu: d: %lf", 
+				i, cal_center[i].diameters);
 			surround_shot_points[shot_count++] = Vector2f((tx - dx_shot) / 10, (ty - dy_shot)/ 5);
 		}
     }
