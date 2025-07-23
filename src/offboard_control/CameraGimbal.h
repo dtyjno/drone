@@ -319,6 +319,68 @@ public:
         return target_world;
     }
     
+    // 垂直向下相机的简化世界坐标转像素坐标（用于高效计算）
+    std::optional<Vector2d> worldToPixelVerticalDown(const Vector3d& world_point) const {
+        // 检查是否为垂直向下的相机 (pitch ≈ -90°)
+        if (abs(rotation[1] + M_PI/2) > 0.1) {
+            // 不是垂直向下相机，使用通用方法
+            return worldToPixel(world_point);
+        }
+        
+        // 简化计算：垂直向下相机
+        double height_diff = position.z() - world_point.z();
+        if (height_diff <= 0) {
+            return std::nullopt; // 目标在相机上方或同一水平面
+        }
+        
+        // 计算相对位置
+        double dx = world_point.x() - position.x();
+        double dy = world_point.y() - position.y();
+        
+        // 应用偏航角旋转（逆向旋转到相机坐标系）
+        double cos_yaw = cos(-rotation[2]); // 注意负号
+        double sin_yaw = sin(-rotation[2]);
+        
+        double cam_x = cos_yaw * dx - sin_yaw * dy;
+        double cam_y = sin_yaw * dx + cos_yaw * dy;
+        
+        // 归一化坐标
+        Vector2d norm_point(cam_x / height_diff, cam_y / height_diff);
+        
+        // 应用畸变
+        Vector2d distorted_point = applyDistortion(norm_point);
+        
+        // 转换为像素坐标
+        Vector2d pixel_point;
+        pixel_point.x() = fx * distorted_point.x() + cx;
+        pixel_point.y() = fy * distorted_point.y() + cy;
+        
+        // 检查是否在图像范围内
+        if (pixel_point.x() >= 0 && pixel_point.x() < width &&
+            pixel_point.y() >= 0 && pixel_point.y() < height) {
+            return pixel_point;
+        } else {
+            return std::nullopt;
+        }
+    }
+    
+    // 相机间坐标映射：将输入相机的像素坐标映射到垂直向下相机的像素坐标
+    std::optional<Vector2d> mapPixelToVerticalDownCamera(
+        const Vector2d& input_pixel,           // 输入相机的像素坐标
+        const Camera& input_camera,            // 输入相机对象
+        double target_height = 0.0             // 目标所在的世界高度
+    ) const {
+        // 步骤1：将输入相机的像素坐标转换为世界坐标
+        auto world_pos = input_camera.pixelToWorldPosition(input_pixel, target_height);
+        if (!world_pos.has_value()) {
+            return std::nullopt; // 转换失败
+        }
+        
+        // 步骤2：将世界坐标投影到垂直向下相机的像素坐标
+        return worldToPixelVerticalDown(world_pos.value());
+    }
+    
+
 };
 
 
