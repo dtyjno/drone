@@ -322,10 +322,10 @@ public:
     // 垂直向下相机的简化世界坐标转像素坐标（用于高效计算）
     std::optional<Vector2d> worldToPixelVerticalDown(const Vector3d& world_point) const {
         // 检查是否为垂直向下的相机 (pitch ≈ -90°)
-        if (abs(rotation[1] + M_PI/2) > 0.1) {
-            // 不是垂直向下相机，使用通用方法
-            return worldToPixel(world_point);
-        }
+        // if (abs(rotation[1] + M_PI/2) > 0.1) {
+        //     // 不是垂直向下相机，使用通用方法
+        //     return worldToPixel(world_point);
+        // }
         
         // 简化计算：垂直向下相机
         double height_diff = position.z() - world_point.z();

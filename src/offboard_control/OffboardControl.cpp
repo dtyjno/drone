@@ -49,8 +49,8 @@ void OffboardControl::timer_callback(void)
 	_camera_gimbal->rotation = Vector3d(roll, pitch + M_PI, M_PI/2 - yaw - M_PI);  // roll=0, pitch=-90°(垂直向下), yaw=0
 	
 	// 调试输出：像素坐标和相机位置
-	std::cout << "相机当前位置: (" << _camera_gimbal->position[0] << ", " << _camera_gimbal->position[1] << ", " << _camera_gimbal->position[2] << ")" << std::endl;
-	std::cout << "相机旋转角度: roll=" << _camera_gimbal->rotation[0] << " pitch=" << _camera_gimbal->rotation[1] << " yaw=" << _camera_gimbal->rotation[2] << std::endl;
+	// std::cout << "相机当前位置: (" << _camera_gimbal->position[0] << ", " << _camera_gimbal->position[1] << ", " << _camera_gimbal->position[2] << ")" << std::endl;
+	// std::cout << "相机旋转角度: roll=" << _camera_gimbal->rotation[0] << " pitch=" << _camera_gimbal->rotation[1] << " yaw=" << _camera_gimbal->rotation[2] << std::endl;
 	// std::cout << "相机内参: fx=" << _camera_gimbal->fx << " fy=" << _camera_gimbal->fy << " cx=" << _camera_gimbal->cx << " cy=" << _camera_gimbal->cy << std::endl;
 	
 	std::vector<vision_msgs::msg::BoundingBox2D> raw_circles = _yolo->get_raw_targets(YOLO::TARGET_TYPE::CIRCLE);
@@ -66,8 +66,8 @@ void OffboardControl::timer_callback(void)
 		if (target1.has_value()) {
 			// RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "(THROTTLE 0.5s) Example 1 - Target position: %f, %f, %f. Diameter: %f",
 			// 	target1->x(), target1->y(), target1->z(), diameter);
-			RCLCPP_INFO(this->get_logger(), "Example 1 - Target position: %f, %f, %f. Diameter: %f",
-				target1->x(), target1->y(), target1->z(), diameter);
+			// RCLCPP_INFO(this->get_logger(), "Example 1 - Target position: %f, %f, %f. Diameter: %f",
+			// 	target1->x(), target1->y(), target1->z(), diameter);
 			Target_Samples.push_back({*target1, 0, diameter});
 		}
 		else {
@@ -306,6 +306,7 @@ bool OffboardControl::Doshot(int shot_count)
 	static std::vector<YOLO::Target> targets; 			// 声明目标x和y坐标
 	static float tar_z = 1, tar_yaw = 0; 				// 声明目标偏航角（rad）
 	static bool shot_flag = false; 				// 投弹标志
+	static std::vector<Vector3f> shot_point;			// 声明投弹点坐标
 	bool result = false;
 
 	// 读取PID参数
@@ -327,11 +328,16 @@ bool OffboardControl::Doshot(int shot_count)
 			radius = config["radius"].as<float>();
 			tar_z = config["tar_z"].as<float>();
 			std::vector<std::string> targets_str = {"_l", "_r"};
+			shot_point = {{-0.045, 0.0, 0.10}, {0.045, 0.0, 0.10}};
 			targets.clear();
-			for (size_t i = 0; i < targets_str.size(); i++)
+			for (size_t i = 0; i < shot_point.size(); i++)
 			{
 				YOLO::Target target;
 				target.category = std::string("circle").append(targets_str[i]);
+				
+				rotate_2local(shot_point[i].x(), shot_point[i].y(), shot_point[i].x(), shot_point[i].y());
+				std::cout << "shot_point_x" << shot_point[i].x() << std::endl;
+				std::cout << "shot_point_y" << shot_point[i].y() << std::endl;
 				target.x = config[std::string("tar_x").append(targets_str[i])].as<float>(0.0f);
 				target.y = config[std::string("tar_y").append(targets_str[i])].as<float>(0.0f);
 				target.z = config[std::string("tar_z").append(targets_str[i])].as<float>(0.0f);
@@ -361,6 +367,15 @@ bool OffboardControl::Doshot(int shot_count)
 			double cur_shot_time = get_cur_time();
 			int shot_index = (shot_count - 1) % targets.size(); // 计算当前投弹桶的索引，shot_count从1开始计数， tar_x.size()!=0
 			
+			// 验证索引有效性
+			if (shot_index < 0 || shot_index >= static_cast<int>(targets.size()) || 
+				shot_index >= static_cast<int>(shot_point.size())) {
+				RCLCPP_ERROR(this->get_logger(), "Doshot: Invalid shot_index: %d, targets.size(): %zu, shot_point.size(): %zu", 
+							shot_index, targets.size(), shot_point.size());
+				catch_state_ = CatchState::end;
+				continue;
+			}
+			
 			for (size_t i = 0; i < targets.size(); i++)
 			{
 				targets[i].r = 1.0f; // 设置所有目标颜色为红色
@@ -388,15 +403,35 @@ bool OffboardControl::Doshot(int shot_count)
 				}
 			}
 
-			Vector2d input_pixel(targets[shot_index].x, targets[shot_index].y);
-			auto mapped_center_opt = _camera_gimbal->mapPixelToVerticalDownCamera(input_pixel, bucket_height);
-			if (mapped_center_opt.has_value()) {
-				Vector2d shot_center = mapped_center_opt.value();
-				temp_target.x = shot_center.x();
-				temp_target.y = shot_center.y();
-				temp_target.category = std::string("circle").append("_p2p");
-				_yolo->append_target(temp_target);
+			// Vector2d input_pixel(targets[shot_index].x, targets[shot_index].y);
+			// auto mapped_center_opt = _camera_gimbal->mapPixelToVerticalDownCamera(input_pixel, bucket_height);
+			// if (mapped_center_opt.has_value()) {
+			// 	Vector2d shot_center = mapped_center_opt.value();
+			// 	temp_target.x = shot_center.x();
+			// 	temp_target.y = shot_center.y();
+			// 	temp_target.category = std::string("circle").append("_p2p");
+			// 	_yolo->append_target(temp_target);
+			// }
+
+			// 确保shot_index在shot_point范围内
+			YOLO::Target t2p_target = targets[shot_index];
+			if (shot_index < static_cast<int>(shot_point.size())) {
+				Vector3d world_point_target(
+					_camera_gimbal->position.x() - drone_to_camera.x() + shot_point[shot_index].x(), 
+					_camera_gimbal->position.y() - drone_to_camera.y() + shot_point[shot_index].y(), 
+					bucket_height
+				);
+				std::cout << "camera_gimbal position: " << _camera_gimbal->position.transpose() << "drone_to_camera: " << drone_to_camera.transpose() << "world_point_target: " << world_point_target.transpose() << std::endl;
+				auto output_pixel_opt = _camera_gimbal->worldToPixel(world_point_target);
+				if (output_pixel_opt.has_value()){
+					Vector2d output_pixel = output_pixel_opt.value();
+					t2p_target.x = output_pixel.x();
+					t2p_target.y = output_pixel.y();
+					t2p_target.category = std::string("circle").append("_t2p");
+					_yolo->append_target(t2p_target);
+				}
 			}
+
 
 			// yolo未识别到桶
 			if (!_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE))
@@ -409,7 +444,11 @@ bool OffboardControl::Doshot(int shot_count)
 			} else if (catch_target(
 					defaults,
 					YOLO::TARGET_TYPE::CIRCLE, // 目标类型
-					targets[shot_index].x, targets[shot_index].y, targets[shot_index].z, tar_yaw, targets[shot_index].caculate_pixel_radius()
+					targets[shot_index].x, 
+					targets[shot_index].y, 
+					targets[shot_index].z, 
+					tar_yaw, 
+					targets[shot_index].caculate_pixel_radius()
 				))
 			{
 				targets[shot_index].r = 0.0f; // 设置当前目标颜色为绿色

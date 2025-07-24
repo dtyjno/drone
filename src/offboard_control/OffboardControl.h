@@ -325,7 +325,8 @@ public:
 	
 	template <typename T>
 	void rotate_2local(T in_x, T in_y, T &out_x, T &out_y) {
-		rotate_angle(in_x, in_y, -get_yaw());
+		// std::cout << "rotate_2local yaw: " << - (M_PI_2 - get_yaw()) << std::endl;
+		rotate_angle(in_x, in_y, - (M_PI_2 - get_yaw()));
 		out_x = in_x;
 		out_y = in_y;
 	}
@@ -487,7 +488,7 @@ private:
 	float ty_see;
 
 	float bucket_height = 0.3; // 桶高度
-	Vector3d drone_to_camera = {0.15, 0, 0.21};
+	Vector3d drone_to_camera;
 
 	vector<Circles> cal_center;
 
@@ -560,6 +561,9 @@ private:
 		dy_see = config["dy_see"].as<float>();
 		shot_halt = config["shot_halt"].as<float>();
 		see_halt = config["see_halt"].as<float>();
+		drone_to_camera[0] = config["drone_to_camera_x"].as<float>(0.15);
+		drone_to_camera[1] = config["drone_to_camera_y"].as<float>(0.0);
+		drone_to_camera[2] = config["drone_to_camera_z"].as<float>(0.20);
 		RCLCPP_INFO(this->get_logger(), "读取投弹区起点坐标: dx_shot: %f, dy_shot: %f shot_halt: %f", dx_shot, dy_shot, shot_halt);
 		RCLCPP_INFO(this->get_logger(), "读取侦查区起点坐标: dx_see: %f, dy_see: %f see_halt: %f", dx_see, dy_see, see_halt);
 		

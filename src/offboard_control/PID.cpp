@@ -252,6 +252,14 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
     current_time += dt;
     
 #ifdef pid_debug_print
+    if(use_increment == true)
+    {
+        printf("PID%s: update_all_increment called with measurement: %f, target: %f, dt: %f, limit: %f\n", pid_name.c_str(), measurement, target, dt, limit);
+    }
+    else
+    {
+        printf("PID%s: update_all called with measurement: %f, target: %f, dt: %f, limit: %f\n", pid_name.c_str(), measurement, target, dt, limit);
+    }
     // printf("p:%3.2f i:%3.2f d:%3.2f ", _pid_info._kP, _pid_info._kI, _pid_info._kD);
 #endif
     _pid_info.target = target;
@@ -359,7 +367,7 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
     // Set the slew rate
     _pid_info.slew_rate = srmax;
 #ifdef pid_debug_print
-    printf("PID%s: tar:%+10f mea:%+5f kp:%+5f ki:%+5f kd:%+5f\n", pid_name.c_str(), target, measurement, _pid_info._kP, _pid_info._kI, _pid_info._kD);
+    printf("PID%s: kp:%+5f ki:%+5f kd:%+5f\n", pid_name.c_str(), _pid_info._kP, _pid_info._kI, _pid_info._kD);
     printf("PID%s: err:%+5f P:%+10f I:%+10f D:%+10f Out:%f\n", pid_name.c_str(), _pid_info.error, _pid_info.P, _pid_info.I, _pid_info.D, _pid_info.output);
 // std::cout <<"target:"<<target<<" meadurement:"<<measurement<<" error:"<<_pid_info.error <<" P:"
 // <<_pid_info.P<<" I:"
@@ -561,7 +569,7 @@ void PID::update_i(float dt, float limit)
     _pid_info.I = constrain_float(_pid_info.I, _kimax, -_kimax);
     
     // 积分项衰减机制（当误差接近零时）
-    if (fabs(_error) < 0.07f && fabs(_pid_info.I) > 0.005f)
+    if (fabs(_error) < 0.11f && fabs(_pid_info.I) > 0.005f)
     {
         // printf("PID%s: Integral decay applied: %f\n", pid_name.c_str(), _pid_info.I);
         _pid_info.I *= 0.97f; // 轻微衰减，避免长期偏差
