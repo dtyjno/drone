@@ -36,8 +36,10 @@ void OffboardControl::timer_callback(void)
 		RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "位置数据无效，等待有效GPS信号...");
 		return;
 	}
-	_camera_gimbal->position = Vector3d(get_x_pos() + drone_to_camera[0], get_y_pos() + drone_to_camera[1], get_z_pos() + drone_to_camera[2]);
-
+	Vector2d drone_to_camera_rotated;
+	rotate_2local(drone_to_camera.x(), drone_to_camera.y(), drone_to_camera_rotated.x(), drone_to_camera_rotated.y());
+	_camera_gimbal->position = Vector3d(get_x_pos() + drone_to_camera_rotated.x(), get_y_pos() + drone_to_camera_rotated.y(), get_z_pos() + drone_to_camera[2]);
+	
 	// 相机坐标系：相对于飞机机体坐标系，向前旋转90度后垂直向下
 	// 飞机偏航角 + 相机相对偏航角(90度) + 俯仰角(-90度向下)
 	float roll, pitch, yaw;
@@ -64,10 +66,8 @@ void OffboardControl::timer_callback(void)
 		);
 		double diameter = _camera_gimbal->calculateRealDiameter((circle.size_x + circle.size_y) / 2.0, _camera_gimbal->position.z() - bucket_height);
 		if (target1.has_value()) {
-			// RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, "(THROTTLE 0.5s) Example 1 - Target position: %f, %f, %f. Diameter: %f",
-			// 	target1->x(), target1->y(), target1->z(), diameter);
-			// RCLCPP_INFO(this->get_logger(), "Example 1 - Target position: %f, %f, %f. Diameter: %f",
-			// 	target1->x(), target1->y(), target1->z(), diameter);
+			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) Example 1 - Target position: %f, %f, %f. Diameter: %f",
+				target1->x(), target1->y(), target1->z(), diameter);
 			Target_Samples.push_back({*target1, 0, diameter});
 		}
 		else {
@@ -87,13 +87,11 @@ void OffboardControl::timer_callback(void)
 				RCLCPP_WARN(this->get_logger(), "侦查点坐标异常，跳过: %zu, x: %f, y: %f", i, cal_center[i].point.x(), cal_center[i].point.y());
 				continue; // 跳过无效坐标
 			}
-			sort(cal_center.begin(), cal_center.end(), [](const Circles& a, const Circles& b) {
-				return a.diameters < b.diameters;
-			});
-			RCLCPP_INFO(this->get_logger(), "侦查点坐标 %zu: x: %f, y: %f ,n_x: %f, n_y: %f", 
-				i, cal_center[i].point.x(), cal_center[i].point.y(), surround_shot_points[shot_count].x(), surround_shot_points[shot_count].y());
-			RCLCPP_INFO(this->get_logger(), "桶直径 %zu: d: %lf", 
-				i, cal_center[i].diameters);
+			// sort(cal_center.begin(), cal_center.end(), [](const Circles& a, const Circles& b) {
+			// 	return a.diameters < b.diameters;
+			// });
+			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) 侦查点坐标 %zu: x: %f, y: %f ,n_x: %f, n_y: %f d: %lf", 
+				i, cal_center[i].point.x(), cal_center[i].point.y(), surround_shot_points[shot_count].x(), surround_shot_points[shot_count].y(), cal_center[i].diameters);
 			surround_shot_points[shot_count++] = Vector2f((tx - dx_shot) / 10, (ty - dy_shot)/ 5);
 		}
     }
@@ -318,6 +316,7 @@ bool OffboardControl::Doshot(int shot_count)
 		{
 		case CatchState::init:
 		{
+			_pose_control->reset_pid(); // 重置PID参数与配置
 			RCLCPP_INFO(this->get_logger(), "Doshot: Init");
 			PID::Defaults defaults;
 			defaults = PID::readPIDParameters("can_config.yaml", "pid");
@@ -328,14 +327,20 @@ bool OffboardControl::Doshot(int shot_count)
 			radius = config["radius"].as<float>();
 			tar_z = config["tar_z"].as<float>();
 			std::vector<std::string> targets_str = {"_l", "_r"};
-			shot_point = {{-0.045, 0.0, 0.10}, {0.045, 0.0, 0.10}};
+			shot_point = {{0.045, 0.0, 0.10}, {-0.045, 0.0, 0.10}};
 			targets.clear();
 			for (size_t i = 0; i < shot_point.size(); i++)
 			{
 				YOLO::Target target;
 				target.category = std::string("circle").append(targets_str[i]);
-				
-				rotate_2local(shot_point[i].x(), shot_point[i].y(), shot_point[i].x(), shot_point[i].y());
+
+				float adjusted_x = shot_point[i].x() - drone_to_camera[0];
+				float adjusted_y = shot_point[i].y() - drone_to_camera[1];
+				float rotated_x, rotated_y;
+				rotate_2local(adjusted_x, adjusted_y, rotated_x, rotated_y);
+				shot_point[i].x() = rotated_x;
+				shot_point[i].y() = rotated_y;
+				shot_point[i].z() = shot_point[i].z() - drone_to_camera[2]; // 调整高度
 				std::cout << "shot_point_x" << shot_point[i].x() << std::endl;
 				std::cout << "shot_point_y" << shot_point[i].y() << std::endl;
 				target.x = config[std::string("tar_x").append(targets_str[i])].as<float>(0.0f);
@@ -392,7 +397,7 @@ bool OffboardControl::Doshot(int shot_count)
 			if (static_cast<int>(cal_center.size()) > shot_count){
 				Vector3d world_point(cal_center[shot_count].point.x(), 
 									cal_center[shot_count].point.y(), 
-									bucket_height);
+									cal_center[shot_count].point.z());
 				auto shot_center_opt = _camera_gimbal->worldToPixelVerticalDown(world_point);
 				if (shot_center_opt.has_value()) {
 					Vector2d shot_center = shot_center_opt.value();
@@ -417,16 +422,18 @@ bool OffboardControl::Doshot(int shot_count)
 			YOLO::Target t2p_target = targets[shot_index];
 			if (shot_index < static_cast<int>(shot_point.size())) {
 				Vector3d world_point_target(
-					_camera_gimbal->position.x() - drone_to_camera.x() + shot_point[shot_index].x(), 
-					_camera_gimbal->position.y() - drone_to_camera.y() + shot_point[shot_index].y(), 
-					bucket_height
+					_camera_gimbal->position.x() + shot_point[shot_index].x(), 
+					_camera_gimbal->position.y() + shot_point[shot_index].y(), 
+					bucket_height + shot_point[shot_index].z()
 				);
-				std::cout << "camera_gimbal position: " << _camera_gimbal->position.transpose() << "drone_to_camera: " << drone_to_camera.transpose() << "world_point_target: " << world_point_target.transpose() << std::endl;
+				std::cout << "camera_gimbal position: " << _camera_gimbal->position.transpose() << "shot_point: " << shot_point[shot_index].transpose() << "world_point_target: " << world_point_target.transpose() << std::endl;
 				auto output_pixel_opt = _camera_gimbal->worldToPixel(world_point_target);
 				if (output_pixel_opt.has_value()){
 					Vector2d output_pixel = output_pixel_opt.value();
 					t2p_target.x = output_pixel.x();
 					t2p_target.y = output_pixel.y();
+					if (static_cast<int>(cal_center.size()) > shot_count)
+						t2p_target.radius = cal_center[shot_count].diameters / 2.0f; // 设置目标半径
 					t2p_target.category = std::string("circle").append("_t2p");
 					_yolo->append_target(t2p_target);
 				}
@@ -444,8 +451,10 @@ bool OffboardControl::Doshot(int shot_count)
 			} else if (catch_target(
 					defaults,
 					YOLO::TARGET_TYPE::CIRCLE, // 目标类型
-					targets[shot_index].x, 
-					targets[shot_index].y, 
+					// targets[shot_index].x, 
+					// targets[shot_index].y, 
+					t2p_target.x,
+					t2p_target.y,
 					targets[shot_index].z, 
 					tar_yaw, 
 					targets[shot_index].caculate_pixel_radius()
@@ -454,6 +463,9 @@ bool OffboardControl::Doshot(int shot_count)
 				targets[shot_index].r = 0.0f; // 设置当前目标颜色为绿色
 				targets[shot_index].g = 1.0f;
 				targets[shot_index].b = 0.0f;
+				// t2p_target.r = 0.0f; // 设置当前目标颜色为绿色
+				// t2p_target.g = 1.0f;
+				// t2p_target.b = 0.0f;
 				RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, time = %fs", cur_shot_time - _t_time);
 				// if(error_x<0.05 && error_y<0.05){
 					// RCLCPP_INFO(this->get_logger(), "Arrive, Doshot");
@@ -519,6 +531,7 @@ bool OffboardControl::Doland()
 		switch (land_state_)
 		{
 		case LandState::init:{
+			_pose_control->reset_pid(); // 重置PID参数与配置
 			// 读取PID参数
 			defaults = PID::readPIDParameters("land_config.yaml", "pid");
 			PosControl::Limits_t limits = _pose_control->readLimits("land_config.yaml", "limits");

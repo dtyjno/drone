@@ -786,6 +786,23 @@ void PosControl::set_pid(PID &pid, PID::Defaults defaults)
 
 void PosControl::reset_pid()
 {
+	pid_x.reset_all();
+	pid_y.reset_all();
+	pid_z.reset_all();
+	pid_yaw.reset_all();
+	pid_px.reset_all();
+	pid_py.reset_all();
+	pid_pz.reset_all();
+	pid_vx.reset_all();
+	pid_vy.reset_all();
+	pid_vz.reset_all();
+
+	reset_pid_config();
+}
+
+
+void PosControl::reset_pid_config()
+{
 	pid_x.set_pid(pid_x_defaults);
 	pid_y.set_pid(pid_y_defaults);
 	pid_z.set_pid(pid_z_defaults);

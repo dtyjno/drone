@@ -68,7 +68,7 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude, float yaw){
 		//RCLCPP_INFO(this->get_logger(), "vehicle is start");		
 		if (!armed){ // 如果无人机起飞失败重新上锁
 			state_ = State::arm_requested;
-		} else if (local_frame_z - home_position.z() < 0.5f && num_of_takeoff <= 5){ 
+		} else if (local_frame_z - home_position.z() < 0.5f && num_of_takeoff <= 5 && !is_takeoff){ 
 			if(timer->elapsed() > 2.0){
 				num_of_takeoff++;
 				// RCLCPP_INFO(node->get_logger(), "vehicle is taking off");
@@ -379,7 +379,7 @@ void Motors::command_takeoff_or_land(std::string mode, float altitude, float yaw
 					RCLCPP_INFO(node->get_logger(), "TakeOff: %s", reply ? "success" : "failed");
 					if (reply == 1) {
 						// Code to execute if the future is successful
-						// service_done_ = true;
+						this->is_takeoff = true;
 					}
 					else {
 						// Code to execute if the future is unsuccessful

@@ -74,6 +74,9 @@ public:
 		this->declare_parameter("print_info", false);
 		this->get_parameter("print_info", print_info_);
 		RCLCPP_INFO(this->get_logger(), "print_info: %s", print_info_ ? "true" : "false");
+		this->declare_parameter("fast_mode", false);
+		this->get_parameter("fast_mode", fast_mode_);
+		RCLCPP_INFO(this->get_logger(), "fast_mode: %s", fast_mode_ ? "true" : "false");
 		if (print_info_) {
 			state_machine_.transition_to(FlyState::Print_Info);
 		}
@@ -121,8 +124,6 @@ public:
 		stats_publisher_ = this->create_publisher<pal_statistics_msgs::msg::Statistics>("/statistics", 10);
 		stats_timer_ = this->create_wall_timer(50ms,std::bind(&OffboardControl::publish_statistics, this));
 		#endif
-
-		rotate_global2stand(drone_to_camera[0], drone_to_camera[1], drone_to_camera[0], drone_to_camera[1]);
 	}
 
 	float get_x_pos(void)
@@ -402,9 +403,19 @@ public:
 		yolo_y_circle_stat.value = _yolo->get_y(YOLO::TARGET_TYPE::CIRCLE);
 		statistics.push_back(yolo_y_circle_stat);	
 
+		auto yolo_x_h_raw_stat = pal_statistics_msgs::msg::Statistic();
+		yolo_x_h_raw_stat.name ="yolo_x_h_raw";
+		yolo_x_h_raw_stat.value = _yolo->get_raw_x(YOLO::TARGET_TYPE::H);
+		statistics.push_back(yolo_x_h_raw_stat);	
+
+		auto yolo_y_h_raw_stat = pal_statistics_msgs::msg::Statistic();
+		yolo_y_h_raw_stat.name ="yolo_y_h_raw";
+		yolo_y_h_raw_stat.value = _yolo->get_raw_y(YOLO::TARGET_TYPE::H);
+		statistics.push_back(yolo_y_h_raw_stat);
+
 		auto yolo_x_h_stat = pal_statistics_msgs::msg::Statistic();
 		yolo_x_h_stat.name ="yolo_x_h";
-		yolo_x_h_stat.value = _yolo->get_y(YOLO::TARGET_TYPE::H);
+		yolo_x_h_stat.value = _yolo->get_x(YOLO::TARGET_TYPE::H);
 		statistics.push_back(yolo_x_h_stat);	
 
 		auto yolo_y_h_stat = pal_statistics_msgs::msg::Statistic();
@@ -437,6 +448,7 @@ private:
 	bool sim_mode_ = false; // 是否为仿真模式
 	bool debug_mode_ = false; // 是否手动切换状态
 	bool print_info_ = false; // 是否打印信息
+	bool fast_mode_ = false;
 	std::string ardupilot_namespace_copy_;
 	std::shared_ptr<YOLO> _yolo;
 	std::shared_ptr<ServoController> _servo_controller;
@@ -472,14 +484,15 @@ private:
 	// const double shot_halt = 4.0;
 
 	// 侦查区域巡航属性
-	const double see_length = 6.0;
-	const double see_width = 5.0;
+	const double see_length = 7.5;
+	const double see_width = 4.5;
 	// const double see_halt = 3.0;
 
 	// 定义投弹侦察点位 原始数据
 	float dx_shot, dy_shot;
 	float dx_see, dy_see;
 	float shot_halt;
+	float shot_halt_low; // 投弹区预测目标低高度巡航
 	float see_halt;
 	// 坐标待旋转处理后坐标
 	float tx_shot;
@@ -560,10 +573,11 @@ private:
 		dx_see = config["dx_see"].as<float>(); 
 		dy_see = config["dy_see"].as<float>();
 		shot_halt = config["shot_halt"].as<float>();
+		shot_halt_low = config["shot_halt_low"].as<float>();
 		see_halt = config["see_halt"].as<float>();
-		drone_to_camera[0] = config["drone_to_camera_x"].as<float>(0.15);
-		drone_to_camera[1] = config["drone_to_camera_y"].as<float>(0.0);
-		drone_to_camera[2] = config["drone_to_camera_z"].as<float>(0.20);
+		drone_to_camera[0] = config["drone_to_camera_x"].as<float>();
+		drone_to_camera[1] = config["drone_to_camera_y"].as<float>();
+		drone_to_camera[2] = config["drone_to_camera_z"].as<float>();
 		RCLCPP_INFO(this->get_logger(), "读取投弹区起点坐标: dx_shot: %f, dy_shot: %f shot_halt: %f", dx_shot, dy_shot, shot_halt);
 		RCLCPP_INFO(this->get_logger(), "读取侦查区起点坐标: dx_see: %f, dy_see: %f see_halt: %f", dx_see, dy_see, see_halt);
 		

@@ -81,6 +81,7 @@ public:
 	// State: GUIDED, Armed: 1, Connected: 1, Guided: 1, System Status:
 	// State: RTL, Armed: 1, Connected: 1, Guided: 1, System Status:  
 	// State: LAND, Armed: 1, Connected: 1, Guided: 1, System Status:
+	bool is_takeoff = false;
 	bool armed;
 	bool connected;
 	bool guided;

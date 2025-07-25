@@ -39,7 +39,7 @@ void StateMachine::handle_state<FlyState::Goto_shotpoint>() {
 	if (current_state_ == FlyState::Goto_shotpoint) {
 		RCLCPP_INFO_ONCE(owner_->get_logger(), "开始前往投弹区起点");
 		float x_shot, y_shot;
-		owner_->rotate_global2stand(owner_->dx_shot, owner_->dy_shot, x_shot, y_shot);
+		owner_->rotate_global2stand(owner_->dx_shot, owner_->dy_shot + 2.5f, x_shot, y_shot);
 		if(owner_->waypoint_timer_.elapsed() > 12)
 		{
 			owner_->waypoint_timer_.set_start_time_to_default();
@@ -47,7 +47,7 @@ void StateMachine::handle_state<FlyState::Goto_shotpoint>() {
 			transition_to(FlyState::Doshot);
 		} else {
 			owner_->send_local_setpoint_command(
-				x_shot, y_shot + 2.5, owner_->shot_halt, 0
+				x_shot, y_shot, owner_->shot_halt, 0
 			);
 			RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 3000, "(THROTTLE 3s)前往投弹区中...%f", owner_->waypoint_timer_.elapsed());
 		}
@@ -66,7 +66,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 		static int counter = 0, pre_counter; // 航点计数器
 		static double doshot_halt_end_time; // 记录结束时间
 		static int shot_counter = 1; // 投弹计数器
-		static int max_px = 50; // 可删除
+		static float max_accurate; // 聚类目标投弹最大距离
 
 		// static vector<array<double, 3>> surround_shot_scout_points;
 		
@@ -74,10 +74,11 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 		{
 			RCLCPP_INFO(owner_->get_logger(), "超时");
 			owner_->doshot_state_ = owner_->DoshotState::doshot_end; // 设置投弹状态为结束
-		} 
-		// if (counter != pre_counter) {
-		// 	max_px = 50; // 重置最大像素值
-		// }
+		}
+		if (static_cast<int>(owner_->cal_center.size()) > counter && (counter != pre_counter || owner_->doshot_state_ == owner_->DoshotState::doshot_wait || owner_->doshot_state_ == owner_->DoshotState::doshot_init)) {
+			max_accurate = owner_->cal_center[counter].diameters / 2; // 更新最大距离
+			RCLCPP_INFO(owner_->get_logger(), "更新最大距离为: %f", max_accurate);
+		}
 		while(true){
 			switch (owner_->doshot_state_)  // 根据投弹状态执行不同的操作
 			{
@@ -124,30 +125,34 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				// 	owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE),
 				// 	owner_->_yolo->get_x(YOLO::TARGET_TYPE::H), owner_->_yolo->get_y(YOLO::TARGET_TYPE::H),
 				// 	owner_->_yolo->get_servo_flag());
-				RCLCPP_INFO(owner_->get_logger(), "counter=%d x:%f, y:%f max:%d", counter,
-					abs(owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_width()/2), abs(owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_height()/2), max_px);
-				if (static_cast<size_t>(counter) < owner_->cal_center.size() && owner_->waypoint_timer_.elapsed() < 10.0 && abs(owner_->get_x_pos() - owner_->cal_center[counter].point.x()) > owner_->cal_center[counter].diameters / 2 * 5 && abs(owner_->get_y_pos() - owner_->cal_center[counter].point.y()) > owner_->cal_center[counter].diameters / 2 * 5)
+				RCLCPP_INFO(owner_->get_logger(), "counter=%d x:%f, y:%f max:%f", counter,
+					abs(owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_width()/2), abs(owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_height()/2), max_accurate);
+				if (static_cast<size_t>(counter) < owner_->cal_center.size() && 
+					owner_->waypoint_timer_.elapsed() < 10.0 && 
+					abs(owner_->get_x_pos() - owner_->cal_center[counter].point.x()) > max_accurate && 
+					abs(owner_->get_y_pos() - owner_->cal_center[counter].point.y()) > max_accurate)
 				{
 					pre_counter = counter; // 记录上一次的计数器值
 					owner_->send_local_setpoint_command(
 						owner_->cal_center[counter].point.x(),
 						owner_->cal_center[counter].point.y(),
-						owner_->shot_halt, 0
+						owner_->shot_halt_low, 0
 					);
-					RCLCPP_INFO(owner_->get_logger(), "已经确认直径为%f的%d号桶，位置为（%f,%f）, 执行航点时间%f秒，x轴偏差%f, y轴偏差%f，精度为%f",
+					RCLCPP_INFO(owner_->get_logger(), "已经确认直径为%f的%d号桶，位置为（%f,%f）, 执行航点时间%f秒，x轴偏差%f, y轴偏差%f，最大距离为%f",
 					owner_->cal_center[counter].diameters,
 					counter, owner_->cal_center[counter].point.x(), owner_->cal_center[counter].point.y(),
 					owner_->waypoint_timer_.elapsed(),
 					abs(owner_->get_x_pos() - owner_->cal_center[counter].point.x()),
 					abs(owner_->get_y_pos() - owner_->cal_center[counter].point.y()),
-					owner_->cal_center[counter].diameters / 2 * 5);
-				} else 
-				if (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE) 
-					// || 
-					// (counter < 3 &&
-					// (abs(owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_width()/2) > max_px ||
-					// abs(owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_height()/2) > max_px)
-					// )
+					max_accurate);
+				} else if (owner_->fast_mode_) {
+					RCLCPP_INFO(owner_->get_logger(), "fast_mode_ is true, 投弹");
+					owner_->_servo_controller->set_servo(10 + shot_counter, 1864);
+					owner_->waypoint_timer_.reset();
+					owner_->doshot_state_ = owner_->DoshotState::doshot_wait; // 设置投弹状态为等待
+					doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
+					continue; // 直接跳到下一个状态;
+				} else if (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE)
 					) {
 					pre_counter = counter; // 记录上一次的计数器值
 					owner_->waypoint_goto_next(
@@ -162,7 +167,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
 					continue; // 继续执行下一次循环
 				} else { // 如果找到投弹目标但未到达目标上方
-					// max_px = 300;
+					max_accurate = 5;
 					counter = pre_counter; // 恢复上一次的计数器值
 					owner_->waypoint_timer_.reset(); // 重置航点计时器
 				}
@@ -170,18 +175,28 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 			case owner_->DoshotState::doshot_wait: // 等待再次投弹
 				if(shot_counter <= 1) // 投弹计数器小于1，再次执行投弹
 				{
-					owner_->waypoint_goto_next(
-						owner_->dx_shot, owner_->dy_shot + 2.6, owner_->shot_length, owner_->shot_width, 
-						owner_->shot_halt, owner_->surround_shot_points, owner_->shot_halt, &counter, "投弹区");
-					if (owner_->get_cur_time() - doshot_halt_end_time < 5.0 || counter == pre_counter + 1) {   // 非阻塞等待至第5秒或抵达下一个航点
-						break;
+					if (static_cast<size_t>(counter) >= owner_->cal_center.size()){
+						owner_->waypoint_goto_next(
+							owner_->dx_shot, owner_->dy_shot + 2.6, owner_->shot_length, owner_->shot_width, 
+							owner_->shot_halt, owner_->surround_shot_points, owner_->shot_halt, &counter, "投弹区");
+						if (owner_->get_cur_time() - doshot_halt_end_time < 5.0 || counter == pre_counter + 1) {   // 非阻塞等待至第5秒或抵达下一个航点
+							break;
+						}
+					} else {
+						if (owner_->get_cur_time() - doshot_halt_end_time < 2.0){
+							break; // 等待2秒
+						}
+						counter++; // 增加计数器
+						pre_counter = counter; // 更新上一次计数器值
 					}
 					RCLCPP_INFO(owner_->get_logger(), "投弹完成，继续投弹 shot_counter=%d", shot_counter);
 					shot_counter++;
 					owner_->doshot_state_ = owner_->DoshotState::doshot_shot; // 设置投弹状态为投弹
 					owner_->waypoint_timer_.reset(); // 重置航点计时器
+					doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
 					continue; // 继续投弹
 				} else {
+					RCLCPP_INFO(owner_->get_logger(), "投弹完成，2s后前往侦查区域");
 					owner_->doshot_state_ = owner_->DoshotState::doshot_end; // 设置投弹状态为结束
 					continue; // 继续执行下一次循环
 				}
@@ -192,8 +207,10 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				// 重置状态
 				owner_->doshot_state_ = owner_->DoshotState::doshot_init; // 重置投弹状态
 				// //
-				RCLCPP_INFO(owner_->get_logger(), "投弹完成，2s后前往侦查区域");
-				rclcpp::sleep_for(2s);
+				// rclcpp::sleep_for(2s);
+				if (owner_->get_cur_time() - doshot_halt_end_time < 2.0) {
+					break; // 等待2秒
+				}
 				// owner_->_servo_controller->set_servo(11, 1200);
 				// owner_->_servo_controller->set_servo(12, 1200);
 				transition_to(FlyState::Goto_scoutpoint);
@@ -266,8 +283,8 @@ void StateMachine::handle_state<FlyState::Doland>() {
 				doland_state = DolandState::doland_wait; // 切换到等待降落状态
 				continue; // 继续执行下一次循环;
 			case DolandState::doland_wait: // 等待降落
-				if (owner_->state_timer_.elapsed() > 17.0) { // 如果等待超过17秒
-					RCLCPP_INFO(owner_->get_logger(), "等待降落超过17秒，开始降落");
+				if (owner_->state_timer_.elapsed() > 19.0) { // 如果等待超过19秒
+					RCLCPP_INFO(owner_->get_logger(), "等待降落超过19秒，开始降落");
 					owner_->_motors->switch_mode("GUIDED");
 					doland_state = DolandState::doland_landing; // 切换到降落中状态
 					continue; // 继续执行下一次循环;
