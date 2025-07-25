@@ -82,17 +82,18 @@ void OffboardControl::timer_callback(void)
 		{
 			double tx, ty;
 			rotate_stand2global(cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
-			if (tx < dx_shot - 2 || tx > dx_shot + 2 ||
-				ty < dy_shot || ty > dy_shot + 5) {
+			if (tx < dx_shot - shot_length_max / 2 || tx > dx_shot + shot_length_max / 2 ||
+				ty < dy_shot || ty > dy_shot + shot_width_max) {
 				RCLCPP_WARN(this->get_logger(), "侦查点坐标异常，跳过: %zu, x: %f, y: %f", i, cal_center[i].point.x(), cal_center[i].point.y());
 				continue; // 跳过无效坐标
 			}
 			// sort(cal_center.begin(), cal_center.end(), [](const Circles& a, const Circles& b) {
 			// 	return a.diameters < b.diameters;
 			// });
-			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) 侦查点坐标 %zu: x: %f, y: %f ,n_x: %f, n_y: %f d: %lf", 
+			surround_shot_points[shot_count] = Vector2f((tx - dx_shot) / shot_length_max, (ty - dy_shot) / shot_width_max);
+			RCLCPP_INFO(this->get_logger(), "侦查点坐标 %zu: x: %f, y: %f ,n_x: %f, n_y: %f d: %lf", 
 				i, cal_center[i].point.x(), cal_center[i].point.y(), surround_shot_points[shot_count].x(), surround_shot_points[shot_count].y(), cal_center[i].diameters);
-			surround_shot_points[shot_count++] = Vector2f((tx - dx_shot) / 10, (ty - dy_shot)/ 5);
+			shot_count++;
 		}
     }
 
@@ -303,7 +304,7 @@ bool OffboardControl::Doshot(int shot_count)
 	static float shot_duration = 2; 					// 稳定持续时间
 	static std::vector<YOLO::Target> targets; 			// 声明目标x和y坐标
 	static float tar_z = 1, tar_yaw = 0; 				// 声明目标偏航角（rad）
-	static bool shot_flag = false; 				// 投弹标志
+	static bool shot_flag = false; 						// 投弹标志
 	static std::vector<Vector3f> shot_point;			// 声明投弹点坐标
 	bool result = false;
 

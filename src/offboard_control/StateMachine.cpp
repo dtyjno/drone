@@ -39,7 +39,7 @@ void StateMachine::handle_state<FlyState::Goto_shotpoint>() {
 	if (current_state_ == FlyState::Goto_shotpoint) {
 		RCLCPP_INFO_ONCE(owner_->get_logger(), "开始前往投弹区起点");
 		float x_shot, y_shot;
-		owner_->rotate_global2stand(owner_->dx_shot, owner_->dy_shot + 2.5f, x_shot, y_shot);
+		owner_->rotate_global2stand(owner_->dx_shot, owner_->dy_shot + owner_->shot_width_max / 2, x_shot, y_shot);
 		if(owner_->waypoint_timer_.elapsed() > 12)
 		{
 			owner_->waypoint_timer_.set_start_time_to_default();
@@ -76,7 +76,8 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 			owner_->doshot_state_ = owner_->DoshotState::doshot_end; // 设置投弹状态为结束
 		}
 		if (static_cast<int>(owner_->cal_center.size()) > counter && (counter != pre_counter || owner_->doshot_state_ == owner_->DoshotState::doshot_wait || owner_->doshot_state_ == owner_->DoshotState::doshot_init)) {
-			max_accurate = owner_->cal_center[counter].diameters / 2; // 更新最大距离
+			// max_accurate = owner_->cal_center[counter].diameters / 2; // 更新最大距离
+			max_accurate = 0.2; // 更新最大距离
 			RCLCPP_INFO(owner_->get_logger(), "更新最大距离为: %f", max_accurate);
 		}
 		while(true){
@@ -177,7 +178,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				{
 					if (static_cast<size_t>(counter) >= owner_->cal_center.size()){
 						owner_->waypoint_goto_next(
-							owner_->dx_shot, owner_->dy_shot + 2.6, owner_->shot_length, owner_->shot_width, 
+							owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
 							owner_->shot_halt, owner_->surround_shot_points, owner_->shot_halt, &counter, "投弹区");
 						if (owner_->get_cur_time() - doshot_halt_end_time < 5.0 || counter == pre_counter + 1) {   // 非阻塞等待至第5秒或抵达下一个航点
 							break;

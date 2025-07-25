@@ -283,7 +283,7 @@ void Motors::set_home_position(float lat, float lon, float alt, float yaw)
 	request->latitude = lat;
 	request->longitude = lon;
 	request->altitude = alt;
-	request->yaw = yaw;
+	request->yaw = M_PI_2 - yaw;
 	while (!set_home_client_->wait_for_service(std::chrono::seconds(1))) {
 		if (!rclcpp::ok()) {
 			RCLCPP_ERROR(node->get_logger(), "Interrupted while waiting for the service. Exiting.");
@@ -317,7 +317,7 @@ void Motors::set_home_position(float yaw)
 {
 	auto request = std::make_shared<mavros_msgs::srv::CommandHome::Request>();
 	request->current_gps = true;
-	request->yaw = yaw;
+	request->yaw = M_PI_2 -yaw;
 	while (!set_home_client_->wait_for_service(std::chrono::seconds(1))) {
 		if (!rclcpp::ok()) {
 			RCLCPP_ERROR(node->get_logger(), "Interrupted while waiting for the service. Exiting.");
@@ -369,7 +369,7 @@ void Motors::command_takeoff_or_land(std::string mode, float altitude, float yaw
 		takeoff_request->latitude = 0.0;
 		takeoff_request->longitude = 0.0;
 		takeoff_request->altitude = altitude;
-		takeoff_request->yaw = yaw;
+		takeoff_request->yaw = M_PI_2 - yaw;
 		
 		auto takeoff_result_future = takeoff_client_->async_send_request(takeoff_request,
 			[this,node](rclcpp::Client<mavros_msgs::srv::CommandTOL>::SharedFuture future) {
@@ -392,7 +392,7 @@ void Motors::command_takeoff_or_land(std::string mode, float altitude, float yaw
 			});
 	} else if(mode=="LAND"){
 		auto land_request = std::make_shared<mavros_msgs::srv::CommandTOL::Request>();
-		land_request->yaw = yaw;
+		land_request->yaw = M_PI_2 - yaw;
 		land_request->latitude = 0.0;
 		land_request->longitude = 0.0;
 		land_request->altitude = 0.0;
