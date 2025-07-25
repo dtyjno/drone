@@ -275,10 +275,10 @@ bool OffboardControl::catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYP
 		Vector4f{now_x / max_frame, now_y / max_frame, tar_z, tar_yaw + default_yaw}, // 目标坐标
 		defaults,
 		0.0,               				// 精度
-		0.0, 			 				// 偏航精度
-		true,            				// 是否不使用飞机速度计算
-		_yolo->get_velocity_x(target) / max_frame, 	// 飞机速度
-		_yolo->get_velocity_y(target) / max_frame  	// 飞机速度
+		0.0 			 				// 偏航精度
+		//true,            				// 是否不使用飞机速度计算
+	//	_yolo->get_velocity_x(target) / max_frame, 	// 飞机速度
+	//	_yolo->get_velocity_y(target) / max_frame  	// 飞机速度
 	);
 	if (abs(now_x - tar_x) <= accuracy && abs(now_y - tar_y) <= accuracy)
 	{
