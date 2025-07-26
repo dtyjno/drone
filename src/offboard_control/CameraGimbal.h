@@ -182,6 +182,9 @@ public:
     double calculateRealDiameter(double pixel_diameter, double distance_to_object) const {
         // 使用透视投影公式：pixel_diameter = (real_diameter * focal_length) / distance
         // 因此：real_diameter = (pixel_diameter * distance) / focal_length
+        if (fx <= 0.01) { // 防止除零
+            return 0.0;
+        }
         return (pixel_diameter * distance_to_object) / fx;
     }
         

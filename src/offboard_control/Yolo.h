@@ -231,6 +231,9 @@ public:
         float fx = 1;
         float relative_z = 1; // 相对高度
         float caculate_pixel_radius(void) const {
+            if (relative_z <= 0.01f) { // 防止除零
+                return 5.0f; // 返回最小半径
+            }
             float pixel_radius = (radius / relative_z) * fx; // 使用fx作为代表焦距
             return std::max(pixel_radius, 5.0f); // 最小半径为5像素
         }

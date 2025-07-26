@@ -75,10 +75,10 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 			RCLCPP_INFO(owner_->get_logger(), "超时");
 			owner_->doshot_state_ = owner_->DoshotState::doshot_end; // 设置投弹状态为结束
 		}
-		if (static_cast<int>(owner_->cal_center.size()) > counter && (counter != pre_counter || owner_->doshot_state_ == owner_->DoshotState::doshot_wait || owner_->doshot_state_ == owner_->DoshotState::doshot_init)) {
+		if ((static_cast<int>(owner_->cal_center.size()) > counter && counter != pre_counter) || owner_->doshot_state_ == owner_->DoshotState::doshot_wait || owner_->doshot_state_ == owner_->DoshotState::doshot_init) {
 			// max_accurate = owner_->cal_center[counter].diameters / 2; // 更新最大距离
-			max_accurate = 0.2; // 更新最大距离
-			RCLCPP_INFO(owner_->get_logger(), "更新最大距离为: %f", max_accurate);
+			max_accurate = 0.1; // 更新最大距离
+			// RCLCPP_INFO(owner_->get_logger(), "更新最大距离为: %f", max_accurate);
 		}
 		while(true){
 			switch (owner_->doshot_state_)  // 根据投弹状态执行不同的操作
@@ -126,7 +126,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				// 	owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE),
 				// 	owner_->_yolo->get_x(YOLO::TARGET_TYPE::H), owner_->_yolo->get_y(YOLO::TARGET_TYPE::H),
 				// 	owner_->_yolo->get_servo_flag());
-				RCLCPP_INFO(owner_->get_logger(), "counter=%d x:%f, y:%f max:%f", counter,
+				RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 1000, "handle_state<Doshot>:(THROTTLE 1s) counter=%d shot_counter=%d x:%f, y:%f max:%f", counter, shot_counter,
 					abs(owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_width()/2), abs(owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_height()/2), max_accurate);
 				if (static_cast<size_t>(counter) < owner_->cal_center.size() && 
 					owner_->waypoint_timer_.elapsed() < 10.0 && 
@@ -153,14 +153,12 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					owner_->doshot_state_ = owner_->DoshotState::doshot_wait; // 设置投弹状态为等待
 					doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
 					continue; // 直接跳到下一个状态;
-				} else if (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE)
-					) {
+				} else if (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE)) {
 					pre_counter = counter; // 记录上一次的计数器值
 					owner_->waypoint_goto_next(
 						owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
 						owner_->shot_halt, owner_->surround_shot_points, 3, &counter, "投弹区");
 				} else if (owner_->Doshot(shot_counter)) { // 如果到达投弹点
-					
 					// RCLCPP_INFO(owner_->get_logger(), "寻找完毕，投弹!!投弹!!");
 					RCLCPP_INFO(owner_->get_logger(), "已经锁定%d号桶，坐标为（%f,%f）", shot_counter, owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE));
 					RCLCPP_INFO(owner_->get_logger(), "投弹!!投弹!!，总用时：%f", owner_->state_timer_.elapsed());
@@ -197,23 +195,21 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
 					continue; // 继续投弹
 				} else {
-					RCLCPP_INFO(owner_->get_logger(), "投弹完成，2s后前往侦查区域");
 					owner_->doshot_state_ = owner_->DoshotState::doshot_end; // 设置投弹状态为结束
 					continue; // 继续执行下一次循环
 				}
 				break;
 			case owner_->DoshotState::doshot_end: // 侦查投弹区
-				owner_->_servo_controller->set_servo(11, 1864);
-				owner_->_servo_controller->set_servo(12, 1864);
-				// 重置状态
-				owner_->doshot_state_ = owner_->DoshotState::doshot_init; // 重置投弹状态
-				// //
-				// rclcpp::sleep_for(2s);
 				if (owner_->get_cur_time() - doshot_halt_end_time < 2.0) {
+					if (owner_->get_cur_time() - doshot_halt_end_time < 0.1) {
+						RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 1000, "投弹完成，等待2秒后前往侦查区域");
+						owner_->_servo_controller->set_servo(11, 1864);			// owner_->_servo_controller->set_servo(11, 1200);
+						owner_->_servo_controller->set_servo(12, 1864);				// owner_->_servo_controller->set_servo(12, 1200);
+					}
 					break; // 等待2秒
 				}
-				// owner_->_servo_controller->set_servo(11, 1200);
-				// owner_->_servo_controller->set_servo(12, 1200);
+				// 重置状态
+				owner_->doshot_state_ = owner_->DoshotState::doshot_init; // 重置投弹状态
 				transition_to(FlyState::Goto_scoutpoint);
 				break;
 			default:

@@ -119,7 +119,7 @@ public:
 		
 		timestamp_init = get_cur_time();
 		_motors->switch_mode("GUIDED");
-		timer_ = this->create_wall_timer(100ms, std::bind(&OffboardControl::timer_callback, this));
+		timer_ = this->create_wall_timer(50ms, std::bind(&OffboardControl::timer_callback, this));
 		#ifdef PAL_STATISTIC_VISIBILITY
 		stats_publisher_ = this->create_publisher<pal_statistics_msgs::msg::Statistics>("/statistics", 10);
 		stats_timer_ = this->create_wall_timer(50ms,std::bind(&OffboardControl::publish_statistics, this));

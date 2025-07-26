@@ -64,7 +64,12 @@ void OffboardControl::timer_callback(void)
 			Vector2d(circle.center.position.x, circle.center.position.y), 
 			bucket_height // 桶顶高度
 		);
-		double diameter = _camera_gimbal->calculateRealDiameter((circle.size_x + circle.size_y) / 2.0, _camera_gimbal->position.z() - bucket_height);
+		double avg_size = (circle.size_x + circle.size_y) / 2.0;
+		double distance_to_bucket = _camera_gimbal->position.z() - bucket_height;
+		double diameter = 0.0;
+		if (distance_to_bucket > 0.01) { // 防止除零
+			diameter = _camera_gimbal->calculateRealDiameter(avg_size, distance_to_bucket);
+		}
 		if (target1.has_value()) {
 			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) Example 1 - Target position: %f, %f, %f. Diameter: %f",
 				target1->x(), target1->y(), target1->z(), diameter);
@@ -91,7 +96,9 @@ void OffboardControl::timer_callback(void)
 			// 	return a.diameters < b.diameters;
 			// });
 			surround_shot_points[shot_count] = Vector2f((tx - dx_shot) / shot_length_max, (ty - dy_shot) / shot_width_max);
-			RCLCPP_INFO(this->get_logger(), "侦查点坐标 %zu: x: %f, y: %f ,n_x: %f, n_y: %f d: %lf", 
+			// RCLCPP_INFO(this->get_logger(), "侦查点坐标 %zu: x: %f, y: %f ,n_x: %f, n_y: %f d: %lf", 
+			// 	i, cal_center[i].point.x(), cal_center[i].point.y(), surround_shot_points[shot_count].x(), surround_shot_points[shot_count].y(), cal_center[i].diameters);
+			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) 侦查点坐标 %zu: x: %f, y: %f ,n_x: %f, n_y: %f d: %lf", 
 				i, cal_center[i].point.x(), cal_center[i].point.y(), surround_shot_points[shot_count].x(), surround_shot_points[shot_count].y(), cal_center[i].diameters);
 			shot_count++;
 		}
@@ -190,7 +197,7 @@ void OffboardControl::FlyState_init()
 	// 飞控日志 AP: Field Elevation Set: 0m 设定当前位置的地面高度为0米，这对于高度控制和避免地面碰撞非常重要。
 	start_global = {get_lat(), get_lon(), get_alt()};			
 	RCLCPP_INFO(this->get_logger(), "初始旋转角: %f", get_yaw());
-	_pose_control->set_dt(0.1); // 设置执行周期（用于PID）
+	_pose_control->set_dt(0.05); // 设置执行周期（用于PID）
 
 	// 重新设置家地址
 	_motors->set_home_position(get_yaw());
@@ -277,7 +284,7 @@ bool OffboardControl::catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYP
 		defaults,
 		0.0,               				// 精度
 		0.0 			 				// 偏航精度
-		//true,            				// 是否不使用飞机速度计算
+		// true             				// 是否不使用飞机速度计算
 	//	_yolo->get_velocity_x(target) / max_frame, 	// 飞机速度
 	//	_yolo->get_velocity_y(target) / max_frame  	// 飞机速度
 	);
@@ -301,11 +308,13 @@ bool OffboardControl::Doshot(int shot_count)
 	static double time_find_start = 0;			 		// 开始时间
 	static float _t_time = 0; 					        // 接近目标时单轮执行时间
 	static float radius = 0.1; 						    // 声明精度
+	static float accuracy = 0.1;						    // 声明准确度
 	static float shot_duration = 2; 					// 稳定持续时间
 	static std::vector<YOLO::Target> targets; 			// 声明目标x和y坐标
 	static float tar_z = 1, tar_yaw = 0; 				// 声明目标偏航角（rad）
 	static bool shot_flag = false; 						// 投弹标志
 	static std::vector<Vector3f> shot_point;			// 声明投弹点坐标
+	const std::vector<std::string> targets_str = {"_l", "_r"};
 	bool result = false;
 
 	// 读取PID参数
@@ -326,24 +335,27 @@ bool OffboardControl::Doshot(int shot_count)
 			// 读取距离目标一定范围内退出的距离
 			YAML::Node config = Readyaml::readYAML("can_config.yaml");
 			radius = config["radius"].as<float>();
+			accuracy = config["accuracy"].as<float>();
 			tar_z = config["tar_z"].as<float>();
-			std::vector<std::string> targets_str = {"_l", "_r"};
-			shot_point = {{0.045, 0.0, 0.10}, {-0.045, 0.0, 0.10}};
+			// shot_point = {{0.045, 0.0, 0.10}, {-0.045, 0.0, 0.10}};
+			shot_point.clear();
 			targets.clear();
-			for (size_t i = 0; i < shot_point.size(); i++)
+			for (size_t i = 0; i < targets_str.size(); i++)
+			{
+				float adjusted_x = config[std::string("shot_target_x").append(targets_str[i])].as<float>(0.0f) - drone_to_camera[0];
+				float adjusted_y = config[std::string("shot_target_y").append(targets_str[i])].as<float>(0.0f) - drone_to_camera[1];
+				float adjusted_z = config[std::string("shot_target_z").append(targets_str[i])].as<float>(0.0f) - drone_to_camera[2];
+				float rotated_x, rotated_y;
+				rotate_2local(adjusted_x, adjusted_y, rotated_x, rotated_y);
+				shot_point.push_back(Vector3f(rotated_x, rotated_y, adjusted_z)); // 调整高度
+				std::cout << "shot_point_x" << targets_str[i] << ": " << shot_point[i].x() << std::endl;
+				std::cout << "shot_point_y" << targets_str[i] << ": " << shot_point[i].y() << std::endl;
+				std::cout << "shot_point_z" << targets_str[i] << ": " << shot_point[i].z() << std::endl;
+			}
+			for (size_t i = 0; i < targets_str.size(); i++)
 			{
 				YOLO::Target target;
 				target.category = std::string("circle").append(targets_str[i]);
-
-				float adjusted_x = shot_point[i].x() - drone_to_camera[0];
-				float adjusted_y = shot_point[i].y() - drone_to_camera[1];
-				float rotated_x, rotated_y;
-				rotate_2local(adjusted_x, adjusted_y, rotated_x, rotated_y);
-				shot_point[i].x() = rotated_x;
-				shot_point[i].y() = rotated_y;
-				shot_point[i].z() = shot_point[i].z() - drone_to_camera[2]; // 调整高度
-				std::cout << "shot_point_x" << shot_point[i].x() << std::endl;
-				std::cout << "shot_point_y" << shot_point[i].y() << std::endl;
 				target.x = config[std::string("tar_x").append(targets_str[i])].as<float>(0.0f);
 				target.y = config[std::string("tar_y").append(targets_str[i])].as<float>(0.0f);
 				target.z = config[std::string("tar_z").append(targets_str[i])].as<float>(0.0f);
@@ -371,6 +383,14 @@ bool OffboardControl::Doshot(int shot_count)
 		case CatchState::fly_to_target:
 		{
 			double cur_shot_time = get_cur_time();
+			
+			// 检查targets数组是否为空
+			if (targets.empty()) {
+				RCLCPP_ERROR(this->get_logger(), "Doshot: targets array is empty!");
+				catch_state_ = CatchState::end;
+				continue;
+			}
+			
 			int shot_index = (shot_count - 1) % targets.size(); // 计算当前投弹桶的索引，shot_count从1开始计数， tar_x.size()!=0
 			
 			// 验证索引有效性
@@ -389,17 +409,13 @@ bool OffboardControl::Doshot(int shot_count)
 				targets[i].b = 0.0f;
 				targets[i].relative_z = _camera_gimbal->position.z() - bucket_height; // 设置目标的高度为相机高度
 			}
-			targets[shot_index].r = 1.0f; // 设置当前目标颜色为黄色
-			targets[shot_index].g = 1.0f;
-			targets[shot_index].b = 0.0f;
-
 			YOLO::Target temp_target = targets[shot_index];
 
-			if (static_cast<int>(cal_center.size()) > shot_count){
-				Vector3d world_point(cal_center[shot_count].point.x(), 
-									cal_center[shot_count].point.y(), 
-									cal_center[shot_count].point.z());
-				auto shot_center_opt = _camera_gimbal->worldToPixelVerticalDown(world_point);
+			if (static_cast<int>(cal_center.size()) > shot_index){
+				Vector3d world_point(cal_center[shot_index].point.x(), 
+									cal_center[shot_index].point.y(), 
+									cal_center[shot_index].point.z());
+				auto shot_center_opt = _camera_gimbal->worldToPixel(world_point);
 				if (shot_center_opt.has_value()) {
 					Vector2d shot_center = shot_center_opt.value();
 					temp_target.x = shot_center.x();
@@ -420,32 +436,58 @@ bool OffboardControl::Doshot(int shot_count)
 			// }
 
 			// 确保shot_index在shot_point范围内
-			YOLO::Target t2p_target = targets[shot_index];
-			if (shot_index < static_cast<int>(shot_point.size())) {
-				Vector3d world_point_target(
-					_camera_gimbal->position.x() + shot_point[shot_index].x(), 
-					_camera_gimbal->position.y() + shot_point[shot_index].y(), 
-					bucket_height + shot_point[shot_index].z()
-				);
-				std::cout << "camera_gimbal position: " << _camera_gimbal->position.transpose() << "shot_point: " << shot_point[shot_index].transpose() << "world_point_target: " << world_point_target.transpose() << std::endl;
-				auto output_pixel_opt = _camera_gimbal->worldToPixel(world_point_target);
-				if (output_pixel_opt.has_value()){
-					Vector2d output_pixel = output_pixel_opt.value();
-					t2p_target.x = output_pixel.x();
-					t2p_target.y = output_pixel.y();
-					if (static_cast<int>(cal_center.size()) > shot_count)
-						t2p_target.radius = cal_center[shot_count].diameters / 2.0f; // 设置目标半径
-					t2p_target.category = std::string("circle").append("_t2p");
-					_yolo->append_target(t2p_target);
+			std::vector<YOLO::Target> t2p_targets;
+			if (!targets.empty()) { // 确保targets不为空
+				for(size_t i = 0; i < shot_point.size(); i++)
+				{
+					YOLO::Target t2p_target = targets[0];
+					if (i < static_cast<size_t>(shot_point.size())) {
+						Vector3d world_point_target(
+							_camera_gimbal->position.x() + shot_point[i].x(), 
+							_camera_gimbal->position.y() + shot_point[i].y(), 
+							bucket_height + shot_point[i].z()
+						);
+						// std::cout << "camera_gimbal position: " << _camera_gimbal->position.transpose() << " shot_point: " << shot_point[i].transpose() << " world_point_target: " << world_point_target.transpose() << std::endl;
+						auto output_pixel_opt = _camera_gimbal->worldToPixel(world_point_target);
+						if (output_pixel_opt.has_value()) {
+							Vector2d output_pixel = output_pixel_opt.value();
+							t2p_target.x = output_pixel.x();
+							t2p_target.y = output_pixel.y();
+							if (static_cast<int>(cal_center.size()) > shot_index)
+								t2p_target.radius = cal_center[shot_index].diameters / 2.0f; // 设置目标半径
+							t2p_target.category = std::string("circle").append("_t2p").append(targets_str[i]);
+							t2p_targets.push_back(t2p_target);
+						}
+					}
 				}
 			}
 
+			YOLO::Target shot_index_target; // 当前投弹目标
+			if(shot_index < static_cast<int>(t2p_targets.size()) && !t2p_targets.empty()){
+				shot_index_target = t2p_targets[shot_index];
+				t2p_targets.erase(t2p_targets.begin() + shot_index); // 移除当前投弹目标，避免重复添加
+			}
+			else if (shot_index < static_cast<int>(targets.size()) && !targets.empty()) {
+				RCLCPP_INFO(this->get_logger(), "Doshot: 找不到目标在图像的映射，shot_index: %d, targets.size(): %zu", shot_index, targets.size());
+				shot_index_target = targets[shot_index];
+				targets.erase(targets.begin() + shot_index); // 移除当前投弹目标，避免重复添加
+			}
+			else {
+				// 如果没有有效目标，使用默认值
+				shot_index_target = targets[0];
+			}
+			shot_index_target.r = 1.0f; // 设置当前目标颜色为黄色
+			shot_index_target.g = 1.0f;
+			shot_index_target.b = 0.0f;
+
+			// std::cout << "Doshot: shot_index_target: " << shot_index_target.x << ", " << shot_index_target.y << ", " << shot_index_target.z  << ", " << shot_index_target.radius << std::endl;
 
 			// yolo未识别到桶
 			if (!_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE))
 			{
+				RCLCPP_INFO(this->get_logger(), "Doshot: yolo未识别到桶，等待");
 				if (shot_flag){
-					RCLCPP_INFO(this->get_logger(), "Doshot: yolo未识别到桶，等待");
+					
 					_pose_control->send_velocity_command_world(0, 0, 0, 0); // 停止飞行
 				}
 				// RCLCPP_INFO(this->get_logger(), "Doshot: yolo未识别到桶，等待");
@@ -454,19 +496,16 @@ bool OffboardControl::Doshot(int shot_count)
 					YOLO::TARGET_TYPE::CIRCLE, // 目标类型
 					// targets[shot_index].x, 
 					// targets[shot_index].y, 
-					t2p_target.x,
-					t2p_target.y,
-					targets[shot_index].z, 
+					shot_index_target.x,
+					shot_index_target.y,
+					shot_index_target.z, 
 					tar_yaw, 
-					targets[shot_index].caculate_pixel_radius()
+					shot_index_target.caculate_pixel_radius() * accuracy // 目标精度，使用像素半径的80%作为精度
 				))
 			{
-				targets[shot_index].r = 0.0f; // 设置当前目标颜色为绿色
-				targets[shot_index].g = 1.0f;
-				targets[shot_index].b = 0.0f;
-				// t2p_target.r = 0.0f; // 设置当前目标颜色为绿色
-				// t2p_target.g = 1.0f;
-				// t2p_target.b = 0.0f;
+				shot_index_target.r = 0.0f; // 设置当前目标颜色为绿色
+				shot_index_target.g = 1.0f;
+				shot_index_target.b = 0.0f;
 				RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, time = %fs", cur_shot_time - _t_time);
 				// if(error_x<0.05 && error_y<0.05){
 					// RCLCPP_INFO(this->get_logger(), "Arrive, Doshot");
@@ -474,14 +513,14 @@ bool OffboardControl::Doshot(int shot_count)
 				// } else 
 				if(!shot_flag && cur_shot_time - _t_time > shot_duration){ // 1.5秒
 					RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, time > %fs, tar_x = %f, tar_y = %f, tar_z = %f, tar_yaw = %f", 
-						shot_duration, targets[shot_index].x, targets[shot_index].y, targets[shot_index].z, tar_yaw);
+						shot_duration, shot_index_target.x, shot_index_target.y, shot_index_target.z, tar_yaw);
 					shot_flag = true; // 设置投弹标志
-					_servo_controller->set_servo(10 + shot_count, 1864); // 设置舵机位置，投弹
+					_servo_controller->set_servo(10 + shot_index, 1864); // 设置舵机位置，投弹
 				} 
 				else if (shot_flag) // 0.5秒内继续等待
 				{
 					if (cur_shot_time - _t_time < shot_duration + 0.5) {
-						_servo_controller->set_servo(10 + shot_count, 1864);
+						// _servo_controller->set_servo(10 + shot_index, 1864); // 重复投弹
 						RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, wait");
 					} else {
 						catch_state_ = CatchState::end;
@@ -493,6 +532,9 @@ bool OffboardControl::Doshot(int shot_count)
 			{
 				_t_time = cur_shot_time;
 			}
+			_yolo->append_target(shot_index_target); // 将当前投弹目标添加到YOLO中准备发布
+			_yolo->append_targets(t2p_targets); // 将投弹到拍摄目标添加到YOLO中准备发布
+			// _yolo->append_targets(targets); // 将目标添加到YOLO中准备发布
 			break;
 		}
 		case CatchState::end:
@@ -510,7 +552,6 @@ bool OffboardControl::Doshot(int shot_count)
 		}
 		break;
 	}
-	_yolo->append_targets(targets); // 将目标添加到YOLO中准备发布
 	return result;
 }
 
