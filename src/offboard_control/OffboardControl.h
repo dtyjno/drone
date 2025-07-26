@@ -486,7 +486,7 @@ private:
 	// const float shot_halt = 4.0;
 
 	// 侦查区域巡航属性
-	const float see_length = 7.5;
+	const float see_length = 7.4;
 	const float see_width = 4.8;
 	// const double see_halt = 3.0;
 

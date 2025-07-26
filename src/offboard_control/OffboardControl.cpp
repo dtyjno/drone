@@ -98,11 +98,13 @@ void OffboardControl::timer_callback(void)
 			surround_shot_points[shot_count] = Vector2f((tx - dx_shot) / shot_length_max, (ty - dy_shot) / shot_width_max);
 			// RCLCPP_INFO(this->get_logger(), "侦查点坐标 %zu: x: %f, y: %f ,n_x: %f, n_y: %f d: %lf", 
 			// 	i, cal_center[i].point.x(), cal_center[i].point.y(), surround_shot_points[shot_count].x(), surround_shot_points[shot_count].y(), cal_center[i].diameters);
-			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) 侦查点坐标 %zu: x: %f, y: %f ,n_x: %f, n_y: %f d: %lf", 
-				i, cal_center[i].point.x(), cal_center[i].point.y(), surround_shot_points[shot_count].x(), surround_shot_points[shot_count].y(), cal_center[i].diameters);
 			shot_count++;
 		}
     }
+	for (size_t i = 0; i < cal_center.size(); ++i) {
+		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) 侦查点坐标 %zu: x: %f, y: %f ,n_x: %f, n_y: %f d: %lf", 
+			i, cal_center[i].point.x(), cal_center[i].point.y(), surround_shot_points[i].x(), surround_shot_points[i].y(), cal_center[i].diameters);
+	}
 
 	if (_motors->mode == "LAND" && state_machine_.get_current_state() != FlyState::end && !print_info_)
 	{
@@ -336,6 +338,7 @@ bool OffboardControl::Doshot(int shot_count)
 			YAML::Node config = Readyaml::readYAML("can_config.yaml");
 			radius = config["radius"].as<float>();
 			accuracy = config["accuracy"].as<float>();
+			shot_duration = config["shot_duration"].as<float>();
 			tar_z = config["tar_z"].as<float>();
 			// shot_point = {{0.045, 0.0, 0.10}, {-0.045, 0.0, 0.10}};
 			shot_point.clear();

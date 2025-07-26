@@ -64,20 +64,22 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 		}
 		RCLCPP_INFO_ONCE(owner_->get_logger(), "执行投弹任务Doshot");
 		static int counter = 0, pre_counter; // 航点计数器
+		static float pre_time = 0.0f; // 上次航点时间
 		static double doshot_halt_end_time; // 记录结束时间
 		static int shot_counter = 1; // 投弹计数器
 		static float max_accurate; // 聚类目标投弹最大距离
 
 		// static vector<array<double, 3>> surround_shot_scout_points;
-		
-		if (owner_->state_timer_.elapsed() > 100) // 超时 100 秒
+
+		if (owner_->state_timer_.elapsed() > 100 && owner_->doshot_state_ != owner_->DoshotState::doshot_end) // 超时 100 秒
 		{
+			doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
 			RCLCPP_INFO(owner_->get_logger(), "超时");
 			owner_->doshot_state_ = owner_->DoshotState::doshot_end; // 设置投弹状态为结束
 		}
 		if ((static_cast<int>(owner_->cal_center.size()) > counter && counter != pre_counter) || owner_->doshot_state_ == owner_->DoshotState::doshot_wait || owner_->doshot_state_ == owner_->DoshotState::doshot_init) {
 			// max_accurate = owner_->cal_center[counter].diameters / 2; // 更新最大距离
-			max_accurate = 0.1; // 更新最大距离
+			max_accurate = 0.05; // 更新最大距离
 			// RCLCPP_INFO(owner_->get_logger(), "更新最大距离为: %f", max_accurate);
 		}
 		while(true){
@@ -128,12 +130,17 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				// 	owner_->_yolo->get_servo_flag());
 				RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 1000, "handle_state<Doshot>:(THROTTLE 1s) counter=%d shot_counter=%d x:%f, y:%f max:%f", counter, shot_counter,
 					abs(owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_width()/2), abs(owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_height()/2), max_accurate);
-				if (static_cast<size_t>(counter) < owner_->cal_center.size() && 
-					owner_->waypoint_timer_.elapsed() < 10.0 && 
-					abs(owner_->get_x_pos() - owner_->cal_center[counter].point.x()) > max_accurate && 
-					abs(owner_->get_y_pos() - owner_->cal_center[counter].point.y()) > max_accurate)
-				{
+				if (static_cast<size_t>(counter) < owner_->cal_center.size() && (
+						owner_->waypoint_timer_.elapsed() < 3.0 || (
+							owner_->waypoint_timer_.elapsed() < 10.0 && (
+							abs(owner_->get_x_pos() - owner_->cal_center[counter].point.x()) > max_accurate && 
+							abs(owner_->get_y_pos() - owner_->cal_center[counter].point.y()) > max_accurate
+							)
+						)
+					)
+				) {
 					pre_counter = counter; // 记录上一次的计数器值
+					pre_time = owner_->get_cur_time(); // 记录上一次的时间
 					owner_->send_local_setpoint_command(
 						owner_->cal_center[counter].point.x(),
 						owner_->cal_center[counter].point.y(),
@@ -155,6 +162,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					continue; // 直接跳到下一个状态;
 				} else if (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE)) {
 					pre_counter = counter; // 记录上一次的计数器值
+					pre_time = owner_->get_cur_time(); // 记录上一次的时间
 					owner_->waypoint_goto_next(
 						owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
 						owner_->shot_halt, owner_->surround_shot_points, 3, &counter, "投弹区");
@@ -168,7 +176,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				} else { // 如果找到投弹目标但未到达目标上方
 					max_accurate = 5;
 					counter = pre_counter; // 恢复上一次的计数器值
-					owner_->waypoint_timer_.reset(); // 重置航点计时器
+					owner_->waypoint_timer_.set_start_time_to_time_point(pre_time); // 重置航点计时器
 				}
 				break;
 			case owner_->DoshotState::doshot_wait: // 等待再次投弹
@@ -201,7 +209,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				break;
 			case owner_->DoshotState::doshot_end: // 侦查投弹区
 				if (owner_->get_cur_time() - doshot_halt_end_time < 2.0) {
-					if (owner_->get_cur_time() - doshot_halt_end_time < 0.1) {
+					if (owner_->get_cur_time() - doshot_halt_end_time < 0.09) {
 						RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 1000, "投弹完成，等待2秒后前往侦查区域");
 						owner_->_servo_controller->set_servo(11, 1864);			// owner_->_servo_controller->set_servo(11, 1200);
 						owner_->_servo_controller->set_servo(12, 1864);				// owner_->_servo_controller->set_servo(12, 1200);
