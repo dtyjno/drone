@@ -77,8 +77,9 @@ public:
 		// 读取罗盘数据
 		read_configs("OffboardControl.yaml");
 		// RCLCPP_INFO_STREAM(geometry_msgs::msg::PoseStampedthis->get_logger(), "Waiting for " << px4_namespace << "vehicle_command service");
-		_inav->position.x() = DEFAULT_X_POS;
-		_motors->home_position.x() = DEFAULT_X_POS;
+		_inav->position.x() = DEFAULT_POS;
+		_inav->position.z() = DEFAULT_POS;
+		_motors->home_position.x() = DEFAULT_POS;
 		// rclcpp::Rate rate(1s);
 		
 		// 发布当前状态 
@@ -129,7 +130,7 @@ public:
 	float get_z_pos(void)
 	{
 		// return local_frame.z();
-		return _inav->position.z();
+		return _inav->position.z() == DEFAULT_POS ? _inav->rangefinder_height : _inav->position.z();
 	}
 	Vector3f get_pos_3f(void)
 	{
@@ -282,6 +283,14 @@ public:
 	{
 		return _motors->system_status;
 	}
+	float get_x_home_pos()
+	{
+		return _motors->home_position.x();
+	}
+	float get_y_home_pos()
+	{
+		return _motors->home_position.y();
+	}	
 	float get_z_home_pos()
 	{
 		return _motors->home_position.z();

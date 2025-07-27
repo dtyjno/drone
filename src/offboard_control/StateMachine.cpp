@@ -223,7 +223,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				break;
 			case owner_->DoshotState::doshot_end: // 侦查投弹区
 				if (owner_->get_cur_time() - doshot_halt_end_time < 2.0) {
-					if (owner_->get_cur_time() - doshot_halt_end_time < owner_->get_wait_time() * 2) {
+					if (owner_->get_cur_time() - doshot_halt_end_time < owner_->get_wait_time()) {
 						RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 1000, "投弹完成，等待2秒后前往侦查区域");
 						owner_->_servo_controller->set_servo(11, 1864);			// owner_->_servo_controller->set_servo(11, 1200);
 						owner_->_servo_controller->set_servo(12, 1864);				// owner_->_servo_controller->set_servo(12, 1200);
@@ -347,9 +347,12 @@ void StateMachine::handle_state<FlyState::Print_Info>() {
 		ss << "--------timer_callback----------" << std::endl;
 		ss << "px:  " << std::setw(10) << owner_->get_x_pos() << ", py: " << std::setw(10) << owner_->get_y_pos() << ", pz: " << std::setw(10) << owner_->get_z_pos() << std::endl;
 		ss << "vx:  " << std::setw(10) << owner_->get_x_vel() << ", vy: " << std::setw(10) << owner_->get_y_vel() << ", vz: " << std::setw(10) << owner_->get_z_vel() << std::endl;
-		ss << "yaw: " << owner_->get_yaw() << std::endl;
-		ss << "yaw_e: " << owner_->get_yaw_eigen() << std::endl;
+		// ss << "yaw: " << owner_->get_yaw() << std::endl;
+		// ss << "yaw_e: " << owner_->get_yaw_eigen() << std::endl;
 		ss << "yaw_vel: " << owner_->get_yaw_vel() << std::endl;
+		float roll, pitch, yaw;
+		owner_->get_euler(roll, pitch, yaw);
+		ss << "roll: " << roll << ", pitch: " << pitch << ", yaw: " << yaw << std::endl;
 		ss << "lat: " << owner_->get_lat() << ", lon: " << owner_->get_lon() << ", alt: " << owner_->get_alt() << std::endl;
 		ss << "rangefinder_distance:  " << owner_->get_rangefinder_distance() << std::endl;
 		ss << "armed:     " << owner_->get_armed() << std::endl;
@@ -357,7 +360,7 @@ void StateMachine::handle_state<FlyState::Print_Info>() {
 		ss << "guided:	" << owner_->get_guided() << std::endl;
 		ss << "mode:	  " << owner_->get_mode() << std::endl;
 		ss << "system_status:  " << owner_->get_system_status() << std::endl;
-		ss << "z_home_pos:     " << owner_->get_z_home_pos() << std::endl;
+		ss << "x_home_pos:     " << owner_->get_x_home_pos() << ", y_home_pos: " << owner_->get_y_home_pos() << ", z_home_pos: " << owner_->get_z_home_pos() << std::endl;
 		ss << "running_time: " << owner_->get_cur_time() << std::endl;
 		RCLCPP_INFO_STREAM(owner_->get_logger(), ss.str());
 		ss.str(""); // 清空字符串流

@@ -23,7 +23,7 @@
 
 #define DEFAULT_YAW (0 * M_PI_2) // default yaw for position control
 
-#define DEFAULT_X_POS INFINITY
+#define DEFAULT_POS INFINITY
 
 // #define PID_P
 
