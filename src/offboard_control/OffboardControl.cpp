@@ -533,7 +533,7 @@ bool OffboardControl::Doshot(int shot_count)
 					RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, time > %fs, tar_x = %f, tar_y = %f, tar_z = %f, tar_yaw = %f", 
 						shot_duration, shot_index_target.x, shot_index_target.y, shot_index_target.z, tar_yaw);
 					shot_flag = true; // 设置投弹标志
-					_servo_controller->set_servo(10 + shot_index, 1864); // 设置舵机位置，投弹
+					_servo_controller->set_servo(11 + shot_index, 1864); // 设置舵机位置，投弹
 				} 
 				else if (shot_flag) // 已投弹，shot_wait时间内继续等待
 				{
@@ -541,7 +541,7 @@ bool OffboardControl::Doshot(int shot_count)
 					{
 						if (find_duration <= shot_duration + 2 * get_wait_time()) // 投弹后2周期 重复投弹一次
 						{
-							_servo_controller->set_servo(10 + shot_index, 1864); // 重复投弹
+							_servo_controller->set_servo(11 + shot_index, 1864); // 重复投弹
 						}
 						RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, wait, time = %fs", find_duration - shot_duration);
 					} else {

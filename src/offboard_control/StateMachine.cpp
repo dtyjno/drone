@@ -146,8 +146,8 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				) {
 					double tx, ty;
 					owner_->rotate_stand2global(owner_->cal_center[counter].point.x(), owner_->cal_center[counter].point.y(), tx, ty);
-					if (tx < owner_->dx_shot - owner_->shot_length_max / 2 || tx > owner_->dx_shot + owner_->shot_length_max / 2 ||
-						ty < owner_->dy_shot || ty > owner_->dy_shot + owner_->shot_width_max) {
+					if (tx < owner_->dx_shot - owner_->shot_length_max / 2 + 1.0 || tx > owner_->dx_shot + owner_->shot_length_max / 2 - 1.0 ||
+						ty < owner_->dy_shot - 1.5 || ty > owner_->dy_shot + owner_->shot_width_max + 1.5) {
 						RCLCPP_WARN(owner_->get_logger(), "侦查点坐标异常，跳过: %d, x: %f, y: %f", counter, tx, ty);
 						counter++;
 						pre_counter = counter;
