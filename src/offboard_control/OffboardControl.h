@@ -64,19 +64,7 @@ public:
 		mypid(),
 		state_machine_(this)  // 显式初始化 state_machine_
 	{
-		// Declare and get parameters
-		this->declare_parameter("sim_mode", false);
-		this->get_parameter("sim_mode", sim_mode_);
-		RCLCPP_INFO(this->get_logger(), "sim_mode: %s", sim_mode_ ? "true" : "false");
-		this->declare_parameter("mode_switch", false);
-		this->get_parameter("mode_switch", debug_mode_);
-		RCLCPP_INFO(this->get_logger(), "mode_switch: %s", debug_mode_ ? "true" : "false");
-		this->declare_parameter("print_info", false);
-		this->get_parameter("print_info", print_info_);
-		RCLCPP_INFO(this->get_logger(), "print_info: %s", print_info_ ? "true" : "false");
-		this->declare_parameter("fast_mode", false);
-		this->get_parameter("fast_mode", fast_mode_);
-		RCLCPP_INFO(this->get_logger(), "fast_mode: %s", fast_mode_ ? "true" : "false");
+
 		if (print_info_) {
 			state_machine_.transition_to(FlyState::Print_Info);
 		}
@@ -96,33 +84,35 @@ public:
 		// 发布当前状态 
 		state_publisher_ = this->create_publisher<std_msgs::msg::Int32>("current_state", 10);
 
-		while (!mode_switch_client_->wait_for_service(std::chrono::seconds(2)))
-		{
-			if (!rclcpp::ok() || get_x_pos() == DEFAULT_X_POS)
+		if (!debug_mode_){
+			while (!mode_switch_client_->wait_for_service(std::chrono::seconds(2)))
 			{
-				RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. 停止");
-				return;
+				if (!rclcpp::ok())
+				{
+					RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. 停止");
+					return;
+				}
+				RCLCPP_INFO(this->get_logger(), "模式切换服务未准备好, 正在等待...");
+				// rate.sleep();
 			}
-			RCLCPP_INFO(this->get_logger(), "模式切换服务未准备好, 正在等待...");
-			// rate.sleep();
-		}
-		while (!_motors->get_set_home_client()->wait_for_service(std::chrono::seconds(2)))
-		{
-			if (!rclcpp::ok())
+			while (!_motors->get_set_home_client()->wait_for_service(std::chrono::seconds(2)))
 			{
-				RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. 停止");
-				return;
+				if (!rclcpp::ok())
+				{
+					RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. 停止");
+					return;
+				}
+				RCLCPP_INFO(this->get_logger(), "设置home位置服务未准备好, 正在等待...");
+				// rate.sleep();
 			}
-			RCLCPP_INFO(this->get_logger(), "设置home位置服务未准备好, 正在等待...");
-			// rate.sleep();
 		}
 		
 		timestamp_init = get_cur_time();
 		_motors->switch_mode("GUIDED");
-		timer_ = this->create_wall_timer(50ms, std::bind(&OffboardControl::timer_callback, this));
+		timer_ = this->create_wall_timer(wait_time, std::bind(&OffboardControl::timer_callback, this));
 		#ifdef PAL_STATISTIC_VISIBILITY
 		stats_publisher_ = this->create_publisher<pal_statistics_msgs::msg::Statistics>("/statistics", 10);
-		stats_timer_ = this->create_wall_timer(50ms,std::bind(&OffboardControl::publish_statistics, this));
+		stats_timer_ = this->create_wall_timer(wait_time,std::bind(&OffboardControl::publish_statistics, this));
 		#endif
 	}
 
@@ -445,10 +435,6 @@ public:
 #endif
 	std::optional<Vector3d> target1;
 private:
-	bool sim_mode_ = false; // 是否为仿真模式
-	bool debug_mode_ = false; // 是否手动切换状态
-	bool print_info_ = false; // 是否打印信息
-	bool fast_mode_ = false;
 	std::string ardupilot_namespace_copy_;
 	std::shared_ptr<YOLO> _yolo;
 	std::shared_ptr<ServoController> _servo_controller;
@@ -550,6 +536,13 @@ private:
   void publish_current_state();
 
 	rclcpp::TimerBase::SharedPtr timer_;
+
+	std::chrono::milliseconds wait_time{50}; // 定时器间隔
+
+	float get_wait_time() const {
+		return wait_time.count() / 1000.0; // 返回秒数
+	}
+
 	// void set_pose();
 	// void set_gps();
 	// void set_velocity();

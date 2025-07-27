@@ -51,7 +51,7 @@ public:
     PID(const PID::Defaults &defaults);
     PID() {};
 
-    void set_pid_info();
+    // void set_pid_info();
     void set_gains(const PID::Defaults &defaults);
     void set_gains(float kp, float ki, float kd);
     void set_pid(float kp, float ki, float kd);

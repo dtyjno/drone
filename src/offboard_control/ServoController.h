@@ -29,13 +29,13 @@ public:
     {
         this->ardupilot_namespace = ardupilot_namespace;
         client_ = node->create_client<mavros_msgs::srv::CommandLong>(ardupilot_namespace + "cmd/command");
-        while (!client_->wait_for_service(std::chrono::seconds(1))) {
-            if (!rclcpp::ok()) {
-                RCLCPP_ERROR(node->get_logger(), "Interrupted while waiting for the service. Exiting.");
-                return;
-            }
-            RCLCPP_INFO(node->get_logger(), "Service not available, waiting again...");
-        }
+        // while (!client_->wait_for_service(std::chrono::seconds(1))) {
+        //     if (!rclcpp::ok()) {
+        //         RCLCPP_ERROR(node->get_logger(), "Interrupted while waiting for the service. Exiting.");
+        //         return;
+        //     }
+        //     RCLCPP_INFO(node->get_logger(), "Service not available, waiting again...");
+        // }
     }
 
     void set_servo(int servo_number, float position) {
@@ -45,15 +45,20 @@ public:
         request->param1 = servo_number;
         request->param2 = position;
 
-        while (!client_->wait_for_service(std::chrono::seconds(1))) {
-            if (!rclcpp::ok()) {
-                RCLCPP_ERROR(node->get_logger(), "Interrupted while waiting for the service. Exiting.");
-                return;
+        if (!node->debug_mode_) {
+            // 如果不是调试模式，等待服务可用
+            while (!client_->wait_for_service(std::chrono::seconds(1))) {
+                if (!rclcpp::ok()) {
+                    RCLCPP_ERROR(node->get_logger(), "Interrupted while waiting for the service. Exiting.");
+                    return;
+                }
+                RCLCPP_INFO(node->get_logger(), "Set Servo Service not available, waiting again...");
             }
-            RCLCPP_INFO(node->get_logger(), "Service not available, waiting again...");
+            RCLCPP_INFO(node->get_logger(), "set_servo command send");
+        } else {
+            RCLCPP_INFO(node->get_logger(), "Debug mode: skipping service wait");
         }
-        RCLCPP_INFO(node->get_logger(), "set_servo command send");
-
+        
         OffboardControl_Base* node = this->node;
         auto result_future = client_->async_send_request(request,
             [node, this](rclcpp::Client<mavros_msgs::srv::CommandLong>::SharedFuture future) {

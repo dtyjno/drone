@@ -162,7 +162,7 @@ std::vector<Circles> Clustering(std::vector<Circles> samples)
     //     }
     // }
     sort(Clustering_Result.begin(), Clustering_Result.end(), [](const Circles& a, const Circles& b) {
-        return a.diameters < b.diameters;
+        return a.diameters > b.diameters;
     });
     
     return Clustering_Result;

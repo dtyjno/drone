@@ -247,7 +247,7 @@ void Motors::arm_motors(bool arm)
       RCLCPP_ERROR(node->get_logger(), "Interrupted while waiting for the service. Exiting.");
       return;
     }
-    RCLCPP_INFO(node->get_logger(), "service not available, waiting again...");
+    RCLCPP_INFO(node->get_logger(), "Arm service not available, waiting again...");
   }
 	RCLCPP_INFO(node->get_logger(), "arm command send");
     
@@ -323,7 +323,7 @@ void Motors::set_home_position(float yaw)
 			RCLCPP_ERROR(node->get_logger(), "Interrupted while waiting for the service. Exiting.");
 			return;
 		}
-		RCLCPP_INFO(node->get_logger(), "service not available, waiting again...");
+		RCLCPP_INFO(node->get_logger(), "Set home service not available, waiting again...");
 	}
 	RCLCPP_INFO(node->get_logger(), "set home command send");
     OffboardControl_Base* node = this->node;

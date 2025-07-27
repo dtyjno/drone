@@ -153,31 +153,31 @@ PID::PID(const PID::Defaults &defaults)
     _pid_info.Dmod = 0.0f;
 }
 
-void PID::set_pid_info()
-{
-    _pid_info._kP = _kp;
-    _pid_info._kI = _ki;
-    _pid_info._kD = _kd;
-    _pid_info.P = 0;
-    _pid_info.I = 0;
-    _pid_info.D = 0;
-    _pid_info.Dmod = 0.0f;
-    _pid_info.FF = 0;
-    _pid_info.DFF = 0;
-    // _pid_info.slew_rate = srmax;
-    // _pid_info.limit = false;
-    // _pid_info.PD_limit = false;
-    // _pid_info.reset = false;
-    // _pid_info.I_term_set = false;
+// void PID::set_pid_info()
+// {
+//     _pid_info._kP = _kp;
+//     _pid_info._kI = _ki;
+//     _pid_info._kD = _kd;
+//     _pid_info.P = 0;
+//     _pid_info.I = 0;
+//     _pid_info.D = 0;
+//     _pid_info.Dmod = 0.0f;
+//     _pid_info.FF = 0;
+//     _pid_info.DFF = 0;
+//     // _pid_info.slew_rate = srmax;
+//     // _pid_info.limit = false;
+//     // _pid_info.PD_limit = false;
+//     // _pid_info.reset = false;
+//     // _pid_info.I_term_set = false;
 
-    _pid_info.error = 0.0f;
-    _pid_info.target = 0.0f;
-    _pid_info.actual = 0.0f;
-    // _pid_info.reset = false;
-    // _pid_info.PD_limit = false;
-    // _pid_info.limit = false;
-    // _pid_info.slew_rate = srmax;
-}
+//     _pid_info.error = 0.0f;
+//     _pid_info.target = 0.0f;
+//     _pid_info.actual = 0.0f;
+//     // _pid_info.reset = false;
+//     // _pid_info.PD_limit = false;
+//     // _pid_info.limit = false;
+//     // _pid_info.slew_rate = srmax;
+// }
 
 void PID::set_gains(const PID::Defaults &defaults)
 {
@@ -569,7 +569,7 @@ void PID::update_i(float dt, float limit)
     _pid_info.I = constrain_float(_pid_info.I, _kimax, -_kimax);
     
     // 积分项衰减机制（当误差接近零时）
-    if (fabs(_error) < 0.10f && fabs(_pid_info.I) > 0.010f)
+    if (fabs(_error) < 0.03f && fabs(_pid_info.I) > 0.010f)
     {
         // printf("PID%s: Integral decay applied: %f\n", pid_name.c_str(), _pid_info.I);
         _pid_info.I *= 0.95f; // 轻微衰减，避免长期偏差
