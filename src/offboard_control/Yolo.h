@@ -112,16 +112,12 @@ public:
     }
     enum TARGET_TYPE{
         CIRCLE, //0
-        H //+=1
+        H, //+=1
+        STUFFED
     };
 
     bool is_get_target(enum TARGET_TYPE type){
-        if(type == CIRCLE){
-            return fabs(get_raw_x(type)) > 0.0001 && fabs(get_raw_y(type)) > 0.0001;
-        }
-        else if(type == H){
-            return fabs(get_raw_x(type)) > 0.0001 && fabs(get_raw_y(type)) > 0.0001;
-        }
+        return fabs(get_raw_x(type)) > 0.0001 && fabs(get_raw_y(type)) > 0.0001;
         return false;
     }
     std::vector<vision_msgs::msg::BoundingBox2D> get_raw_targets(enum TARGET_TYPE type){
@@ -135,21 +131,27 @@ public:
     }
     // 获取原始未滤波的坐标
     float get_raw_x(enum TARGET_TYPE type){
-        if(type == CIRCLE){
+        if (type == CIRCLE){
             return circle_raw.size() > 0 ? circle_raw[0].center.position.x : 0.0f;
         }
         else if(type == H){
             return h_raw.size() > 0 ? h_raw[0].center.position.x : 0.0f;
         }
+        else if (type == STUFFED){
+            return stuffed_raw.size() > 0 ? stuffed_raw[0].center.position.x : 0.0f;
+        } 
         return 0;
     }
     float get_raw_y(enum TARGET_TYPE type){
-        if(type == CIRCLE){
+        if (type == CIRCLE){
             return circle_raw.size() > 0 ? circle_raw[0].center.position.y : 0.0f;
         }
         else if(type == H){
             return h_raw.size() > 0 ? h_raw[0].center.position.y : 0.0f;
         }
+        else if (type == STUFFED){
+            return stuffed_raw.size() > 0 ? stuffed_raw[0].center.position.y : 0.0f;
+        } 
         return 0;
     }
     
@@ -295,7 +297,8 @@ private:
     // 原始坐标数据
     std::vector<vision_msgs::msg::BoundingBox2D> circle_raw;
     std::vector<vision_msgs::msg::BoundingBox2D> h_raw;
-
+    std::vector<vision_msgs::msg::BoundingBox2D> stuffed_raw;
+    
     std::vector<YOLO::Target> targets; // 目标点集合
     
     // 卡尔曼滤波器
@@ -324,6 +327,8 @@ private:
                 circle_raw.push_back(det.bbox);
             } else if (det.results[0].hypothesis.class_id == "h") {
                 h_raw.push_back(det.bbox);
+            } else if (det.results[0].hypothesis.class_id == "stuffed") {
+                stuffed_raw.push_back(det.bbox);
             }
             // det.bbox.center.x, det.bbox.center.y, det.results 等
         }
@@ -347,10 +352,18 @@ private:
         } else {
             this->h_raw.clear();
         }
-
+        sort(stuffed_raw.begin(), stuffed_raw.end(), [this](const vision_msgs::msg::BoundingBox2D &a, const vision_msgs::msg::BoundingBox2D &b) {
+            return abs(a.center.position.x - cap_frame_width / 2) + abs(a.center.position.y - cap_frame_height / 2) <
+                    abs(b.center.position.x - cap_frame_width / 2) + abs(b.center.position.y - cap_frame_height / 2);
+        });
+        if (stuffed_raw.size() > 0) {
+            this->stuffed_raw = stuffed_raw;
+        } else {
+            this->stuffed_raw.clear();
+        }
         // 计算时间间隔
         auto current_time = std::chrono::steady_clock::now();
-        double dt = 0.1; // 默认时间间隔
+        double dt = 0.05; // 默认时间间隔
         if (last_update_time.time_since_epoch().count() > 0) {
             dt = std::chrono::duration<double>(current_time - last_update_time).count();
         }
@@ -359,6 +372,8 @@ private:
         // 更新卡尔曼滤波器
         if (is_get_target(CIRCLE)) {
             circle_filter->update(get_raw_x(CIRCLE), get_raw_y(CIRCLE), dt);
+        } else if (is_get_target(STUFFED)) {
+            circle_filter->update(get_raw_x(STUFFED), get_raw_y(STUFFED), dt);
         }
 
         if (is_get_target(H)) {

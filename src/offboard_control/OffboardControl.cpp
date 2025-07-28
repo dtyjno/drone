@@ -93,14 +93,14 @@ void OffboardControl::timer_callback(void)
 					<< ", d: " << cal_center[i].diameters << "\n";
 			}
 			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "%s", ss.str().c_str());
-			cal_center[0].diameters = 0.15;
+			cal_center[0].diameters = 0.25;
 			if (cal_center.size() > 1)
 			{
 				cal_center[1].diameters = 0.20;
 			}
 			if (cal_center.size() > 2)
 			{
-				cal_center[2].diameters = 0.25;
+				cal_center[2].diameters = 0.15;
 			}
 		}
 		// uint8_t shot_count = 0;
@@ -512,7 +512,7 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 			if (!_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE))
 			{
 				RCLCPP_INFO(this->get_logger(), "Doshot: yolo未识别到桶，等待");
-				if (shot_flag){
+				if (shot_flag && !_yolo->is_get_target(YOLO::TARGET_TYPE::STUFFED)){
 					_pose_control->send_velocity_command_world(0, 0, 0, 0); // 停止飞行
 				}
 				// RCLCPP_INFO(this->get_logger(), "Doshot: yolo未识别到桶，等待");

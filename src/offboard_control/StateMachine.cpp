@@ -137,7 +137,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 1000, "handle_state<Doshot>:(THROTTLE 1s) counter=%d shot_counter=%d x:%f, y:%f max:%f", counter, shot_counter,
 					abs(owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_width()/2), abs(owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_height()/2), max_accurate);
 				if (!shot_flag && static_cast<size_t>(counter) < owner_->cal_center.size() && (
-						owner_->waypoint_timer_.elapsed() < 4.5 || (
+						owner_->waypoint_timer_.elapsed() < 5 || (
 							owner_->waypoint_timer_.elapsed() < 10.0 && (
 							abs(owner_->get_x_pos() - owner_->cal_center[counter].point.x()) > max_accurate && 
 							abs(owner_->get_y_pos() - owner_->cal_center[counter].point.y()) > max_accurate
@@ -180,7 +180,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					pre_time = owner_->get_cur_time(); // 记录上一次的时间
 					owner_->waypoint_goto_next(
 						owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
-						owner_->shot_halt, owner_->surround_shot_points, 3, &counter, "投弹区");
+						owner_->shot_halt, owner_->surround_shot_points, 5, &counter, "投弹区");
 				} else if (owner_->Doshot(shot_counter, shot_flag)) { // 如果到达投弹点
 					// RCLCPP_INFO(owner_->get_logger(), "寻找完毕，投弹!!投弹!!");
 					RCLCPP_INFO(owner_->get_logger(), "已经锁定%d号桶，坐标为（%f,%f）", shot_counter, owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE));
