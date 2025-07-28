@@ -600,7 +600,7 @@ private:
 	bool catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYPE target, float tar_x, float tar_y, float tar_z, float tar_yaw, float accuracy);
 	bool Doland();
 	// void PID_rtl(double now_x, double now_y, double now_z, double target_x, double target_y, bool &is_land);
-	bool Doshot(int shot_count);
+	bool Doshot(int shot_count, bool &shot_flag);
 	bool autotune(bool &result, enum YOLO::TARGET_TYPE target);
 	bool surrounding_shot_area(void);
 	bool surrounding_scout_area(void);

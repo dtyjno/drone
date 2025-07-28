@@ -93,6 +93,15 @@ void OffboardControl::timer_callback(void)
 					<< ", d: " << cal_center[i].diameters << "\n";
 			}
 			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "%s", ss.str().c_str());
+			cal_center[0].diameters = 0.15;
+			if (cal_center.size() > 1)
+			{
+				cal_center[1].diameters = 0.20;
+			}
+			if (cal_center.size() > 2)
+			{
+				cal_center[2].diameters = 0.25;
+			}
 		}
 		// uint8_t shot_count = 0;
 		// for(size_t i = 0; i < cal_center.size(); ++i)
@@ -309,7 +318,7 @@ bool OffboardControl::catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYP
 
 // 抵达桶上方
 // if(识别到桶=Doshot（到达正上方）){[if(到达正上方==true){...}}
-bool OffboardControl::Doshot(int shot_count)
+bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 {
 	static enum class CatchState {
 		init,
@@ -325,7 +334,7 @@ bool OffboardControl::Doshot(int shot_count)
 	static float shot_wait = 0.5; 						// 投弹后稳定时间
 	static std::vector<YOLO::Target> targets; 			// 声明目标x和y坐标
 	static float tar_z = 1, tar_yaw = 0; 				// 声明目标偏航角（rad）
-	static bool shot_flag = false; 						// 投弹标志
+	// static bool shot_flag = false; 						// 投弹标志
 	static std::vector<Vector3f> shot_point;			// 声明投弹点坐标
 	const std::vector<std::string> targets_str = {"_l", "_r"};
 	bool result = false;
@@ -496,7 +505,7 @@ bool OffboardControl::Doshot(int shot_count)
 			shot_index_target.r = 1.0f; // 设置当前目标颜色为黄色
 			shot_index_target.g = 1.0f;
 			shot_index_target.b = 0.0f;
-
+			shot_index_target.radius *= accuracy; // 设置目标半径为像素半径的百分比
 			// std::cout << "Doshot: shot_index_target: " << shot_index_target.x << ", " << shot_index_target.y << ", " << shot_index_target.z  << ", " << shot_index_target.radius << std::endl;
 
 			// yolo未识别到桶
@@ -504,7 +513,6 @@ bool OffboardControl::Doshot(int shot_count)
 			{
 				RCLCPP_INFO(this->get_logger(), "Doshot: yolo未识别到桶，等待");
 				if (shot_flag){
-					
 					_pose_control->send_velocity_command_world(0, 0, 0, 0); // 停止飞行
 				}
 				// RCLCPP_INFO(this->get_logger(), "Doshot: yolo未识别到桶，等待");
@@ -517,20 +525,20 @@ bool OffboardControl::Doshot(int shot_count)
 					shot_index_target.y,
 					shot_index_target.z, 
 					tar_yaw, 
-					shot_index_target.caculate_pixel_radius() * accuracy // 目标精度，使用像素半径的80%作为精度
+					shot_index_target.caculate_pixel_radius() // 目标精度
 				))
 			{
 				find_duration += get_wait_time(); // 累加查找持续时间
 				shot_index_target.r = 0.0f; // 设置当前目标颜色为绿色
 				shot_index_target.g = 1.0f;
 				shot_index_target.b = 0.0f;
-				RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, time = %fs", find_duration);
+				// RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, time = %fs", find_duration);
 				// if(error_x<0.05 && error_y<0.05){
 					// RCLCPP_INFO(this->get_logger(), "Arrive, Doshot");
 					// catch_state_=CatchState::end;
 				// } else 
 				if(!shot_flag && find_duration >= shot_duration){ 
-					RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, time > %fs, tar_x = %f, tar_y = %f, tar_z = %f, tar_yaw = %f", 
+					RCLCPP_INFO(this->get_logger(), "Doshot: Approach, 投弹, time > %fs, tar_x = %f, tar_y = %f, tar_z = %f, tar_yaw = %f", 
 						shot_duration, shot_index_target.x, shot_index_target.y, shot_index_target.z, tar_yaw);
 					shot_flag = true; // 设置投弹标志
 					_servo_controller->set_servo(11 + shot_index, 1864); // 设置舵机位置，投弹
@@ -539,11 +547,13 @@ bool OffboardControl::Doshot(int shot_count)
 				{
 					if (find_duration <= shot_duration + shot_wait) // 如果查找持续时间小于投弹持续时间+等待时间
 					{
-						if (find_duration <= shot_duration + 2 * get_wait_time()) // 投弹后2周期 重复投弹一次
+						if (find_duration <= shot_duration + get_wait_time()) // 投弹后周期 重复投弹一次
 						{
+							RCLCPP_INFO(this->get_logger(), "Doshot: Arrive, 再次投弹, wait, time = %fs", find_duration - shot_duration);
 							_servo_controller->set_servo(11 + shot_index, 1864); // 重复投弹
+						} else {
+							RCLCPP_INFO(this->get_logger(), "Doshot: Arrive, 等待, wait, time = %fs", find_duration - shot_duration);
 						}
-						RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, wait, time = %fs", find_duration - shot_duration);
 					} else {
 						catch_state_ = CatchState::end;
 						continue; // 直接跳到下一个状态;

@@ -73,6 +73,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 		static double doshot_halt_end_time; // 记录结束时间
 		static int shot_counter = 1; // 投弹计数器
 		static float max_accurate; // 聚类目标投弹最大距离
+		static bool shot_flag = false; // 投弹标志
 
 		// static vector<array<double, 3>> surround_shot_scout_points;
 
@@ -135,7 +136,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				// 	owner_->_yolo->get_servo_flag());
 				RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 1000, "handle_state<Doshot>:(THROTTLE 1s) counter=%d shot_counter=%d x:%f, y:%f max:%f", counter, shot_counter,
 					abs(owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_width()/2), abs(owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_height()/2), max_accurate);
-				if (static_cast<size_t>(counter) < owner_->cal_center.size() && (
+				if (!shot_flag && static_cast<size_t>(counter) < owner_->cal_center.size() && (
 						owner_->waypoint_timer_.elapsed() < 4.5 || (
 							owner_->waypoint_timer_.elapsed() < 10.0 && (
 							abs(owner_->get_x_pos() - owner_->cal_center[counter].point.x()) > max_accurate && 
@@ -167,20 +168,20 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 						abs(owner_->get_x_pos() - owner_->cal_center[counter].point.x()),
 						abs(owner_->get_y_pos() - owner_->cal_center[counter].point.y()),
 						max_accurate);
-				} else if (owner_->fast_mode_) { // 快速投弹
+				} else if (!shot_flag && owner_->fast_mode_) { // 快速投弹
 					RCLCPP_INFO(owner_->get_logger(), "fast_mode_ is true, 投弹");
 					owner_->_servo_controller->set_servo(10 + shot_counter, 1864);
 					owner_->waypoint_timer_.reset();
 					owner_->doshot_state_ = owner_->DoshotState::doshot_wait; // 设置投弹状态为等待
 					doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
 					continue; // 直接跳到下一个状态;
-				} else if (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE)) { // 未找到圆
+				} else if (!shot_flag && !owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE)) { // 未找到圆
 					pre_counter = counter; // 记录上一次的计数器值
 					pre_time = owner_->get_cur_time(); // 记录上一次的时间
 					owner_->waypoint_goto_next(
 						owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
 						owner_->shot_halt, owner_->surround_shot_points, 3, &counter, "投弹区");
-				} else if (owner_->Doshot(shot_counter)) { // 如果到达投弹点
+				} else if (owner_->Doshot(shot_counter, shot_flag)) { // 如果到达投弹点
 					// RCLCPP_INFO(owner_->get_logger(), "寻找完毕，投弹!!投弹!!");
 					RCLCPP_INFO(owner_->get_logger(), "已经锁定%d号桶，坐标为（%f,%f）", shot_counter, owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE));
 					RCLCPP_INFO(owner_->get_logger(), "投弹!!投弹!!，总用时：%f", owner_->state_timer_.elapsed());
