@@ -189,6 +189,11 @@ public:
 	{
 		return _inav->get_yaw();
 	}
+	float get_world_yaw(void)
+	{
+		return fmod(M_PI_2 - _inav->get_yaw() + 2 * M_PI, 2 * M_PI); // 将偏航角转换为世界坐标系下的角度
+	}
+
 	void get_euler(float &roll, float &pitch, float &yaw) {
 		// 获取四元数分量
 		float w = _inav->orientation.w();
@@ -481,7 +486,7 @@ private:
 	// const float shot_halt = 4.0;
 
 	// 侦查区域巡航属性
-	const float see_length = 7.4;
+	const float see_length = 6.6;
 	const float see_width = 4.8;
 	// const double see_halt = 3.0;
 

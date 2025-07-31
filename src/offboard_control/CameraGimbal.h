@@ -137,6 +137,7 @@ public:
         // 3. 检查点是否在相机前方
         if (cam_point.z() <= 0) {
             // 点在相机后方，无法投影
+            std::cout << "点在相机后方，无法投影" << cam_point.x() << ", " << cam_point.y() << ", " << cam_point.z() << std::endl;
             return std::nullopt;
         }
         

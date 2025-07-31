@@ -259,6 +259,7 @@ public:
         visualization_msgs::msg::MarkerArray marker_array;
 
         for (const auto &target : targets) {
+            std::cout << "目标位置: (" << target.x << ", " << target.y << ", " << target.z << ")" << std::endl;
             visualization_msgs::msg::Marker marker;
 
             marker.header.frame_id = "map"; // 或者其他适当的坐标系
