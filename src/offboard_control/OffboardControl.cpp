@@ -26,8 +26,8 @@ void OffboardControl::timer_callback(void)
 		// _yolo->get_x(YOLO::TARGET_TYPE::H), _yolo->get_y(YOLO::TARGET_TYPE::H),
 		// _yolo->get_servo_flag(), get_yaw());
 	// }
-	// RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前飞机位置 x: %f y: %f z: %f yaw: %f",
-	// 	get_x_pos(), get_y_pos(), get_z_pos(), get_yaw());
+	RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前飞机位置 x: %f y: %f z: %f yaw: %f",
+		get_x_pos(), get_y_pos(), get_z_pos(), get_yaw());
 
 	// 桶1（1 -31） 2 (2 -32) 3 (-1 -33)
 	
@@ -38,7 +38,7 @@ void OffboardControl::timer_callback(void)
 	}
 
 	Vector2d drone_to_camera_rotated;
-	rotate_2local(drone_to_camera.x(), drone_to_camera.y(), drone_to_camera_rotated.x(), drone_to_camera_rotated.y());
+	rotate_world2local(drone_to_camera.x(), drone_to_camera.y(), drone_to_camera_rotated.x(), drone_to_camera_rotated.y());
 	_camera_gimbal->position = Vector3d(get_x_pos() + drone_to_camera_rotated.x(), get_y_pos() + drone_to_camera_rotated.y(), get_z_pos() + drone_to_camera[2]);
 	// 相机坐标系：相对于飞机机体坐标系，向前旋转90度后垂直向下
 	// 飞机偏航角 + 相机相对偏航角(90度) + 俯仰角(-90度向下)
@@ -50,7 +50,7 @@ void OffboardControl::timer_callback(void)
 		pitch = 0.0f;
 		yaw = 0.0f;
 	}
-	_camera_gimbal->rotation = Vector3d(roll, pitch + M_PI, get_world_yaw() + headingangle_compass);  // roll=0, pitch=-90°(垂直向下), yaw=0
+	_camera_gimbal->rotation = Vector3d(roll, pitch + M_PI, get_world_yaw() + M_PI);  // roll=0, pitch=-90°(垂直向下), yaw=0
 	
 	// 测试目标可视化
 	if (debug_mode_) {
@@ -189,8 +189,8 @@ void OffboardControl::FlyState_init()
 	rotate_2start(tx_see, ty_see, x_see, y_see);
 	RCLCPP_INFO(this->get_logger(), "飞机起飞方向投弹区起点 x: %f   y: %f    angle: %f", x_shot, y_shot, default_yaw);
 	RCLCPP_INFO(this->get_logger(), "飞机起飞方向侦查区起点 x: %f   y: %f    angle: %f", x_see, y_see, default_yaw);
-	rotate_2local(tx_shot, ty_shot, x_shot, y_shot);
-	rotate_2local(tx_see, ty_see, x_see, y_see);
+	rotate_world2local(tx_shot, ty_shot, x_shot, y_shot);
+	rotate_world2local(tx_see, ty_see, x_see, y_see);
 	RCLCPP_INFO(this->get_logger(), "当前朝向投弹区起点 x: %f   y: %f    angle: %f", x_shot, y_shot, default_yaw);
 	RCLCPP_INFO(this->get_logger(), "当前朝向侦查区起点 x: %f   y: %f    angle: %f", x_see, y_see, default_yaw);
 		
@@ -381,9 +381,7 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 				float adjusted_x = config[std::string("shot_target_x").append(targets_str[i])].as<float>(0.0f) - drone_to_camera[0];
 				float adjusted_y = config[std::string("shot_target_y").append(targets_str[i])].as<float>(0.0f) - drone_to_camera[1];
 				float adjusted_z = config[std::string("shot_target_z").append(targets_str[i])].as<float>(0.0f) - drone_to_camera[2];
-				float rotated_x, rotated_y;
-				rotate_2local(adjusted_x, adjusted_y, rotated_x, rotated_y);
-				shot_point.push_back(Vector3f(rotated_x, rotated_y, adjusted_z)); // 调整高度
+				shot_point.push_back(Vector3f(adjusted_x, adjusted_y, adjusted_z)); // 调整高度 待旋转
 				std::cout << "shot_point_x" << targets_str[i] << ": " << shot_point[i].x() << std::endl;
 				std::cout << "shot_point_y" << targets_str[i] << ": " << shot_point[i].y() << std::endl;
 				std::cout << "shot_point_z" << targets_str[i] << ": " << shot_point[i].z() << std::endl;
@@ -481,14 +479,16 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 				{
 					YOLO::Target t2p_target = targets[0];
 					if (i < static_cast<size_t>(shot_point.size())) {
+						float rotated_x, rotated_y;
+						rotate_local2world(shot_point[i].x(), shot_point[i].y(), rotated_x, rotated_y);
 						Vector3d world_point_target(
-							_camera_gimbal->position.x() + shot_point[i].x(), 
-							_camera_gimbal->position.y() + shot_point[i].y(), 
+							_camera_gimbal->position.x() + rotated_x, 
+							_camera_gimbal->position.y() + rotated_y, 
 							bucket_height + shot_point[i].z()
 						);
-						std::cout << "Doshot: camera_gimbal position: " << _camera_gimbal->position.transpose() << " shot_point: " << shot_point[i].transpose() << " world_point_target: " << world_point_target.transpose() << std::endl;
+						// std::cout << "Doshot: camera_gimbal position: " << _camera_gimbal->position.transpose() << " shot_point: " << shot_point[i].transpose() << " world_point_target: " << world_point_target.transpose() << std::endl;
 						auto output_pixel_opt = _camera_gimbal->worldToPixel(world_point_target);
-						std::cout <<output_pixel_opt.has_value() << std::endl;
+						// std::cout <<output_pixel_opt.has_value() << std::endl;
 						if (output_pixel_opt.has_value()) {
 							Vector2d output_pixel = output_pixel_opt.value();
 							t2p_target.x = output_pixel.x();
