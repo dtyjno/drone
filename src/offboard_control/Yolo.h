@@ -120,12 +120,16 @@ public:
         return fabs(get_raw_x(type)) > 0.0001 && fabs(get_raw_y(type)) > 0.0001;
         return false;
     }
+    
     std::vector<vision_msgs::msg::BoundingBox2D> get_raw_targets(enum TARGET_TYPE type){
         if(type == CIRCLE){
             return circle_raw;
         }
         else if(type == H){
             return h_raw;
+        }
+        else if(type == STUFFED){
+            return stuffed_raw;
         }
         return {};
     }
@@ -226,7 +230,7 @@ public:
         Target(float x, float y, float z, float r, float g, float b, float radius, const std::string &category, int id)
             : x(x), y(y), z(z), r(r), g(g), b(b), radius(radius), category(category), id(id) {}
         float x, y, z;           // 圆心坐标
-        float r, g, b;           // 颜色
+        float r = 1, g = 0, b = 0;           // 颜色
         float radius;           // 半径
         std::string category;   // 分类标签
         int id;                 // 目标ID

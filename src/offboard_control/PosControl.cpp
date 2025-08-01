@@ -326,7 +326,7 @@ Vector4f PosControl::input_pos_xyz_yaw_without_vel(Vector4f now, Vector4f target
 	// 	target.w() -= 2 * M_PI;
 	// else if (target.w() < -M_PI)
 	// 	target.w() += 2 * M_PI;
-	f.w() = pid_yaw.update_all(now.w(), target.w(), dt, max_speed_yaw, _inav->velocity.w());
+	f.w() = pid_yaw.update_all(now.w(), target.w() + yaw_diff_last, dt, max_speed_yaw, _inav->velocity.w());
 	RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: x:%f y:%f z:%f yaw:%f", f.x(), f.y(), f.z(), f.w());
 
 	return f;

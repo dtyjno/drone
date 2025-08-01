@@ -32,11 +32,11 @@ void StateMachine::handle_state<FlyState::takeoff>() {
 
 template<>
 void StateMachine::handle_state<FlyState::end>() {
-    if (current_state_ == FlyState::end) {
-        RCLCPP_INFO_ONCE(owner_->get_logger(), "任务结束, 运行时间: %f 秒", owner_->get_cur_time());
-        // 如果需要，可以在这里添加清理或退出逻辑
-        rclcpp::shutdown();  // 停止 ROS 2 节点
-    }
+	if (current_state_ == FlyState::end) {
+		RCLCPP_INFO_ONCE(owner_->get_logger(), "任务结束, 运行时间: %f 秒", owner_->get_cur_time());
+		// 如果需要，可以在这里添加清理或退出逻辑
+		rclcpp::shutdown();  // 停止 ROS 2 节点
+	}
 }
 
 template<>
@@ -69,6 +69,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 		}
 		RCLCPP_INFO_ONCE(owner_->get_logger(), "执行投弹任务Doshot");
 		static int counter = 0, pre_counter; // 航点计数器
+		static uint8_t circle_counter = 0; 
 		static float pre_time = 0.0f; // 上次航点时间
 		static double doshot_halt_end_time; // 记录结束时间
 		static int shot_counter = 1; // 投弹计数器
@@ -134,10 +135,33 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				// 	owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE),
 				// 	owner_->_yolo->get_x(YOLO::TARGET_TYPE::H), owner_->_yolo->get_y(YOLO::TARGET_TYPE::H),
 				// 	owner_->_yolo->get_servo_flag());
+
+			   // 显示当前目标
+			   {
+				   YOLO::Target temp_target;
+				   if (static_cast<int>(owner_->cal_center.size()) > counter) {
+					   Vector3d world_point(owner_->cal_center[counter].point.x(), 
+										   owner_->cal_center[counter].point.y(), 
+										   owner_->cal_center[counter].point.z());
+					   auto shot_center_opt = owner_->_camera_gimbal->worldToPixel(world_point);
+					   if (shot_center_opt.has_value()) {
+						   Vector2d shot_center = shot_center_opt.value();
+						   temp_target.x = shot_center.x();
+						   temp_target.y = shot_center.y();
+						   temp_target.fx = owner_->_camera_gimbal->fx;
+						   temp_target.radius = owner_->cal_center[counter].diameters / 2.0;
+						   temp_target.category = std::string("circle").append("_w2p");
+						   temp_target.relative_z = owner_->_camera_gimbal->position.z() - owner_->bucket_height; // 设置目标的高度为相机高度
+						   owner_->_yolo->append_target(temp_target);
+					   }
+				   }
+			   }
+
+				// 处理投弹逻辑
 				RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 1000, "handle_state<Doshot>:(THROTTLE 1s) counter=%d shot_counter=%d x:%f, y:%f max:%f", counter, shot_counter,
 					abs(owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_width()/2), abs(owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_height()/2), max_accurate);
 				if (!shot_flag && static_cast<size_t>(counter) < owner_->cal_center.size() && (
-						owner_->waypoint_timer_.elapsed() < 5 || (
+						owner_->waypoint_timer_.elapsed() < 5.0 || (
 							owner_->waypoint_timer_.elapsed() < 10.0 && (
 							abs(owner_->get_x_pos() - owner_->cal_center[counter].point.x()) > max_accurate && 
 							abs(owner_->get_y_pos() - owner_->cal_center[counter].point.y()) > max_accurate
@@ -175,7 +199,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					owner_->doshot_state_ = owner_->DoshotState::doshot_wait; // 设置投弹状态为等待
 					doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
 					continue; // 直接跳到下一个状态;
-				} else if (!shot_flag && !owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE)) { // 未找到圆
+				} else if (!shot_flag && (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE) ? circle_counter >= 5 : false)) { // 未找到圆，前往目标过程中最多允许连续1次未识别出目标的情况，使用最近一次采集到的位置数据
 					pre_counter = counter; // 记录上一次的计数器值
 					pre_time = owner_->get_cur_time(); // 记录上一次的时间
 					owner_->waypoint_goto_next(
@@ -189,6 +213,11 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
 					continue; // 继续执行下一次循环
 				} else { // 如果找到投弹目标但未到达目标上方
+					if (owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE)) {
+						circle_counter = 0; // 重置计数器
+					} else {
+						circle_counter++; // 增加计数器
+					}
 					max_accurate = 5;
 					counter = pre_counter; // 恢复上一次的计数器值
 					owner_->waypoint_timer_.set_start_time_to_time_point(pre_time); // 重置航点计时器
@@ -205,9 +234,14 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 							break;
 						}
 					} else {
-						if (owner_->get_cur_time() - doshot_halt_end_time < 2.0){
-							break; // 等待2秒
-						}
+						// owner_->send_local_setpoint_command(
+						// 	owner_->cal_center[counter + 1].point.x(),
+						// 	owner_->cal_center[counter + 1].point.y(),
+						// 	owner_->shot_halt_low, 0
+						// );
+						// if (owner_->get_cur_time() - doshot_halt_end_time < 2.0){
+						// 	break; // 等待2秒
+						// }
 						counter++; // 增加计数器
 						pre_counter = counter; // 更新上一次计数器值
 					}
@@ -250,7 +284,7 @@ void StateMachine::handle_state<FlyState::Goto_scoutpoint>() {
 		RCLCPP_INFO_ONCE(owner_->get_logger(), "开始前往侦查起点");
 		float x_see, y_see;
 		owner_->rotate_global2stand(owner_->dx_see, owner_->dy_see, x_see, y_see);
-		if(owner_->waypoint_timer_.elapsed() > 10)
+		if(owner_->waypoint_timer_.elapsed() > 7.5)
 		{
 			owner_->waypoint_timer_.set_start_time_to_default();
 			RCLCPP_INFO(owner_->get_logger(), "到达侦查区起点");
@@ -371,28 +405,28 @@ void StateMachine::handle_state<FlyState::Print_Info>() {
 
 template<>
  void StateMachine::handle_state<FlyState::MYPID>() {
- 	if (current_state_ == FlyState::MYPID
- 	) {
- 		owner_->mypid.readPIDParameters("pos_config.yaml","mypid");
- 		owner_->dx_shot = owner_->mypid.read_goal("OffboardControl.yaml","dx_shot");
- 	    owner_->dy_shot = owner_->mypid.read_goal("OffboardControl.yaml","dy_shot");
- 		owner_->shot_halt = owner_->mypid.read_goal("OffboardControl.yaml","shot_halt");
- 		printf("已进入MYPID状态,当前kp ki kd参数分别为：%lf %lf %lf,输出限制为： %lf,积分限制为： %lf\n",owner_->mypid.kp_,owner_->mypid.ki_,owner_->mypid.kd_,owner_->mypid.output_limit_,owner_->mypid.integral_limit);
+	if (current_state_ == FlyState::MYPID
+	) {
+		owner_->mypid.readPIDParameters("pos_config.yaml","mypid");
+		owner_->dx_shot = owner_->mypid.read_goal("OffboardControl.yaml","dx_shot");
+		owner_->dy_shot = owner_->mypid.read_goal("OffboardControl.yaml","dy_shot");
+		owner_->shot_halt = owner_->mypid.read_goal("OffboardControl.yaml","shot_halt");
+		printf("已进入MYPID状态,当前kp ki kd参数分别为：%lf %lf %lf,输出限制为： %lf,积分限制为： %lf\n",owner_->mypid.kp_,owner_->mypid.ki_,owner_->mypid.kd_,owner_->mypid.output_limit_,owner_->mypid.integral_limit);
  
- 		owner_->mypid.velocity_x = owner_->get_x_vel();
-         owner_->mypid.velocity_y = owner_->get_y_vel();
- 		owner_->mypid.velocity_z = owner_->get_z_vel();
+		owner_->mypid.velocity_x = owner_->get_x_vel();
+		 owner_->mypid.velocity_y = owner_->get_y_vel();
+		owner_->mypid.velocity_z = owner_->get_z_vel();
  
- 		printf("当前速度分别为：vx: %lf vy: %lf vz:%lf\n",owner_->mypid.velocity_x,owner_->mypid.velocity_y,owner_->mypid.velocity_z);
- 		printf("当前位置为（ %lf , %lf , %lf ）\n",owner_->get_x_pos(),owner_->get_y_pos(),owner_->get_z_pos());
- 		printf("目标位置为 （ %lf , %lf , %lf ）\n",owner_->dx_shot,owner_->dy_shot,owner_->shot_halt);
- 		printf("PID输出分别为：（ %lf , %lf ,%lf）\n",owner_->mypid.compute(owner_->dx_shot,owner_->get_x_pos(),0.01),owner_->mypid.compute(owner_->dy_shot,owner_->get_y_pos(),0.01),
-                               owner_->mypid.compute(owner_->shot_halt,owner_->get_z_pos(),0.01));
- 		
- 		owner_->mypid.Mypid(owner_->dx_shot,owner_->dy_shot,owner_->shot_halt,owner_->get_x_pos(),owner_->get_y_pos(),owner_->get_z_pos(),0.01);
- 		owner_->send_velocity_command(owner_->mypid.velocity_x,owner_->mypid.velocity_y,owner_->mypid.velocity_z,0);
- 		//transition_to(FlyState::end);
- 	}
+		printf("当前速度分别为：vx: %lf vy: %lf vz:%lf\n",owner_->mypid.velocity_x,owner_->mypid.velocity_y,owner_->mypid.velocity_z);
+		printf("当前位置为（ %lf , %lf , %lf ）\n",owner_->get_x_pos(),owner_->get_y_pos(),owner_->get_z_pos());
+		printf("目标位置为 （ %lf , %lf , %lf ）\n",owner_->dx_shot,owner_->dy_shot,owner_->shot_halt);
+		printf("PID输出分别为：（ %lf , %lf ,%lf）\n",owner_->mypid.compute(owner_->dx_shot,owner_->get_x_pos(),0.01),owner_->mypid.compute(owner_->dy_shot,owner_->get_y_pos(),0.01),
+							   owner_->mypid.compute(owner_->shot_halt,owner_->get_z_pos(),0.01));
+		
+		owner_->mypid.Mypid(owner_->dx_shot,owner_->dy_shot,owner_->shot_halt,owner_->get_x_pos(),owner_->get_y_pos(),owner_->get_z_pos(),0.01);
+		owner_->send_velocity_command(owner_->mypid.velocity_x,owner_->mypid.velocity_y,owner_->mypid.velocity_z,0);
+		//transition_to(FlyState::end);
+	}
  }
 
 
@@ -448,20 +482,20 @@ void StateMachine::handle_state<FlyState::Termial_Control>() {
 			}
 			return;
 		}
-    // 处理多字符输入
-    if (key == '\n' || key == '\r') { // 按下回车，尝试解析命令
-      std::string upperInput = input;
-      std::transform(upperInput.begin(), upperInput.end(), upperInput.begin(), ::toupper);
-      auto it = FlyStateMap.find(upperInput);
-      if (it != FlyStateMap.end()) {
-        transition_to(it->second);
-        RCLCPP_INFO(owner_->get_logger(), "切换到状态: %s", upperInput.c_str());
-      } else {
-        RCLCPP_INFO(owner_->get_logger(), "无效指令: %s", input.c_str());
-      }
-      input.clear();
-    } else if (key == '\b' && !input.empty()) { // 处理退格
-      input.pop_back();
+	// 处理多字符输入
+	if (key == '\n' || key == '\r') { // 按下回车，尝试解析命令
+	  std::string upperInput = input;
+	  std::transform(upperInput.begin(), upperInput.end(), upperInput.begin(), ::toupper);
+	  auto it = FlyStateMap.find(upperInput);
+	  if (it != FlyStateMap.end()) {
+		transition_to(it->second);
+		RCLCPP_INFO(owner_->get_logger(), "切换到状态: %s", upperInput.c_str());
+	  } else {
+		RCLCPP_INFO(owner_->get_logger(), "无效指令: %s", input.c_str());
+	  }
+	  input.clear();
+	} else if (key == '\b' && !input.empty()) { // 处理退格
+	  input.pop_back();
 		} else if (key == '\t') { // Tab键自动补全
 			std::string upperInput = input;
 			std::transform(upperInput.begin(), upperInput.end(), upperInput.begin(), ::toupper);
@@ -479,9 +513,9 @@ void StateMachine::handle_state<FlyState::Termial_Control>() {
 					for (const auto& s : candidates) msg += s + " ";
 					RCLCPP_INFO(owner_->get_logger(), "%s", msg.c_str());
 			}
-    } else if (key != 0) {
-      input += key; // 将按键添加到输入字符串中
-    }
+	} else if (key != 0) {
+	  input += key; // 将按键添加到输入字符串中
+	}
 	}
 }
 

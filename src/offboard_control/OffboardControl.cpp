@@ -50,8 +50,8 @@ void OffboardControl::timer_callback(void)
 		pitch = 0.0f;
 		yaw = 0.0f;
 	}
-	_camera_gimbal->rotation = Vector3d(roll, pitch + M_PI, get_world_yaw() + M_PI);  // roll=0, pitch=-90°(垂直向下), yaw=0
-	
+	_camera_gimbal->rotation = Vector3d(roll, pitch + M_PI, get_world_yaw());  // roll=0, pitch=-90°(垂直向下), yaw=0
+
 	// 测试目标可视化
 	if (debug_mode_) {
 		_inav->position.x() = 0;
@@ -445,22 +445,24 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 				targets[i].b = 0.0f;
 				targets[i].relative_z = _camera_gimbal->position.z() - bucket_height; // 设置目标的高度为相机高度
 			}
-			YOLO::Target temp_target = targets[shot_index];
 
-			// 显示目标位置
-			if (static_cast<int>(cal_center.size()) > shot_index){
-				Vector3d world_point(cal_center[shot_index].point.x(), 
-									cal_center[shot_index].point.y(), 
-									cal_center[shot_index].point.z());
-				auto shot_center_opt = _camera_gimbal->worldToPixel(world_point);
-				if (shot_center_opt.has_value()) {
-					Vector2d shot_center = shot_center_opt.value();
-					temp_target.x = shot_center.x();
-					temp_target.y = shot_center.y();
-					temp_target.category = std::string("circle").append("_w2p");
-					_yolo->append_target(temp_target);
-				}
-			}
+
+			// YOLO::Target temp_target = targets[shot_index];
+
+			// // 显示目标位置
+			// if (static_cast<int>(cal_center.size()) > shot_index){
+			// 	Vector3d world_point(cal_center[shot_index].point.x(), 
+			// 						cal_center[shot_index].point.y(), 
+			// 						cal_center[shot_index].point.z());
+			// 	auto shot_center_opt = _camera_gimbal->worldToPixel(world_point);
+			// 	if (shot_center_opt.has_value()) {
+			// 		Vector2d shot_center = shot_center_opt.value();
+			// 		temp_target.x = shot_center.x();
+			// 		temp_target.y = shot_center.y();
+			// 		temp_target.category = std::string("circle").append("_w2p");
+			// 		_yolo->append_target(temp_target);
+			// 	}
+			// }
 
 			// Vector2d input_pixel(targets[shot_index].x, targets[shot_index].y);
 			// auto mapped_center_opt = _camera_gimbal->mapPixelToVerticalDownCamera(input_pixel, bucket_height);
@@ -533,15 +535,17 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 			shot_index_target.b = 0.0f;
 			// std::cout << "Doshot: shot_index_target: " << shot_index_target.x << ", " << shot_index_target.y << ", " << shot_index_target.z  << ", " << shot_index_target.radius << std::endl;
 
-			// yolo未识别到桶
-			if (!_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE))
+			// 未投弹且无目标
+			if (!shot_flag && !_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE))
 			{
 				RCLCPP_INFO(this->get_logger(), "Doshot: yolo未识别到桶，等待");
-				if (shot_flag && !_yolo->is_get_target(YOLO::TARGET_TYPE::STUFFED)){
-					_pose_control->send_velocity_command_world(0, 0, 0, 0); // 停止飞行
-				}
-				// RCLCPP_INFO(this->get_logger(), "Doshot: yolo未识别到桶，等待");
-			} else if (catch_target(
+			} 
+			// 已经投弹且无目标
+			else if (shot_flag && !_yolo->is_get_target(YOLO::TARGET_TYPE::STUFFED) && !_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE)){
+				_pose_control->send_velocity_command_world(0, 0, 0, 0); // 停止飞行
+			}
+			// 接近目标
+			else if (catch_target(
 					defaults,
 					YOLO::TARGET_TYPE::CIRCLE, // 目标类型
 					// targets[shot_index].x, 
@@ -570,18 +574,12 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 				} 
 				else if (shot_flag) // 已投弹，shot_wait时间内继续等待
 				{
-					if (find_duration <= shot_duration + shot_wait) // 如果查找持续时间小于投弹持续时间+等待时间
+					if (find_duration <= shot_duration + get_wait_time()) // 投弹后周期 重复投弹一次
 					{
-						if (find_duration <= shot_duration + get_wait_time()) // 投弹后周期 重复投弹一次
-						{
-							RCLCPP_INFO(this->get_logger(), "Doshot: Arrive, 再次投弹, wait, time = %fs", find_duration - shot_duration);
-							_servo_controller->set_servo(11 + shot_index, 1864); // 重复投弹
-						} else {
-							RCLCPP_INFO(this->get_logger(), "Doshot: Arrive, 等待, wait, time = %fs", find_duration - shot_duration);
-						}
+						RCLCPP_INFO(this->get_logger(), "Doshot: Arrive, 再次投弹, wait, time = %fs", find_duration - shot_duration);
+						_servo_controller->set_servo(11 + shot_index, 1864); // 重复投弹
 					} else {
-						catch_state_ = CatchState::end;
-						continue; // 直接跳到下一个状态;
+						RCLCPP_INFO(this->get_logger(), "Doshot: Arrive, 等待, wait, time = %fs", find_duration - shot_duration);
 					}
 				}			
 			}
@@ -589,6 +587,12 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 			{
 				// _t_time = cur_shot_time;
 				find_duration = 0.0f; // 重置查找持续时间
+			}
+			// 执行投弹命令后，如果查找到持续时间小于投弹持续时间+等待时间
+			if (shot_flag && find_duration <= shot_duration + shot_wait) 
+			{
+				catch_state_ = CatchState::end;
+				continue; // 直接跳到下一个状态;
 			}
 			// _yolo->append_targets(targets); // 将目标添加到YOLO中准备发布
 			_yolo->append_target(shot_index_target); // 将当前投弹目标添加到YOLO中准备发布
@@ -667,7 +671,7 @@ bool OffboardControl::Doland()
 			continue; // 直接跳到下一个状态;
 		}
 		case LandState::land_to_target:{
-			if (timer_.elapsed() > 19 || surround_land > 3 || get_z_pos() < target.z) // 降落时间超过19秒，或者降落高度小于目标高度
+			if (timer_.elapsed() > 38 || surround_land > 3 || get_z_pos() < target.z) // 降落时间超过39秒，或者降落高度小于目标高度
 			{
 				land_state_ = LandState::end;
 				continue; // 直接跳到下一个状态;
@@ -679,11 +683,10 @@ bool OffboardControl::Doland()
 			// {
 			// 	if (i < static_cast<size_t>(shot_point.size())) {
 			Vector3d world_point_target(
-				_camera_gimbal->position.x() - drone_to_camera.x() + target.x, 
-				_camera_gimbal->position.y() - drone_to_camera.y() + target.y, 
+				_camera_gimbal->position.x() - drone_to_camera.x(), 
+				_camera_gimbal->position.y() - drone_to_camera.y(), 
 				target.z
 			);
-			// std::cout << "camera_gimbal position: " << _camera_gimbal->position.transpose() << " shot_point: " << shot_point[i].transpose() << " world_point_target: " << world_point_target.transpose() << std::endl;
 			auto output_pixel_opt = _camera_gimbal->worldToPixel(world_point_target);
 			if (output_pixel_opt.has_value()) {
 				Vector2d output_pixel = output_pixel_opt.value();
@@ -695,13 +698,10 @@ bool OffboardControl::Doland()
 				t2p_target.category = std::string("h").append("_t2p");
 				t2p_target.radius = accuracy;
 			}
-			// 	}
-			// }
-			// }
 
 			if (!_yolo->is_get_target(YOLO::TARGET_TYPE::H)) // yolo未识别到YOLO::TARGET_TYPE::H   (YOLO::TARGET_TYPE::CIRCLE)
 			{
-				if (timer_.get_timepoint_elapsed() > 1.5)
+				if (timer_.get_timepoint_elapsed() > 4.0)
 				{
 						RCLCPP_INFO(this->get_logger(), "surround_land = %d", surround_land);
 						rotate_global2stand(scout_x + static_cast<double>(surround_land) * 1.0, scout_y, x_home, y_home);
