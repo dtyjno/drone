@@ -32,6 +32,7 @@ enum class FlyState
 	Print_Info,
 	Termial_Control, // 终端控制
 	Reflush_config,
+	LandToStart, // 降落到起点
 } ;
 
 
@@ -50,6 +51,7 @@ const std::map<std::string, FlyState> FlyStateMap = {
 	{"PRINT_INFO", FlyState::Print_Info},
 	{"TERMINAL_CONTROL", FlyState::Termial_Control},
 	{"REFLUSH_CONFIG", FlyState::Reflush_config},
+	{"LAND_TO_START", FlyState::LandToStart},
 };
 
 // 将当前状态发布到currentstate 1=circle:shot/sco 2=h:land

@@ -153,6 +153,7 @@ void OffboardControl::timer_callback(void)
 		FlyState::Goto_scoutpoint,
 		FlyState::Surround_see,
 		FlyState::Doland,
+		FlyState::LandToStart,
 		//
 		FlyState::Termial_Control,
 		FlyState::Print_Info,
@@ -227,7 +228,8 @@ void OffboardControl::FlyState_init()
 	// 飞控的扩展卡尔曼滤波器（EKF3）已经为IMU（惯性测量单元）0和IMU1设置了起点。
 	start = {get_x_pos(), get_y_pos(), get_z_pos(), get_yaw()}; 
 	// 飞控日志 AP: Field Elevation Set: 0m 设定当前位置的地面高度为0米，这对于高度控制和避免地面碰撞非常重要。
-	start_global = {get_lat(), get_lon(), get_alt()};			
+	// start_global = {get_lat(), get_lon(), get_alt()};			
+	
 	RCLCPP_INFO(this->get_logger(), "初始旋转角: %f", get_yaw());
 	_pose_control->set_dt(0.05); // 设置执行周期（用于PID）
 
@@ -646,11 +648,11 @@ bool OffboardControl::Doland()
 			scout_y = config["scout_y"].as<double>();
 			accuracy = config["accuracy"].as<double>();
 			target.category = std::string("h_target");
-			target.x = config["tar_x"].as<double>(0.0f);
-			target.y = config["tar_y"].as<double>(0.0f);
+			// target.x = config["tar_x"].as<double>(0.0f);
+			// target.y = config["tar_y"].as<double>(0.0f);
 			target.z = config["tar_z"].as<double>(0.0f);
-			target.x = (is_equal(target.x, 0.0f) ? _yolo->get_cap_frame_width() / 2 : target.x);
-			target.y = (is_equal(target.y, 0.0f) ? _yolo->get_cap_frame_height() / 2 : target.y);
+			// target.x = (is_equal(target.x, 0.0f) ? _yolo->get_cap_frame_width() / 2 : target.x);
+			// target.y = (is_equal(target.y, 0.0f) ? _yolo->get_cap_frame_height() / 2 : target.y);
 			target.z = (is_equal(target.z, 0.0f) ? target.z : target.z);
 			target.r = 0.0f; 
 			target.g = 0.0f;
@@ -671,7 +673,7 @@ bool OffboardControl::Doland()
 			continue; // 直接跳到下一个状态;
 		}
 		case LandState::land_to_target:{
-			if (timer_.elapsed() > 38 || surround_land > 3 || get_z_pos() < target.z) // 降落时间超过39秒，或者降落高度小于目标高度
+			if (timer_.elapsed() > 19 || surround_land > 3 || get_z_pos() < target.z) // 降落时间超过39秒，或者降落高度小于目标高度
 			{
 				land_state_ = LandState::end;
 				continue; // 直接跳到下一个状态;
@@ -701,12 +703,12 @@ bool OffboardControl::Doland()
 
 			if (!_yolo->is_get_target(YOLO::TARGET_TYPE::H)) // yolo未识别到YOLO::TARGET_TYPE::H   (YOLO::TARGET_TYPE::CIRCLE)
 			{
-				if (timer_.get_timepoint_elapsed() > 4.0)
+				if (timer_.get_timepoint_elapsed() > 2.0)
 				{
 						RCLCPP_INFO(this->get_logger(), "surround_land = %d", surround_land);
 						rotate_global2stand(scout_x + static_cast<double>(surround_land) * 1.0, scout_y, x_home, y_home);
-						RCLCPP_INFO(this->get_logger(), "land点 x: %lf   y: %lf    angle: %lf", x_home, y_home, 0.0);
-						send_local_setpoint_command(x_home, y_home, scout_halt, 0);
+						RCLCPP_INFO(this->get_logger(), "land点 x: %lf   y: %lf    angle: %lf", x_home + get_x_home_pos(), y_home + get_y_home_pos(), 0.0); // 开始执行程序+x_home位置
+						send_local_setpoint_command(x_home + get_x_home_pos(), y_home + get_y_home_pos(), scout_halt, 0);
 						timer_.set_timepoint();
 						surround_land++;
 				}
@@ -737,7 +739,7 @@ bool OffboardControl::Doland()
 			break;
 		}
 		case LandState::end:{
-			send_velocity_command_with_time(0, 0, -0.1, 0, 1);
+			send_velocity_command_with_time(0, 0, -0.2, 0, 1);
 			RCLCPP_INFO(this->get_logger(), "降落");
 			land_state_ = LandState::init;
 			surround_land = 0;

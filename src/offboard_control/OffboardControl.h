@@ -513,6 +513,9 @@ private:
 	float bucket_height = 0.3; // 桶高度
 	Vector3d drone_to_camera;
 
+	float servo_open_position;
+	float servo_close_position;
+
 	vector<Circles> cal_center;
 
 	// 定义航点
@@ -551,7 +554,7 @@ private:
 
 	double timestamp_init = 0;
 
-	GlobalFrame start_global{0, 0, 0};
+	// GlobalFrame start_global{0, 0, 0};
 
 	rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr state_publisher_;
 
@@ -595,6 +598,9 @@ private:
 		drone_to_camera[0] = config["drone_to_camera_x"].as<float>();
 		drone_to_camera[1] = config["drone_to_camera_y"].as<float>();
 		drone_to_camera[2] = config["drone_to_camera_z"].as<float>();
+		servo_open_position = config["servo_open_position"].as<float>();
+		servo_close_position = config["servo_close_position"].as<float>();
+
 		RCLCPP_INFO(this->get_logger(), "读取投弹区起点坐标: dx_shot: %f, dy_shot: %f shot_halt: %f", dx_shot, dy_shot, shot_halt);
 		RCLCPP_INFO(this->get_logger(), "读取侦查区起点坐标: dx_see: %f, dy_see: %f see_halt: %f", dx_see, dy_see, see_halt);
 		

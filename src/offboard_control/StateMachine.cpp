@@ -194,7 +194,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 						max_accurate);
 				} else if (!shot_flag && owner_->fast_mode_) { // 快速投弹
 					RCLCPP_INFO(owner_->get_logger(), "fast_mode_ is true, 投弹");
-					owner_->_servo_controller->set_servo(10 + shot_counter, 1864);
+					owner_->_servo_controller->set_servo(10 + shot_counter, owner_->servo_open_position);
 					owner_->waypoint_timer_.reset();
 					owner_->doshot_state_ = owner_->DoshotState::doshot_wait; // 设置投弹状态为等待
 					doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
@@ -224,7 +224,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				}
 				break;
 			case owner_->DoshotState::doshot_wait: // 等待再次投弹
-				if(shot_counter <= 1) // 投弹计数器小于1，再次执行投弹
+				if(shot_counter <= 1) // 投弹次数小于等于1，再次执行投弹
 				{
 					if (static_cast<size_t>(counter) >= owner_->cal_center.size()){
 						owner_->waypoint_goto_next(
@@ -260,8 +260,8 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				if (owner_->get_cur_time() - doshot_halt_end_time < 2.0) {
 					if (owner_->get_cur_time() - doshot_halt_end_time < owner_->get_wait_time()) {
 						RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 1000, "投弹完成，等待2秒后前往侦查区域");
-						owner_->_servo_controller->set_servo(11, 1864);			// owner_->_servo_controller->set_servo(11, 1200);
-						owner_->_servo_controller->set_servo(12, 1864);				// owner_->_servo_controller->set_servo(12, 1200);
+						owner_->_servo_controller->set_servo(11, owner_->servo_open_position);			// owner_->_servo_controller->set_servo(11, owner_->servo_close_position);
+						owner_->_servo_controller->set_servo(12, owner_->servo_open_position);				// owner_->_servo_controller->set_servo(12, owner_->servo_close_position);
 					}
 					break; // 等待2秒
 				}
@@ -337,8 +337,8 @@ void StateMachine::handle_state<FlyState::Doland>() {
 				doland_state = DolandState::doland_wait; // 切换到等待降落状态
 				continue; // 继续执行下一次循环;
 			case DolandState::doland_wait: // 等待降落
-				if (owner_->state_timer_.elapsed() > 17.5) { // 如果等待超过17.5秒
-					RCLCPP_INFO(owner_->get_logger(), "等待降落超过17.5秒，开始降落");
+				if (owner_->state_timer_.elapsed() > 18) { // 如果等待超过18秒
+					RCLCPP_INFO(owner_->get_logger(), "等待降落超过18秒，开始降落");
 					owner_->_motors->switch_mode("GUIDED");
 					doland_state = DolandState::doland_landing; // 切换到降落中状态
 					continue; // 继续执行下一次循环;
@@ -357,6 +357,53 @@ void StateMachine::handle_state<FlyState::Doland>() {
 				owner_->_motors->switch_mode("LAND");
 				transition_to(FlyState::end);
 				doland_state = DolandState::doland_init; // 重置降落状态
+				break; // 结束函数
+			default:
+				break;
+			}
+			break;
+		}
+	}
+	return; // 结束函数
+}
+
+template<>
+void StateMachine::handle_state<FlyState::LandToStart>() {
+	if (current_state_ == FlyState::LandToStart) {
+		static enum class LandToStartState {
+			land_to_start_init, // 降落初始化
+			land_to_start_wait, // 等待降落
+			land_to_start_end // 降落结束
+		} land_to_start_state = LandToStartState::land_to_start_init; // 降落状态
+		if (owner_->is_first_run_) {
+			land_to_start_state = LandToStartState::land_to_start_init; // 重置降落状态
+			owner_->is_first_run_ = false; // 重置第一次运行标志
+		}
+		while (true){
+			switch (land_to_start_state) {
+			case LandToStartState::land_to_start_init: // 降落初始化
+				RCLCPP_INFO(owner_->get_logger(), "开始降落");
+				// owner_->_motors->switch_mode("RTL");
+				land_to_start_state = LandToStartState::land_to_start_wait; // 切换到等待降落状态
+				continue; // 继续执行下一次循环;
+			case LandToStartState::land_to_start_wait: // 等待降落
+				owner_->send_local_setpoint_command(
+					0, 0, 0, 0
+				);
+				if (owner_->state_timer_.elapsed() > 17.5) { // 如果等待超过17.5秒
+					RCLCPP_INFO(owner_->get_logger(), "等待降落超过17.5秒，开始降落");
+					// owner_->_motors->switch_mode("GUIDED");
+					land_to_start_state = LandToStartState::land_to_start_end; // 切换到降落中状态
+					continue; // 继续执行下一次循环;
+				} else {
+					RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 3000, "(THROTTLE 3s)等待降落中...%f", owner_->state_timer_.elapsed());
+				}
+				break;
+			case LandToStartState::land_to_start_end: // 降落结束
+				RCLCPP_INFO(owner_->get_logger(), "降落完成");
+				owner_->_motors->switch_mode("LAND");
+				transition_to(FlyState::end);
+				land_to_start_state = LandToStartState::land_to_start_init; // 重置降落状态
 				break; // 结束函数
 			default:
 				break;
