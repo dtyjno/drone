@@ -130,8 +130,8 @@ public:
         return Vector2d(x_distorted, y_distorted);
     }
 
-    // 生成旋转矩阵，处理标准旋转角的输入
-    Matrix3d eulerAnglesToRotationMatrixWorldToCameraNED() const {
+    // 生成旋转矩阵，处理对应坐标系下旋转角的输入
+    Matrix3d eulerAnglesToRotationMatrixWorldToCamera() const {
         // 正确分配欧拉角
         double roll_c  = camera_relative_rotation[0]; // X轴
         double pitch_c = camera_relative_rotation[1]; // Y轴
@@ -169,70 +169,6 @@ public:
                     -sin(pitch_p), 0, cos(pitch_p);
         
         Matrix3d R_yaw_p; // Z轴
-        R_yaw_p << cos(yaw_p), -sin(yaw_p), 0,
-                sin(yaw_p), cos(yaw_p), 0,
-                0, 0, 1;
-
-        // std::cout << "相机偏航角: " << yaw_c << ", 俯仰角: " << pitch_c << ", 翻滚角: " << roll_c << std::endl;
-        // std::cout << "父级偏航角: " << yaw_p << ", 俯仰角: " << pitch_p << ", 翻滚角: " << roll_p << std::endl;
-        // std::cout << "R_pitch_p:\n" << R_pitch_p.transpose() << std::endl;
-        // std::cout << "R_yaw_p:\n" << R_yaw_p.transpose() << std::endl;
-        // std::cout << "R_roll_p:\n" << R_roll_p.transpose() << std::endl;
-
-        // 构建旋转矩阵 (Z-Y-X顺序)
-        Matrix3d R_c = R_yaw_c * R_pitch_c * R_roll_c; // 相机旋转
-        Matrix3d R_p = R_yaw_p * R_pitch_p * R_roll_p; // 父级旋转
-
-        // ENU世界到相机坐标系旋转
-        Matrix3d R_total = R_p * R_c;
-
-        // 调试输出
-        // std::cout << "相机旋转矩阵:\n" << R_c << "\n";
-        // std::cout << "父级旋转矩阵:\n" << R_p << "\n";
-        // std::cout << "最终旋转矩阵:\n" << R_total << "\n";
-        
-        return R_total;
-    }
-
-    // 生成ENU主表现下的旋转矩阵，处理ENU下旋转角的输入
-    Matrix3d eulerAnglesToRotationMatrixWorldToCameraENU() const {
-        // 正确分配欧拉角
-        double roll_c  = camera_relative_rotation[0]; // X轴
-        double pitch_c = camera_relative_rotation[1]; // Y轴
-        double yaw_c   = camera_relative_rotation[2]; // Z轴
-        
-        double roll_p  = parent_rotation[0];          // X轴
-        double pitch_p = parent_rotation[1];          // Y轴
-        double yaw_p   = parent_rotation[2];          // Z轴
-
-        // 相机旋转矩阵 ENU(Z-Y-X顺序: yaw->pitch->roll)
-        Matrix3d R_roll_c; // X轴
-        R_roll_c << cos(roll_c), 0, sin(roll_c),
-                    0, 1, 0,
-                    -sin(roll_c), 0, cos(roll_c);
-        
-        Matrix3d R_pitch_c; // Y轴
-        R_pitch_c << 1, 0, 0,
-                    0, cos(pitch_c), -sin(pitch_c),
-                    0, sin(pitch_c), cos(pitch_c);
-        
-        Matrix3d R_yaw_c; // Z轴
-        R_yaw_c << cos(yaw_c), sin(yaw_c), 0,
-                -sin(yaw_c), cos(yaw_c), 0,
-                0, 0, 1;
-        
-        // 父级旋转矩阵 ENU (同样Z-Y-X顺序)
-        Matrix3d R_roll_p; // X轴
-        R_roll_p << cos(roll_p), 0, sin(roll_p),
-                    0, 1, 0,
-                    -sin(roll_p), 0, cos(roll_p);
-        
-        Matrix3d R_pitch_p; // Y轴
-        R_pitch_p << 1, 0, 0,
-                    0, cos(pitch_p), -sin(pitch_p),
-                    0, sin(pitch_p), cos(pitch_p);
-        
-        Matrix3d R_yaw_p; // Z轴
         R_yaw_p << cos(yaw_p), sin(yaw_p), 0,
                 -sin(yaw_p), cos(yaw_p), 0,
                 0, 0, 1;
@@ -257,8 +193,7 @@ public:
         
         return R_total;
     }
-    
-    
+
     // 世界坐标转换为像素坐标
     std::optional<Vector2d> worldToPixel(const Vector3d& world_point) const {
         // 1. 世界坐标转换为相机坐标
@@ -266,7 +201,7 @@ public:
         // std::cout << "相机相对位置: " << relative_pos.transpose() << std::endl;
         
         // 2. 应用相机旋转矩阵的逆变换 (世界坐标 -> 相机坐标)
-        Matrix3d R = eulerAnglesToRotationMatrixWorldToCameraENU();
+        Matrix3d R = eulerAnglesToRotationMatrixWorldToCamera();
         // std::cout << "相机旋转矩阵:\n" << R << "\n";
         Vector3d cam_point = ENU2ESD * R * relative_pos;
 
@@ -305,7 +240,7 @@ public:
     // 计算目标在图像中的像素半径
     double calculatePixelRadius(const Vector3d& world_center, double world_radius) const {
         Vector3d relative_pos = world_center - get_position();
-        Matrix3d R = eulerAnglesToRotationMatrixWorldToCameraENU();
+        Matrix3d R = eulerAnglesToRotationMatrixWorldToCamera();
         Vector3d cam_point = ENU2ESD * R * relative_pos;
         // 检查点是否在相机前方
         if (cam_point.z() <= 0) {
@@ -397,7 +332,7 @@ public:
         // }
         
         // 4. 复杂相机姿态的通用处理
-        Matrix3d R = eulerAnglesToRotationMatrixWorldToCameraENU();
+        Matrix3d R = eulerAnglesToRotationMatrixWorldToCamera();
         
         // 添加旋转矩阵调试输出
         // std::cout << "旋转矩阵 R:" << std::endl;

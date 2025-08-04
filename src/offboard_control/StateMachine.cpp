@@ -75,6 +75,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 		static int shot_counter = 1; // 投弹计数器
 		static float max_accurate; // 聚类目标投弹最大距离
 		static bool shot_flag = false; // 投弹标志
+		Vector2d drone_to_camera_rotated; // 中间变量
 
 		// static vector<array<double, 3>> surround_shot_scout_points;
 
@@ -95,6 +96,8 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 			case owner_->DoshotState::doshot_init: // 初始化投弹状态
 				{
 					RCLCPP_INFO(owner_->get_logger(), "开始投弹任务");
+					assert(owner_ != nullptr);
+					owner_->rotate_world2local(owner_->drone_to_camera.x(), owner_->drone_to_camera.y(), drone_to_camera_rotated.x(), drone_to_camera_rotated.y());
 					// surround_shot_scout_points = {
 					// 	{owner_->dx_shot + 2.4, owner_->dy_shot + 1.3, 4.5},
 					// 	{owner_->dx_shot + 2.4, owner_->dy_shot + 3.7, 4.5},
@@ -161,16 +164,17 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 1000, "handle_state<Doshot>:(THROTTLE 1s) counter=%d shot_counter=%d x:%f, y:%f max:%f", counter, shot_counter,
 					abs(owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_width()/2), abs(owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_height()/2), max_accurate);
 				if (!shot_flag && static_cast<size_t>(counter) < owner_->cal_center.size() && (
-						owner_->waypoint_timer_.elapsed() < 5.0 || (
-							owner_->waypoint_timer_.elapsed() < 10.0 && (
-							abs(owner_->get_x_pos() - owner_->cal_center[counter].point.x()) > max_accurate && 
-							abs(owner_->get_y_pos() - owner_->cal_center[counter].point.y()) > max_accurate
+						owner_->waypoint_timer_.elapsed() < 5.0 || ( // 至少稳定5秒
+							owner_->waypoint_timer_.elapsed() < 10.0 && ( // 如果小于10秒，且当前无人机位置偏差大于最大距离
+							abs(owner_->get_x_pos() - (owner_->cal_center[counter].point.x() + drone_to_camera_rotated.x())) > max_accurate && 
+							abs(owner_->get_y_pos() - (owner_->cal_center[counter].point.y() + drone_to_camera_rotated.y())) > max_accurate
 							)
 						)
 					)
 				) {
 					double tx, ty;
-					owner_->rotate_stand2global(owner_->cal_center[counter].point.x(), owner_->cal_center[counter].point.y(), tx, ty);
+					Vector2d cal_center_target = {owner_->cal_center[counter].point.x() + drone_to_camera_rotated.x(), owner_->cal_center[counter].point.y() + drone_to_camera_rotated.y()};
+					owner_->rotate_stand2global(cal_center_target.x(), cal_center_target.y(), tx, ty);
 					if (tx < owner_->dx_shot - owner_->shot_length_max / 2 - 1.0 || tx > owner_->dx_shot + owner_->shot_length_max / 2 + 1.0 ||
 						ty < owner_->dy_shot - 1.5 || ty > owner_->dy_shot + owner_->shot_width_max + 1.5) {
 						RCLCPP_WARN(owner_->get_logger(), "侦查点坐标异常，跳过: %d, x: %f, y: %f", counter, tx, ty);
@@ -181,16 +185,16 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					pre_counter = counter; // 记录上一次的计数器值
 					pre_time = owner_->get_cur_time(); // 记录上一次的时间
 					owner_->send_local_setpoint_command(
-						owner_->cal_center[counter].point.x(),
-						owner_->cal_center[counter].point.y(),
-						owner_->shot_halt_low, 0
+						cal_center_target.x(),
+						cal_center_target.y(),
+						owner_->shot_halt_low, 0 // local yaw=0
 					);
 					RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 500, "handle_state<Doshot>:(THROTTLE 0.5s) 已经确认直径为%f的%d号桶，位置为（%f,%f）, 执行航点时间%f秒，x轴偏差%f, y轴偏差%f，最大距离为%f",
 						owner_->cal_center[counter].diameters,
-						counter, owner_->cal_center[counter].point.x(), owner_->cal_center[counter].point.y(),
+						counter, cal_center_target.x(), owner_->cal_center[counter].point.y(),
 						owner_->waypoint_timer_.elapsed(),
-						abs(owner_->get_x_pos() - owner_->cal_center[counter].point.x()),
-						abs(owner_->get_y_pos() - owner_->cal_center[counter].point.y()),
+						abs(owner_->get_x_pos() - cal_center_target.x()),
+						abs(owner_->get_y_pos() - cal_center_target.y()),
 						max_accurate);
 				} else if (!shot_flag && owner_->fast_mode_) { // 快速投弹
 					RCLCPP_INFO(owner_->get_logger(), "fast_mode_ is true, 投弹");

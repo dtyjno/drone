@@ -26,8 +26,8 @@ void OffboardControl::timer_callback(void)
 		// _yolo->get_x(YOLO::TARGET_TYPE::H), _yolo->get_y(YOLO::TARGET_TYPE::H),
 		// _yolo->get_servo_flag(), get_yaw());
 	// }
-	RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前飞机位置 x: %f y: %f z: %f yaw: %f",
-		get_x_pos(), get_y_pos(), get_z_pos(), get_yaw());
+	// RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前飞机位置 x: %f y: %f z: %f yaw: %f",
+	// 	get_x_pos(), get_y_pos(), get_z_pos(), get_yaw());
 
 	// 桶1（1 -31） 2 (2 -32) 3 (-1 -33)
 	
@@ -329,7 +329,7 @@ bool OffboardControl::catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYP
 	);
 	if (abs(now_x - tar_x) <= accuracy && abs(now_y - tar_y) <= accuracy)
 	{
-		RCLCPP_INFO(this->get_logger(), "catch_target_bucket: 到达目标点, x_err: %f像素, y_err: %f像素", abs(now_x - tar_x), abs(now_y - tar_y)); 
+		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 0.2s) catch_target_bucket: 到达目标点, x_err: %f像素, y_err: %f像素", abs(now_x - tar_x), abs(now_y - tar_y));
 		return true;
 	}
 	return false;
@@ -597,9 +597,10 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 				// _t_time = cur_shot_time;
 				find_duration = 0.0f; // 重置查找持续时间
 			}
-			// 执行投弹命令后，如果查找到持续时间小于投弹持续时间+等待时间
-			if (shot_flag && find_duration <= shot_duration + shot_wait) 
+			// 执行投弹命令后，如果查找到持续时间大于于投弹持续时间+等待时间
+			if (shot_flag && find_duration >= shot_duration + shot_wait) 
 			{
+				RCLCPP_INFO(this->get_logger(), "Doshot: 投弹后等待, find_duration_time = %fs", find_duration);
 				catch_state_ = CatchState::end;
 				continue; // 直接跳到下一个状态;
 			}
