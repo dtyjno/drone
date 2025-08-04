@@ -2,6 +2,10 @@
 #include <vector>
 #include "OffboardControl.h"
 
+#define MAX_DIAMETER 0.15
+#define TRIM_DIAMETER 0.20
+#define MIN_DIAMETER 0.25
+
 struct Circles 
 {
     Vector3d point;

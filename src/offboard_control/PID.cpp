@@ -250,6 +250,7 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
     // 计算当前时间（累积时间）
     static float current_time = 0.0f;
     current_time += dt;
+    use_increment = true; // 强制使用增量式PID计算
     
 #ifdef pid_debug_print
     // printf("p:%3.2f i:%3.2f d:%3.2f ", _pid_info._kP, _pid_info._kI, _pid_info._kD);
@@ -308,6 +309,7 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
         if (use_increment == true)
         {
             _derivative = ((_error - 2 * _pid_info.last_error + _pid_info.last_last_error) / dt);
+            _pid_info.D = _derivative * _pid_info._kD;
         } else
         {
             _derivative = -velocity;

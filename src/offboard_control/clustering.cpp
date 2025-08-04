@@ -73,9 +73,8 @@ std::vector<Circles> Initialize_Clustering(std::vector<Circles> samples)
 std::vector<Circles> Clustering(std::vector<Circles> samples)
 {
     std::vector<Circles> Clustering_Result = Initialize_Clustering(samples); //初始化
-    std::vector<double>average_dis(3, 0.0);// 用于存储不同簇中点到中心点的平均距离
-    std::vector<std::vector<double>>sum_diameters(3);// 存储不同簇读取的直径和，用于后续计算不同簇的平均直径
-    std::vector<int> cluster_count(3, 0); // 用于统计每个簇的点数
+    std::vector<std::vector<double>> sum_diameters(3); // 存储每个簇的直径和
+    std::vector<double>ReaL_Diameters{ MIN_DIAMETER, TRIM_DIAMETER, MAX_DIAMETER };
     // 第一步：分配每个点到最近的簇
     for (auto& sample: samples)
     {
@@ -91,40 +90,29 @@ std::vector<Circles> Clustering(std::vector<Circles> samples)
             }
         }
     }
-    // 第二步：更新中心点以及计算平均距离
+    // 第二步：更新中心点
     std::vector<Vector3d> centers = calculate_center(samples);
     for (size_t j = 0; j < Clustering_Result.size(); ++j)
     {
         Clustering_Result[j].point = centers[j]; // 计算中心点
     }
-    for(auto& sample: samples)
-    {
-        for(size_t j = 0; j < Clustering_Result.size(); ++j)
-        {
-            if(sample.cluster_id == static_cast<int>(j))
-            {
-                average_dis[j] += 2 * distance(sample.point, Clustering_Result[j].point);
-                cluster_count[j]++;
-            }
-        }
-    }
-    for(size_t j = 0; j < Clustering_Result.size(); ++j)
-    {
-        if (cluster_count[j] > 0) 
-        {
-            average_dis[j] /= cluster_count[j]; // 计算平均距离
-            Clustering_Result[j].diameters = average_dis[j]; // 更新直径属性
-        } 
-    }
+    // for(size_t j = 0; j < Clustering_Result.size(); ++j)
+    // {
+    //     if (cluster_count[j] > 0) 
+    //     {
+    //         average_dis[j] /= cluster_count[j]; // 计算平均距离
+    //         Clustering_Result[j].diameters = average_dis[j]; // 更新直径属性
+    //     } 
+    // }
     //第三步：分配直径
     for (const auto& sample : samples)
     {
-        double min_diff = std::fabs(sample.diameters - average_dis[0]);
+        double min_diff = std::fabs(sample.diameters - MIN_DIAMETER);
         int min_index = 0;
 
         for (int i = 0; i < 3; ++i)
         {
-            double diff = std::fabs(sample.diameters - average_dis[i]);
+            double diff = std::fabs(sample.diameters - ReaL_Diameters[i]);
             if (diff < min_diff)
             {
                 min_diff = diff;
@@ -143,32 +131,23 @@ std::vector<Circles> Clustering(std::vector<Circles> samples)
         double sum = std::accumulate(sum_diameters[j].begin(), sum_diameters[j].end(), 0.0);
         Clustering_Result[j].diameters = sum / sum_diameters[j].size(); // 计算平均直径
     }
-    for(size_t j = 0; j < Clustering_Result.size(); ++j)
-    {
-        if (sum_diameters[j].empty()) 
-        {
-            continue;
-        }
-        double sum = std::accumulate(sum_diameters[j].begin(), sum_diameters[j].end(), 0.0);
-        Clustering_Result[j].diameters = sum / sum_diameters[j].size(); // 计算平均直径
-    }
     //按照直径从小到大排序
-    for(auto& result: Clustering_Result)
-    {
-        Circles swap;
-        if(Clustering_Result[0].diameters > result.diameters)
-        {
-            swap = Clustering_Result[0];
-            Clustering_Result[0] = result;
-            result = swap;
-        }
-        if(Clustering_Result[2].diameters < result.diameters)
-        {
-            swap = Clustering_Result[2];
-            Clustering_Result[2] = result;
-            result = swap;
-        }
-    }
+    // for(auto& result: Clustering_Result)
+    // {
+    //     Circles swap;
+    //     if(Clustering_Result[0].diameters > result.diameters)
+    //     {
+    //         swap = Clustering_Result[0];
+    //         Clustering_Result[0] = result;
+    //         result = swap;
+    //     }
+    //     if(Clustering_Result[2].diameters < result.diameters)
+    //     {
+    //         swap = Clustering_Result[2];
+    //         Clustering_Result[2] = result;
+    //         result = swap;
+    //     }
+    // }
     
     return Clustering_Result;
 }
