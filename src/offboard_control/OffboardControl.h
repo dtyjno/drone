@@ -322,8 +322,8 @@ public:
 	}
 
 	template <typename T>
-	void rotate_2start(T in_x, T in_y, T &out_x, T &out_y) {
-		rotate_angle(in_x, in_y, -start.w());
+	void rotate_world2start(T in_x, T in_y, T &out_x, T &out_y) {
+		rotate_angle(in_x, in_y, start.w());
 		out_x = in_x;
 		out_y = in_y;
 	}
@@ -331,15 +331,15 @@ public:
 	template <typename T>
 	void rotate_world2local(T in_x, T in_y, T &out_x, T &out_y) {
 		// std::cout << "rotate_2local yaw: " << - (M_PI_2 - get_yaw()) << std::endl;
-		rotate_angle(in_x, in_y, - get_world_yaw()); // 使用 get_world_yaw() 获取世界坐标系下的偏航角
+		rotate_angle(in_x, in_y, get_world_yaw()); // 使用 get_world_yaw() 获取世界坐标系下的偏航角
 		out_x = in_x;
 		out_y = in_y;
 	}
 
 	template <typename T>
 	void rotate_local2world(T in_x, T in_y, T &out_x, T &out_y) {
-		// std::cout << "rotate_2world yaw: " << M_PI_2 - get_yaw() << std::endl;
-		rotate_angle(in_x, in_y, get_world_yaw()); // 使用 get_world_yaw() 获取世界坐标系下的偏航角
+		// std::cout << "rotate_2world yaw: " << get_world_yaw() << std::endl;
+		rotate_angle(in_x, in_y, -get_world_yaw()); // 使用 get_world_yaw() 获取世界坐标系下的偏航角
 		out_x = in_x;
 		out_y = in_y;
 	}

@@ -151,7 +151,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 						   temp_target.fx = owner_->_camera_gimbal->fx;
 						   temp_target.radius = owner_->cal_center[counter].diameters / 2.0;
 						   temp_target.category = std::string("circle").append("_w2p");
-						   temp_target.relative_z = owner_->_camera_gimbal->position.z() - owner_->bucket_height; // 设置目标的高度为相机高度
+						   temp_target.relative_z = owner_->_camera_gimbal->get_position().z() - owner_->bucket_height; // 设置目标的高度为相机高度
 						   owner_->_yolo->append_target(temp_target);
 					   }
 				   }
@@ -199,7 +199,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					owner_->doshot_state_ = owner_->DoshotState::doshot_wait; // 设置投弹状态为等待
 					doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
 					continue; // 直接跳到下一个状态;
-				} else if (!shot_flag && (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE) ? circle_counter >= 5 : false)) { // 未找到圆，前往目标过程中最多允许连续1次未识别出目标的情况，使用最近一次采集到的位置数据
+				} else if (!shot_flag && (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE) ? circle_counter >= 6 : false)) { // 未找到圆，前往目标过程中最多允许连续n次(n * owner_->get_wait_time()秒)未识别出目标的情况，使用最近一次采集到的位置数据
 					pre_counter = counter; // 记录上一次的计数器值
 					pre_time = owner_->get_cur_time(); // 记录上一次的时间
 					owner_->waypoint_goto_next(
