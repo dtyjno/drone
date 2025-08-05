@@ -23,7 +23,7 @@
 
 #define DEFAULT_YAW (0 * M_PI_2) // default yaw for position control
 
-#define DEFAULT_X_POS INFINITY
+#define DEFAULT_POS INFINITY
 
 // #define PID_P
 
@@ -37,8 +37,32 @@ public:
 		mode_switch_client_{this->create_client<mavros_msgs::srv::SetMode>(ardupilot_namespace + "set_mode")}
 	{
 		RCLCPP_INFO(this->get_logger(), "Starting Offboard Control example");
+
+		// Declare and get parameters
+		std::stringstream ss;
+		ss << "--ros-args -p";
+		this->declare_parameter("sim_mode", false);
+		this->get_parameter("sim_mode", sim_mode_);
+		ss << " sim_mode:=" << (sim_mode_ ? "true" : "false");
+		this->declare_parameter("debug_mode", false);
+		this->get_parameter("debug_mode", debug_mode_);
+		ss << " debug_mode:=" << (debug_mode_ ? "true" : "false");
+		this->declare_parameter("print_info", false);
+		this->get_parameter("print_info", print_info_);
+		ss << " print_info:=" << (print_info_ ? "true" : "false");
+		this->declare_parameter("fast_mode", false);
+		this->get_parameter("fast_mode", fast_mode_);
+		ss << " fast_mode:=" << (fast_mode_ ? "true" : "false");
+		RCLCPP_INFO_STREAM(this->get_logger(), ss.str());
+
+
+
 	}
 
+	bool sim_mode_ = false; // 是否为仿真模式
+	bool debug_mode_ = false; // 是否验证状态
+	bool print_info_ = false; // 是否打印信息
+	bool fast_mode_ = false; // 是否快速模式
 	// virtual void set_pose(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
 	// virtual void set_gps(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
 	// virtual void set_velocity(const geometry_msgs::msg::TwistStamped::SharedPtr msg);

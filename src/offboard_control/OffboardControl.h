@@ -44,6 +44,7 @@ using namespace std::chrono_literals;
 #include <iostream>
 
 #include "CameraGimbal.h"
+#include "clustering.h"
 
 #include "utils.h" // 包含自定义的工具函数
 
@@ -63,16 +64,7 @@ public:
 		mypid(),
 		state_machine_(this)  // 显式初始化 state_machine_
 	{
-		// Declare and get parameters
-		this->declare_parameter("sim_mode", false);
-		this->get_parameter("sim_mode", sim_mode_);
-		RCLCPP_INFO(this->get_logger(), "sim_mode: %s", sim_mode_ ? "true" : "false");
-		this->declare_parameter("mode_switch", false);
-		this->get_parameter("mode_switch", debug_mode_);
-		RCLCPP_INFO(this->get_logger(), "mode_switch: %s", debug_mode_ ? "true" : "false");
-		this->declare_parameter("print_info", false);
-		this->get_parameter("print_info", print_info_);
-		RCLCPP_INFO(this->get_logger(), "print_info: %s", print_info_ ? "true" : "false");
+
 		if (print_info_) {
 			state_machine_.transition_to(FlyState::Print_Info);
 		}
@@ -85,43 +77,44 @@ public:
 		// 读取罗盘数据
 		read_configs("OffboardControl.yaml");
 		// RCLCPP_INFO_STREAM(geometry_msgs::msg::PoseStampedthis->get_logger(), "Waiting for " << px4_namespace << "vehicle_command service");
-		_inav->position.x() = DEFAULT_X_POS;
-		_motors->home_position.x() = DEFAULT_X_POS;
+		_inav->position.x() = DEFAULT_POS;
+		_inav->position.z() = DEFAULT_POS;
+		_motors->home_position.x() = DEFAULT_POS;
 		// rclcpp::Rate rate(1s);
 		
 		// 发布当前状态 
 		state_publisher_ = this->create_publisher<std_msgs::msg::Int32>("current_state", 10);
 
-		while (!mode_switch_client_->wait_for_service(std::chrono::seconds(2)))
-		{
-			if (!rclcpp::ok() || get_x_pos() == DEFAULT_X_POS)
+		if (!debug_mode_){
+			while (!mode_switch_client_->wait_for_service(std::chrono::seconds(2)))
 			{
-				RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. 停止");
-				return;
+				if (!rclcpp::ok())
+				{
+					RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. 停止");
+					return;
+				}
+				RCLCPP_INFO(this->get_logger(), "模式切换服务未准备好, 正在等待...");
+				// rate.sleep();
 			}
-			RCLCPP_INFO(this->get_logger(), "模式切换服务未准备好, 正在等待...");
-			// rate.sleep();
-		}
-		while (!_motors->get_set_home_client()->wait_for_service(std::chrono::seconds(2)))
-		{
-			if (!rclcpp::ok())
+			while (!_motors->get_set_home_client()->wait_for_service(std::chrono::seconds(2)))
 			{
-				RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. 停止");
-				return;
+				if (!rclcpp::ok())
+				{
+					RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. 停止");
+					return;
+				}
+				RCLCPP_INFO(this->get_logger(), "设置home位置服务未准备好, 正在等待...");
+				// rate.sleep();
 			}
-			RCLCPP_INFO(this->get_logger(), "设置home位置服务未准备好, 正在等待...");
-			// rate.sleep();
 		}
 		
 		timestamp_init = get_cur_time();
 		_motors->switch_mode("GUIDED");
-		timer_ = this->create_wall_timer(100ms, std::bind(&OffboardControl::timer_callback, this));
+		timer_ = this->create_wall_timer(wait_time, std::bind(&OffboardControl::timer_callback, this));
 		#ifdef PAL_STATISTIC_VISIBILITY
 		stats_publisher_ = this->create_publisher<pal_statistics_msgs::msg::Statistics>("/statistics", 10);
-		stats_timer_ = this->create_wall_timer(50ms,std::bind(&OffboardControl::publish_statistics, this));
+		stats_timer_ = this->create_wall_timer(wait_time,std::bind(&OffboardControl::publish_statistics, this));
 		#endif
-
-		rotate_global2stand(drone_to_camera[0], drone_to_camera[1], drone_to_camera[0], drone_to_camera[1]);
 	}
 
 	float get_x_pos(void)
@@ -137,7 +130,7 @@ public:
 	float get_z_pos(void)
 	{
 		// return local_frame.z();
-		return _inav->position.z();
+		return _inav->position.z() == DEFAULT_POS ? _inav->rangefinder_height : _inav->position.z();
 	}
 	Vector3f get_pos_3f(void)
 	{
@@ -196,6 +189,11 @@ public:
 	{
 		return _inav->get_yaw();
 	}
+	float get_world_yaw(void)
+	{
+		return fmod(M_PI_2 - _inav->get_yaw() + 2 * M_PI, 2 * M_PI); // 将偏航角转换为世界坐标系下的角度
+	}
+
 	void get_euler(float &roll, float &pitch, float &yaw) {
 		// 获取四元数分量
 		float w = _inav->orientation.w();
@@ -290,6 +288,14 @@ public:
 	{
 		return _motors->system_status;
 	}
+	float get_x_home_pos()
+	{
+		return _motors->home_position.x();
+	}
+	float get_y_home_pos()
+	{
+		return _motors->home_position.y();
+	}	
 	float get_z_home_pos()
 	{
 		return _motors->home_position.z();
@@ -316,15 +322,24 @@ public:
 	}
 
 	template <typename T>
-	void rotate_2start(T in_x, T in_y, T &out_x, T &out_y) {
-		rotate_angle(in_x, in_y, -start.w());
+	void rotate_world2start(T in_x, T in_y, T &out_x, T &out_y) {
+		rotate_angle(in_x, in_y, start.w());
 		out_x = in_x;
 		out_y = in_y;
 	}
 	
 	template <typename T>
-	void rotate_2local(T in_x, T in_y, T &out_x, T &out_y) {
-		rotate_angle(in_x, in_y, -get_yaw());
+	void rotate_world2local(T in_x, T in_y, T &out_x, T &out_y) {
+		// std::cout << "rotate_2local yaw: " << - (M_PI_2 - get_yaw()) << std::endl;
+		rotate_angle(in_x, in_y, get_world_yaw()); // 使用 get_world_yaw() 获取世界坐标系下的偏航角
+		out_x = in_x;
+		out_y = in_y;
+	}
+
+	template <typename T>
+	void rotate_local2world(T in_x, T in_y, T &out_x, T &out_y) {
+		// std::cout << "rotate_2world yaw: " << get_world_yaw() << std::endl;
+		rotate_angle(in_x, in_y, -get_world_yaw()); // 使用 get_world_yaw() 获取世界坐标系下的偏航角
 		out_x = in_x;
 		out_y = in_y;
 	}
@@ -400,9 +415,19 @@ public:
 		yolo_y_circle_stat.value = _yolo->get_y(YOLO::TARGET_TYPE::CIRCLE);
 		statistics.push_back(yolo_y_circle_stat);	
 
+		auto yolo_x_h_raw_stat = pal_statistics_msgs::msg::Statistic();
+		yolo_x_h_raw_stat.name ="yolo_x_h_raw";
+		yolo_x_h_raw_stat.value = _yolo->get_raw_x(YOLO::TARGET_TYPE::H);
+		statistics.push_back(yolo_x_h_raw_stat);	
+
+		auto yolo_y_h_raw_stat = pal_statistics_msgs::msg::Statistic();
+		yolo_y_h_raw_stat.name ="yolo_y_h_raw";
+		yolo_y_h_raw_stat.value = _yolo->get_raw_y(YOLO::TARGET_TYPE::H);
+		statistics.push_back(yolo_y_h_raw_stat);
+
 		auto yolo_x_h_stat = pal_statistics_msgs::msg::Statistic();
 		yolo_x_h_stat.name ="yolo_x_h";
-		yolo_x_h_stat.value = _yolo->get_y(YOLO::TARGET_TYPE::H);
+		yolo_x_h_stat.value = _yolo->get_x(YOLO::TARGET_TYPE::H);
 		statistics.push_back(yolo_x_h_stat);	
 
 		auto yolo_y_h_stat = pal_statistics_msgs::msg::Statistic();
@@ -432,9 +457,6 @@ public:
 #endif
 	std::optional<Vector3d> target1;
 private:
-	bool sim_mode_ = false; // 是否为仿真模式
-	bool debug_mode_ = false; // 是否手动切换状态
-	bool print_info_ = false; // 是否打印信息
 	std::string ardupilot_namespace_copy_;
 	std::shared_ptr<YOLO> _yolo;
 	std::shared_ptr<ServoController> _servo_controller;
@@ -465,19 +487,22 @@ private:
 	float headingangle_compass = M_PI_2; // 默认罗盘读数，待读取
 
 	// 投弹区域巡航属性
-	const double shot_length = 7.0; //x方向，左右方向 
-	const double shot_width = 5.0; //y方向，前后方向 符合直角坐标系
-	// const double shot_halt = 4.0;
+	const float shot_length_max = 8.0; //x方向，左右方向 
+	const float shot_length = 7.0; //x方向，左右方向 
+	const float shot_width_max = 5.0; //y方向向前
+	const float shot_width = 5.0; //y方向，前后方向 符合直角坐标系
+	// const float shot_halt = 4.0;
 
 	// 侦查区域巡航属性
-	const double see_length = 6.0;
-	const double see_width = 5.0;
+	const float see_length = 6.6;
+	const float see_width = 4.8;
 	// const double see_halt = 3.0;
 
 	// 定义投弹侦察点位 原始数据
 	float dx_shot, dy_shot;
 	float dx_see, dy_see;
 	float shot_halt;
+	float shot_halt_low; // 投弹区预测目标低高度巡航
 	float see_halt;
 	// 坐标待旋转处理后坐标
 	float tx_shot;
@@ -486,7 +511,12 @@ private:
 	float ty_see;
 
 	float bucket_height = 0.3; // 桶高度
-	Vector3d drone_to_camera = {0.15, 0, 0.21};
+	Vector3d drone_to_camera;
+
+	float servo_open_position;
+	float servo_close_position;
+
+	vector<Circles> cal_center;
 
 	// 定义航点
 	vector<Vector2f> surround_shot_points{
@@ -524,13 +554,20 @@ private:
 
 	double timestamp_init = 0;
 
-	GlobalFrame start_global{0, 0, 0};
+	// GlobalFrame start_global{0, 0, 0};
 
 	rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr state_publisher_;
 
   void publish_current_state();
 
 	rclcpp::TimerBase::SharedPtr timer_;
+
+	std::chrono::milliseconds wait_time{50}; // 定时器间隔
+
+	float get_wait_time() const {
+		return wait_time.count() / 1000.0; // 返回秒数
+	}
+
 	// void set_pose();
 	// void set_gps();
 	// void set_velocity();
@@ -556,7 +593,14 @@ private:
 		dx_see = config["dx_see"].as<float>(); 
 		dy_see = config["dy_see"].as<float>();
 		shot_halt = config["shot_halt"].as<float>();
+		shot_halt_low = config["shot_halt_low"].as<float>();
 		see_halt = config["see_halt"].as<float>();
+		drone_to_camera[0] = config["drone_to_camera_x"].as<float>();
+		drone_to_camera[1] = config["drone_to_camera_y"].as<float>();
+		drone_to_camera[2] = config["drone_to_camera_z"].as<float>();
+		servo_open_position = config["servo_open_position"].as<float>();
+		servo_close_position = config["servo_close_position"].as<float>();
+
 		RCLCPP_INFO(this->get_logger(), "读取投弹区起点坐标: dx_shot: %f, dy_shot: %f shot_halt: %f", dx_shot, dy_shot, shot_halt);
 		RCLCPP_INFO(this->get_logger(), "读取侦查区起点坐标: dx_see: %f, dy_see: %f see_halt: %f", dx_see, dy_see, see_halt);
 		
@@ -575,7 +619,7 @@ private:
 	bool catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYPE target, float tar_x, float tar_y, float tar_z, float tar_yaw, float accuracy);
 	bool Doland();
 	// void PID_rtl(double now_x, double now_y, double now_z, double target_x, double target_y, bool &is_land);
-	bool Doshot(int shot_count);
+	bool Doshot(int shot_count, bool &shot_flag);
 	bool autotune(bool &result, enum YOLO::TARGET_TYPE target);
 	bool surrounding_shot_area(void);
 	bool surrounding_scout_area(void);

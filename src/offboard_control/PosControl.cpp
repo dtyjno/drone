@@ -280,7 +280,7 @@ Vector4f PosControl::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fuzzy
 		pid_yaw.get_pid(kp, ki, kd);
 		fuzzy_pid.fuzzy_pid_control(now.w(), target.w(), 3, kp, ki, kd, delta_k);
 		pid_yaw.set_gains(kp, ki, kd);
-		f.w() = pid_yaw.update_all(now.w() + yaw_diff_last, target.w(), dt, max_speed_yaw, _inav->velocity.w());
+		f.w() = pid_yaw.update_all(now.w(), target.w() + yaw_diff_last, dt, max_speed_yaw, _inav->velocity.w());
 		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: yaw p:%f i:%f d:%f", 
 		// 	kp, ki, kd);
 		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: px:%f py:%f pz:%f pyaw:%f",
@@ -326,7 +326,7 @@ Vector4f PosControl::input_pos_xyz_yaw_without_vel(Vector4f now, Vector4f target
 	// 	target.w() -= 2 * M_PI;
 	// else if (target.w() < -M_PI)
 	// 	target.w() += 2 * M_PI;
-	f.w() = pid_yaw.update_all(now.w(), target.w(), dt, max_speed_yaw, _inav->velocity.w());
+	f.w() = pid_yaw.update_all(now.w(), target.w() + yaw_diff_last, dt, max_speed_yaw, _inav->velocity.w());
 	RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: x:%f y:%f z:%f yaw:%f", f.x(), f.y(), f.z(), f.w());
 
 	return f;
@@ -453,7 +453,7 @@ bool PosControl::trajectory_setpoint(Vector4f pos_now, Vector4f pos_target, doub
 	// 	RCLCPP_INFO(this->get_logger(), "No pose data received yet");
 	// 	return;
 	// }
-	if (is_equal(pos_target, pos_target_temp, 0.1f))
+	if (is_equal(pos_target, pos_target_temp, 0.0000001f))
 	{
 #ifdef PID_P
 		// send_velocity_command_world(input_pos_vel_1_xyz_yaw(pos_now,_pos_target));
@@ -468,7 +468,7 @@ bool PosControl::trajectory_setpoint(Vector4f pos_now, Vector4f pos_target, doub
 	{
 		printf("pos_target_temp:%f,%f,%f,%f\n", pos_target_temp.x(), pos_target_temp.y(), pos_target_temp.z(), pos_target_temp.w());
 		printf("pos_target:%f,%f,%f,%f\n", pos_target.x(), pos_target.y(), pos_target.z(), pos_target.w());
-		RCLCPP_INFO(node->get_logger(), "change point");
+		RCLCPP_INFO(node->get_logger(), "trajectory_setpoint: change point");
 		first = true;
 	}
 	if (abs(pos_now.x() - _pos_target.x()) <= accuracy &&
@@ -479,7 +479,7 @@ bool PosControl::trajectory_setpoint(Vector4f pos_now, Vector4f pos_target, doub
 			// #endif
 	)
 	{
-		RCLCPP_INFO(node->get_logger(), "at_check_point");
+		RCLCPP_INFO(node->get_logger(), "trajectory_setpoint: at_check_point");
 		first = true;
 		return true;
 	}
@@ -497,7 +497,7 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 		reset_pid();
 		first = false;
 	}
-	if (is_equal(pos_target, _pos_target, 0.1f)) {
+	if (is_equal(pos_target, _pos_target, 0.0000001f)) {
 #ifdef PID_P
 		// send_velocity_command_world(input_pos_vel_1_xyz_yaw(pos_now,_pos_target));
 		send_accel_command(input_pos_vel_xyz_yaw(pos_now, _pos_target));
@@ -508,14 +508,14 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 #endif
 	}
 	else {
-		RCLCPP_INFO(node->get_logger(), "change point");
+		RCLCPP_INFO(node->get_logger(), "trajectory_setpoint: change point");
 		first = true;
 	}
 	if (abs(pos_now.x() - _pos_target.x()) <= accuracy &&
 			abs(pos_now.y() - _pos_target.y()) <= accuracy &&
 			abs(pos_now.z() - _pos_target.z()) <= accuracy
 	) {
-		RCLCPP_INFO(node->get_logger(), "at_check_point");
+		RCLCPP_INFO(node->get_logger(), "trajectory_setpoint: at_check_point");
 		first = true;
 		return true;
 	}
@@ -532,7 +532,7 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 	if (first)
 	{
 		pos_target_temp = pos_target;
-		RCLCPP_INFO(node->get_logger(), "trajectory_setpoint: x:%f y:%f", pos_target.x(), pos_target.y());
+		RCLCPP_INFO(node->get_logger(), "trajectory_setpoint_world: pos_target_x:%f pos_target_y:%f", pos_target.x(), pos_target.y());
 		// 设置pid参数
 		set_pid(pid_x, defaults);
 		set_pid(pid_y, defaults);
@@ -542,7 +542,7 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 		// pid_yaw.set_pid_info();
 		first = false;
 	}
-	if (is_equal(pos_target, pos_target_temp, 0.1f))
+	if (is_equal(pos_target, pos_target_temp, 0.0000001f))
 	{
 		// 运行时更新pid参数
 		set_pid(pid_x, defaults);
@@ -559,7 +559,7 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 	}
 	else
 	{
-		RCLCPP_INFO(node->get_logger(), "change point");
+		// RCLCPP_INFO(node->get_logger(), "trajectory_setpoint_world: change point");
 		first = true;
 	}
 	if (abs(pos_now.x() - pos_target.x()) <= accuracy &&
@@ -569,7 +569,7 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 	)
 	{
 		
-		RCLCPP_INFO(node->get_logger(), "at_check_point");
+		RCLCPP_INFO(node->get_logger(), "trajectory_setpoint_world: at_check_point");
 		// 重设为默认pid参数
 		set_pid(pid_x, pid_x_defaults);
 		set_pid(pid_y, pid_y_defaults);
@@ -640,7 +640,7 @@ bool PosControl::trajectory_generator_world(double speed_factor, std::array<doub
 		isFinished = false;
 		first = false; // Ensure that initialization block runs only once
 	}
-	if (is_equal(Vector4f(q_goal[0], q_goal[1], q_goal[2], 0), pos_target_temp, 0.1f))
+	if (is_equal(Vector4f(q_goal[0], q_goal[1], q_goal[2], 0), pos_target_temp, 0.0000001f))
 	{
 		if (!isFinished)
 		{
@@ -785,6 +785,23 @@ void PosControl::set_pid(PID &pid, PID::Defaults defaults)
 }
 
 void PosControl::reset_pid()
+{
+	pid_x.reset_all();
+	pid_y.reset_all();
+	pid_z.reset_all();
+	pid_yaw.reset_all();
+	pid_px.reset_all();
+	pid_py.reset_all();
+	pid_pz.reset_all();
+	pid_vx.reset_all();
+	pid_vy.reset_all();
+	pid_vz.reset_all();
+
+	reset_pid_config();
+}
+
+
+void PosControl::reset_pid_config()
 {
 	pid_x.set_pid(pid_x_defaults);
 	pid_y.set_pid(pid_y_defaults);

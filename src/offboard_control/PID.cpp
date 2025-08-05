@@ -153,31 +153,31 @@ PID::PID(const PID::Defaults &defaults)
     _pid_info.Dmod = 0.0f;
 }
 
-void PID::set_pid_info()
-{
-    _pid_info._kP = _kp;
-    _pid_info._kI = _ki;
-    _pid_info._kD = _kd;
-    _pid_info.P = 0;
-    _pid_info.I = 0;
-    _pid_info.D = 0;
-    _pid_info.Dmod = 0.0f;
-    _pid_info.FF = 0;
-    _pid_info.DFF = 0;
-    // _pid_info.slew_rate = srmax;
-    // _pid_info.limit = false;
-    // _pid_info.PD_limit = false;
-    // _pid_info.reset = false;
-    // _pid_info.I_term_set = false;
+// void PID::set_pid_info()
+// {
+//     _pid_info._kP = _kp;
+//     _pid_info._kI = _ki;
+//     _pid_info._kD = _kd;
+//     _pid_info.P = 0;
+//     _pid_info.I = 0;
+//     _pid_info.D = 0;
+//     _pid_info.Dmod = 0.0f;
+//     _pid_info.FF = 0;
+//     _pid_info.DFF = 0;
+//     // _pid_info.slew_rate = srmax;
+//     // _pid_info.limit = false;
+//     // _pid_info.PD_limit = false;
+//     // _pid_info.reset = false;
+//     // _pid_info.I_term_set = false;
 
-    _pid_info.error = 0.0f;
-    _pid_info.target = 0.0f;
-    _pid_info.actual = 0.0f;
-    // _pid_info.reset = false;
-    // _pid_info.PD_limit = false;
-    // _pid_info.limit = false;
-    // _pid_info.slew_rate = srmax;
-}
+//     _pid_info.error = 0.0f;
+//     _pid_info.target = 0.0f;
+//     _pid_info.actual = 0.0f;
+//     // _pid_info.reset = false;
+//     // _pid_info.PD_limit = false;
+//     // _pid_info.limit = false;
+//     // _pid_info.slew_rate = srmax;
+// }
 
 void PID::set_gains(const PID::Defaults &defaults)
 {
@@ -253,6 +253,14 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
     use_increment = false; // 强制使用增量式PID计算
     
 #ifdef pid_debug_print
+    if(use_increment == true)
+    {
+        printf("PID%s: update_all_increment called with measurement: %f, target: %f, dt: %f, limit: %f\n", pid_name.c_str(), measurement, target, dt, limit);
+    }
+    else
+    {
+        printf("PID%s: update_all called with measurement: %f, target: %f, dt: %f, limit: %f\n", pid_name.c_str(), measurement, target, dt, limit);
+    }
     // printf("p:%3.2f i:%3.2f d:%3.2f ", _pid_info._kP, _pid_info._kI, _pid_info._kD);
 #endif
     _pid_info.target = target;
@@ -313,7 +321,7 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
         } else
         {
             _derivative = -velocity;
-            _pid_info.D = velocity * _pid_info._kD;
+            _pid_info.D = _derivative * _pid_info._kD;
         }
 
     }
@@ -361,7 +369,7 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
     // Set the slew rate
     _pid_info.slew_rate = srmax;
 #ifdef pid_debug_print
-    printf("PID%s: tar:%+10f mea:%+5f kp:%+5f ki:%+5f kd:%+5f\n", pid_name.c_str(), target, measurement, _pid_info._kP, _pid_info._kI, _pid_info._kD);
+    printf("PID%s: kp:%+5f ki:%+5f kd:%+5f\n", pid_name.c_str(), _pid_info._kP, _pid_info._kI, _pid_info._kD);
     printf("PID%s: err:%+5f P:%+10f I:%+10f D:%+10f Out:%f\n", pid_name.c_str(), _pid_info.error, _pid_info.P, _pid_info.I, _pid_info.D, _pid_info.output);
 // std::cout <<"target:"<<target<<" meadurement:"<<measurement<<" error:"<<_pid_info.error <<" P:"
 // <<_pid_info.P<<" I:"
@@ -563,10 +571,10 @@ void PID::update_i(float dt, float limit)
     _pid_info.I = constrain_float(_pid_info.I, _kimax, -_kimax);
     
     // 积分项衰减机制（当误差接近零时）
-    if (fabs(_error) < 0.1f && fabs(_pid_info.I) > 0.005f)
+    if (fabs(_error) < 0.03f && fabs(_pid_info.I) > 0.010f)
     {
         // printf("PID%s: Integral decay applied: %f\n", pid_name.c_str(), _pid_info.I);
-        _pid_info.I *= 0.98f; // 轻微衰减，避免长期偏差
+        _pid_info.I *= 0.95f; // 轻微衰减，避免长期偏差
     }
     
     // 设置限制标志

@@ -98,6 +98,11 @@ public:
 			// 将计时器的开始时间设置为默认时间点
 			start_time_ = std::chrono::steady_clock::time_point();
 		}
+
+        void set_start_time_to_time_point(float time_point) {
+            // 将计时器的开始时间设置为指定的时间点
+            start_time_ = std::chrono::steady_clock::time_point(std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::milliseconds(static_cast<int64_t>(time_point * 1000))));
+        }
 private:
     std::chrono::steady_clock::time_point start_time_;
     std::chrono::steady_clock::time_point time_point_;
