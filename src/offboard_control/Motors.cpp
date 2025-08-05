@@ -37,6 +37,7 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude, float yaw){
 		RCLCPP_INFO_ONCE(node->get_logger(), "解锁前所有准备已完成，按下回车解锁无人机");
 		if(takeoff_command == true) {
 			RCLCPP_INFO(node->get_logger(), "开始解锁");
+			node->set_start_time(node->get_cur_time()); // 设置开始时间
 			arm_motors(true);
 			timer = new Timer(); // 重置计时器
 			state_ = State::arm_requested;	
@@ -104,6 +105,7 @@ void Motors::state_callback(const mavros_msgs::msg::State::SharedPtr msg)
 	connected = msg->connected;
 	guided = msg->guided;
 	mode = msg->mode;
+	// system_status = msg->system_status; (uint8_t)
 	system_status = msg->system_status;
 	// std::cout << "State: " << mode << ", Armed: " << armed 
 	// 		  << ", Connected: " << connected << ", Guided: " << guided 

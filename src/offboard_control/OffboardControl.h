@@ -79,7 +79,7 @@ public:
 		// RCLCPP_INFO_STREAM(geometry_msgs::msg::PoseStampedthis->get_logger(), "Waiting for " << px4_namespace << "vehicle_command service");
 		_inav->position.x() = DEFAULT_POS;
 		_inav->position.z() = DEFAULT_POS;
-		_motors->home_position.x() = DEFAULT_POS;
+
 		// rclcpp::Rate rate(1s);
 		
 		// 发布当前状态 
@@ -130,7 +130,7 @@ public:
 	float get_z_pos(void)
 	{
 		// return local_frame.z();
-		return _inav->position.z() == DEFAULT_POS ? _inav->rangefinder_height : _inav->position.z();
+		return (_inav->position.z() == DEFAULT_POS ? _inav->rangefinder_height : _inav->position.z());
 	}
 	Vector3f get_pos_3f(void)
 	{
@@ -284,9 +284,9 @@ public:
 	{
 		return _motors->mode;
 	}
-	std::string get_system_status(void)
+	uint8_t get_system_status(void)
 	{
-		return _motors->system_status;
+		return _motors->get_system_status_uint8_t();
 	}
 	float get_x_home_pos()
 	{
@@ -299,11 +299,6 @@ public:
 	float get_z_home_pos()
 	{
 		return _motors->home_position.z();
-	}
-	// 获取当前时间
-	double get_cur_time() {
-		auto now = this->get_clock()->now();
-		return now.seconds() - timestamp_init;  // 直接计算时间差并转为秒
 	}
 
 	// 顺时针旋转
@@ -551,8 +546,6 @@ private:
 		float lon;
 		float alt;
 	};
-
-	double timestamp_init = 0;
 
 	// GlobalFrame start_global{0, 0, 0};
 

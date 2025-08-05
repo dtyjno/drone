@@ -9,5 +9,5 @@ see_halt: 3.5
 drone_to_camera_x: 0.0
 drone_to_camera_y: 0.16
 drone_to_camera_z: 0.20
-servo_open_position: 1864
+servo_open_position: 1980
 servo_close_position: 1200

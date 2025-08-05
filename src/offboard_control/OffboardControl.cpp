@@ -28,6 +28,9 @@ void OffboardControl::timer_callback(void)
 	// }
 	// RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前飞机位置 x: %f y: %f z: %f yaw: %f",
 	// 	get_x_pos(), get_y_pos(), get_z_pos(), get_yaw());
+	
+	RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前飞机状态 %d %s",
+		_motors->get_system_status_uint8_t(), _motors->get_state_name().c_str());
 
 	// 桶1（1 -31） 2 (2 -32) 3 (-1 -33)
 	
@@ -539,7 +542,8 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 				// 如果没有有效目标，使用默认值
 				shot_index_target = targets[0];
 			}
-			shot_index_target.r = 1.0f; // 设置当前目标颜色为黄色
+			// 设置当前目标颜色为黄色
+			shot_index_target.r = 1.0f;
 			shot_index_target.g = 1.0f;
 			shot_index_target.b = 0.0f;
 			// std::cout << "Doshot: shot_index_target: " << shot_index_target.x << ", " << shot_index_target.y << ", " << shot_index_target.z  << ", " << shot_index_target.radius << std::endl;
@@ -549,8 +553,9 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 			{
 				RCLCPP_INFO(this->get_logger(), "Doshot: yolo未识别到桶，等待");
 			} 
-			// 已经投弹且无目标
+			// 已经投弹且无可选目标
 			else if (shot_flag && !_yolo->is_get_target(YOLO::TARGET_TYPE::STUFFED) && !_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE)){
+				RCLCPP_INFO(this->get_logger(), "Doshot: 已投弹，yolo未识别到桶，原地等待");
 				_pose_control->send_velocity_command_world(0, 0, 0, 0); // 停止飞行
 			}
 			// 接近目标
@@ -566,7 +571,8 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 					shot_index_target.caculate_pixel_radius() // 目标精度
 				))
 			{
-				find_duration += get_wait_time(); // 累加查找持续时间
+				if (!shot_flag) // 未投弹时接近目标时间累加
+					find_duration += get_wait_time(); // 累加查找持续时间
 				shot_index_target.r = 0.0f; // 设置当前目标颜色为绿色
 				shot_index_target.g = 1.0f;
 				shot_index_target.b = 0.0f;
@@ -592,17 +598,21 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 					}
 				}			
 			}
+			// 未投弹且有目标且未接近目标
 			else if (!shot_flag)
 			{
-				// _t_time = cur_shot_time;
 				find_duration = 0.0f; // 重置查找持续时间
 			}
+
 			// 执行投弹命令后，如果查找到持续时间大于于投弹持续时间+等待时间
-			if (shot_flag && find_duration >= shot_duration + shot_wait) 
+			if (shot_flag) 
 			{
-				RCLCPP_INFO(this->get_logger(), "Doshot: 投弹后等待, find_duration_time = %fs", find_duration);
-				catch_state_ = CatchState::end;
-				continue; // 直接跳到下一个状态;
+				find_duration += get_wait_time(); // 投弹后必定累加查找持续时间
+				if (find_duration >= shot_duration + shot_wait) {
+					RCLCPP_INFO(this->get_logger(), "Doshot: 投弹后等待, find_duration_time = %fs", find_duration);
+					catch_state_ = CatchState::end;
+					continue; // 直接跳到下一个状态;
+				}
 			}
 			// _yolo->append_targets(targets); // 将目标添加到YOLO中准备发布
 			_yolo->append_target(shot_index_target); // 将当前投弹目标添加到YOLO中准备发布
@@ -722,8 +732,8 @@ bool OffboardControl::Doland()
 				{
 						RCLCPP_INFO(this->get_logger(), "Doland: surround_land = %d", surround_land);
 						rotate_global2stand(scout_x + static_cast<double>(surround_land) * 1.0, scout_y, x_home, y_home);
-						RCLCPP_INFO(this->get_logger(), "Doland: land点 x: %lf   y: %lf    angle: %lf", x_home + get_x_home_pos(), y_home + get_y_home_pos(), 0.0); // 开始执行程序+x_home位置
-						send_local_setpoint_command(x_home + get_x_home_pos(), y_home + get_y_home_pos(), scout_halt, 0);
+						RCLCPP_INFO(this->get_logger(), "Doland: land点 x: %lf   y: %lf    angle: %lf", x_home, y_home, 0.0); // 开始执行程序+x_home位置
+						send_local_setpoint_command(x_home, y_home, scout_halt, 0);
 						timer_.set_timepoint();
 						surround_land++;
 				}

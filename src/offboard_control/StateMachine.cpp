@@ -33,7 +33,12 @@ void StateMachine::handle_state<FlyState::takeoff>() {
 template<>
 void StateMachine::handle_state<FlyState::end>() {
 	if (current_state_ == FlyState::end) {
+		RCLCPP_INFO_ONCE(owner_->get_logger(), "任务开始时间: %f 秒", owner_->get_start_time());
 		RCLCPP_INFO_ONCE(owner_->get_logger(), "任务结束, 运行时间: %f 秒", owner_->get_cur_time());
+		RCLCPP_INFO_ONCE(owner_->get_logger(), "任务结束, 任务运行时间: %f 秒", owner_->get_cur_time() - owner_->get_start_time());
+		if (owner_->state_timer_.elapsed() < 3) {
+			return; // 等待 3 秒后结束
+		}
 		// 如果需要，可以在这里添加清理或退出逻辑
 		rclcpp::shutdown();  // 停止 ROS 2 节点
 	}
