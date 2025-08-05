@@ -585,14 +585,14 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 					RCLCPP_INFO(this->get_logger(), "Doshot: Approach, 投弹, time > %fs, tar_x = %f, tar_y = %f, tar_z = %f, tar_yaw = %f", 
 						shot_duration, shot_index_target.x, shot_index_target.y, shot_index_target.z, tar_yaw);
 					shot_flag = true; // 设置投弹标志
-					_servo_controller->set_servo(11 + shot_index, 1864); // 设置舵机位置，投弹
+					_servo_controller->set_servo(11 + shot_index, servo_open_position); // 设置舵机位置，投弹
 				} 
 				else if (shot_flag) // 已投弹，shot_wait时间内继续等待
 				{
 					if (find_duration <= shot_duration + get_wait_time()) // 投弹后周期 重复投弹一次
 					{
 						RCLCPP_INFO(this->get_logger(), "Doshot: Arrive, 再次投弹, wait, time = %fs", find_duration - shot_duration);
-						_servo_controller->set_servo(11 + shot_index, 1864); // 重复投弹
+						_servo_controller->set_servo(11 + shot_index, servo_open_position); // 重复投弹
 					} else {
 						RCLCPP_INFO(this->get_logger(), "Doshot: Arrive, 等待, wait, time = %fs", find_duration - shot_duration);
 					}
@@ -691,7 +691,7 @@ bool OffboardControl::Doland()
 			continue; // 直接跳到下一个状态;
 		}
 		case LandState::land_to_target:{
-			if (timer_.elapsed() > 19 || surround_land > 3 || get_z_pos() < target.z) // 降落时间超过39秒，或者降落高度小于目标高度
+			if (timer_.elapsed() > 19 || surround_land > 3 || get_z_pos() < target.z + 0.1) // 降落时间超过39秒，或者降落高度小于目标高度
 			{
 				land_state_ = LandState::end;
 				continue; // 直接跳到下一个状态;
