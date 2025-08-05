@@ -16,7 +16,8 @@ struct Circles
 // 声明全局变量
 extern std::vector<Circles> Target_Samples;
 
-double distance(Vector3d a, Vector3d b);
-std::vector<Vector3d> calculate_center(std::vector<Circles> samples);
+double distance(Circles a, Circles b);
+double AbsoluteDistance(double a, double b);
+std::vector<Circles> calculate_center(std::vector<Circles> samples);
 std::vector<Circles> Initialize_Clustering(std::vector<Circles> samples);
 std::vector<Circles> Clustering(std::vector<Circles> samples);

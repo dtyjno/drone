@@ -246,11 +246,11 @@ void PID::get_pid(float &kp, float &ki, float &kd)
 
 #include <iostream>
 float PID::update_all(float measurement, float target, float dt, float limit, float velocity, bool use_increment)
-{
+{   //pixel_diameter
     // 计算当前时间（累积时间）
     static float current_time = 0.0f;
     current_time += dt;
-    use_increment = true; // 强制使用增量式PID计算
+    use_increment = false; // 强制使用增量式PID计算
     
 #ifdef pid_debug_print
     // printf("p:%3.2f i:%3.2f d:%3.2f ", _pid_info._kP, _pid_info._kI, _pid_info._kD);
