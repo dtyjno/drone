@@ -250,7 +250,7 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
     // 计算当前时间（累积时间）
     static float current_time = 0.0f;
     current_time += dt;
-    use_increment = false; // 强制使用增量式PID计算
+    use_increment = false;
     
 #ifdef pid_debug_print
     if(use_increment == true)
