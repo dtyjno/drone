@@ -4,7 +4,7 @@
 #include <mavros_msgs/srv/command_home.hpp>
 #include <mavros_msgs/msg/home_position.hpp>
 #include <mavros_msgs/msg/state.hpp>
-
+#include <mavros_msgs/srv/param_set_v2.hpp>
 
 #include "rclcpp/rclcpp.hpp"
 // #include "OffboardControl.h"
@@ -36,6 +36,8 @@ public:
 		set_home_client_ = node->create_client<mavros_msgs::srv::CommandHome>(ardupilot_namespace+"cmd/set_home");
 		takeoff_client_ = node->create_client<mavros_msgs::srv::CommandTOL>(ardupilot_namespace+"cmd/takeoff");
 		land_client_ = node->create_client<mavros_msgs::srv::CommandTOL>(ardupilot_namespace+"cmd/land");
+		param_set_client_ = node->create_client<mavros_msgs::srv::ParamSetV2>(ardupilot_namespace+"param/set");
+
 		
 		state_subscription_ = node->create_subscription<mavros_msgs::msg::State>(ardupilot_namespace+"state", qos,
 			std::bind(&Motors::state_callback, this, std::placeholders::_1),sub_opt);
@@ -99,6 +101,7 @@ public:
 	void command_takeoff_or_land(std::string mode, float altitude = 5.0f, float yaw = 0.0f);
 
 	bool takeoff(float local_frame_z ,float takeoff_altitude = 5.0f, float yaw = 0.0f);
+	void set_param(const std::string& param_id, double value);
 
 	bool takeoff_command = false;
 	bool _arm_done; //arm_motor's reply
@@ -137,6 +140,7 @@ private:
 	rclcpp::Client<mavros_msgs::srv::CommandHome>::SharedPtr set_home_client_;
 	rclcpp::Client<mavros_msgs::srv::CommandTOL>::SharedPtr takeoff_client_;
 	rclcpp::Client<mavros_msgs::srv::CommandTOL>::SharedPtr land_client_;
+	rclcpp::Client<mavros_msgs::srv::ParamSetV2>::SharedPtr param_set_client_;
 // 	系统时间
 // 用于时间同步。
 // Time:

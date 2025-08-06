@@ -273,6 +273,9 @@ public:
 		float accel_max_yaw = 0;
 	};
 	struct Limits_t readLimits(const std::string& filename, const std::string& section);
+	Limits_t get_limits_defaults(){
+		return limit_defaults;
+	}
 	void set_limits(struct Limits_t limits);
 	void reset_limits();
 	void set_pid(PID& pid, PID::Defaults defaults);

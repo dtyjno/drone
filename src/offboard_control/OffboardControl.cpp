@@ -29,15 +29,29 @@ void OffboardControl::timer_callback(void)
 	// RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前飞机位置 x: %f y: %f z: %f yaw: %f",
 	// 	get_x_pos(), get_y_pos(), get_z_pos(), get_yaw());
 	
-	RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前飞机状态 %d %s",
-		_motors->get_system_status_uint8_t(), _motors->get_state_name().c_str());
 
 	// 桶1（1 -31） 2 (2 -32) 3 (-1 -33)
 	
 	// 检查位置数据的有效性，防止段错误
-	if ((!isfinite(get_x_pos()) || !isfinite(get_y_pos()) || !isfinite(get_z_pos())) && !debug_mode_ && !print_info_) {
-		RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "位置数据无效，等待有效GPS信号...");
-		return;
+	if (!debug_mode_ && !print_info_) {
+		if (_motors->get_system_status() == Motors::State__system_status::MAV_STATE_UNINIT) {
+			RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "MAVROS待启动，等待MAVROSd创建ROS节点...");
+			return;
+		} else if (_motors->get_system_status() == Motors::State__system_status::MAV_STATE_BOOT) {
+			RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "飞控正在启动，等待...");
+			return;
+		} else if (_motors->get_system_status() == Motors::State__system_status::MAV_STATE_CALIBRATING) {
+			RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "飞控正在校准，尚未准备好飞行，等待...");
+			return;
+		} else if (_motors->get_system_status() != Motors::State__system_status::MAV_STATE_STANDBY &&
+					_motors->get_system_status() != Motors::State__system_status::MAV_STATE_ACTIVE) {
+			RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "当前飞机状态 %d %s",
+			_motors->get_system_status_uint8_t(), _motors->get_state_name().c_str());
+		}
+		if (!isfinite(get_x_pos()) || !isfinite(get_y_pos()) || !isfinite(get_z_pos())) {
+			RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "位置数据无效，等待有效GPS信号...");
+			return;
+		}
 	}
 
 	if (debug_mode_) { // 调试模式下，强制设置飞机位置
@@ -123,24 +137,24 @@ void OffboardControl::timer_callback(void)
 			// 	cal_center[2].diameters = 0.15;
 			// }
 		}
-		// uint8_t shot_count = 0;
-		// for(size_t i = 0; i < cal_center.size(); ++i)
-		// {
-		// 	double tx, ty;
-		// 	rotate_stand2global(cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
-		// 	if (tx < dx_shot - shot_length_max / 2 || tx > dx_shot + shot_length_max / 2 ||
-		// 		ty < dy_shot || ty > dy_shot + shot_width_max) {
-		// 		RCLCPP_WARN(this->get_logger(), "侦查点坐标异常，跳过: %zu, x: %f, y: %f", i, cal_center[i].point.x(), cal_center[i].point.y());
-		// 		continue; // 跳过无效坐标
-		// 	}
-		// 	// sort(cal_center.begin(), cal_center.end(), [](const Circles& a, const Circles& b) {
-		// 	// 	return a.diameters < b.diameters;
-		// 	// });
-		// 	surround_shot_points[shot_count] = Vector2f((tx - dx_shot) / shot_length_max, (ty - dy_shot) / shot_width_max);
-		// 	// RCLCPP_INFO(this->get_logger(), "侦查点坐标 %zu: x: %f, y: %f ,n_x: %f, n_y: %f d: %lf", 
-		// 	// 	i, cal_center[i].point.x(), cal_center[i].point.y(), surround_shot_points[shot_count].x(), surround_shot_points[shot_count].y(), cal_center[i].diameters);
-		// 	shot_count++;
-		// }
+		uint8_t shot_count = 0;
+		for(size_t i = 0; i < cal_center.size(); ++i)
+		{
+			double tx, ty;
+			rotate_stand2global(cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
+			// if (tx < dx_shot - shot_length_max / 2 || tx > dx_shot + shot_length_max / 2 ||
+			// 	ty < dy_shot || ty > dy_shot + shot_width_max) {
+			// 	RCLCPP_WARN(this->get_logger(), "侦查点坐标异常，跳过: %zu, x: %f, y: %f", i, cal_center[i].point.x(), cal_center[i].point.y());
+			// 	continue; // 跳过无效坐标
+			// }
+			// sort(cal_center.begin(), cal_center.end(), [](const Circles& a, const Circles& b) {
+			// 	return a.diameters < b.diameters;
+			// });
+			surround_shot_points[shot_count] = Vector2f((tx - dx_shot) / shot_length_max, (ty - dy_shot) / shot_width_max);
+			// RCLCPP_INFO(this->get_logger(), "侦查点坐标 %zu: x: %f, y: %f ,n_x: %f, n_y: %f d: %lf", 
+			// 	i, cal_center[i].point.x(), cal_center[i].point.y(), surround_shot_points[shot_count].x(), surround_shot_points[shot_count].y(), cal_center[i].diameters);
+			shot_count++;
+		}
 	}
 	if (_motors->mode == "LAND" && state_machine_.get_current_state() != FlyState::end && !print_info_)
 	{
@@ -242,8 +256,10 @@ void OffboardControl::FlyState_init()
 	_pose_control->set_dt(0.05); // 设置执行周期（用于PID）
 
 	// 重新设置家地址
-	_motors->set_home_position(get_yaw());
+	if (_motors->get_system_status() != Motors::State__system_status::MAV_STATE_ACTIVE)
+		_motors->set_home_position(get_yaw());
 
+	reset_wp_limits();
 }
 
 // 发布状态
@@ -283,7 +299,7 @@ bool OffboardControl::waypoint_goto_next(float x, float y, float length, float w
 
 			rotate_global2stand(x_temp, y_temp, x_temp, y_temp);
 
-			send_local_setpoint_command(x_temp, y_temp, halt, 0.0); // 发送本地坐标系下的航点指令
+			send_start_setpoint_command(x_temp, y_temp, halt, 0.0); // 发送本地坐标系下的航点指令
 			// RCLCPP_INFO(this->get_logger(), "前往下一点");
 			waypoint_timer_.reset();
 		}
@@ -680,11 +696,10 @@ bool OffboardControl::Doland()
 			RCLCPP_INFO(this->get_logger(), "Doland");
 			rotate_global2stand(scout_x, scout_y, x_home, y_home);
 			// RCLCPP_INFO(this->get_logger(), "返回降落准备点 x: %lf   y: %lf    angle: %lf", x_home, y_home, headingangle_compass);
-			// send_local_setpoint_command(x_home, y_home, scout_halt, 0);
 			// rclcpp::sleep_for(std::chrono::seconds(6));
 			rotate_global2stand(scout_x, scout_y + 0.3, x_home, y_home);
 			RCLCPP_INFO(this->get_logger(), "返回降落点 x: %lf   y: %lf    angle: %lf", x_home, y_home, 0.0);
-			send_local_setpoint_command(x_home, y_home, scout_halt, 0);
+			send_start_setpoint_command(x_home, y_home, scout_halt, 0);
 			timer_.reset();
 			timer_.set_timepoint();
 			land_state_ = LandState::land_to_target;
@@ -698,33 +713,28 @@ bool OffboardControl::Doland()
 			}
 			
 			YOLO::Target t2p_target = target;
-			// if (!target) { // 确保targets不为空
-			// for(size_t i = 0; i < shot_point.size(); i++)
-			// {
-			// 	if (i < static_cast<size_t>(shot_point.size())) {
-			double rotated_x, rotated_y;
-			rotate_local2world(drone_to_camera.x(), drone_to_camera.y(), rotated_x, rotated_y);
-			// rotate_local2world<double>(drone_to_camera.x(), drone_to_camera.y(), rotated_x, rotated_y);
-			Vector3d world_point_target(
-				_camera_gimbal->get_position().x() - rotated_x,
-				_camera_gimbal->get_position().y() - rotated_y,
-				0.0f
-			);
-			auto output_pixel_opt = _camera_gimbal->worldToPixel(world_point_target);
-			if (output_pixel_opt.has_value()) {
-				Vector2d output_pixel = output_pixel_opt.value();
-				t2p_target.r = 0.0f; 
-				t2p_target.g = 0.0f;
-				t2p_target.b = 1.0f;
-				t2p_target.x = output_pixel.x();
-				t2p_target.y = output_pixel.y();
-				t2p_target.category = std::string("h").append("_t2p");
-				t2p_target.radius = accuracy;
-			} else {
+			// double rotated_x, rotated_y;
+			// rotate_local2world(drone_to_camera.x(), drone_to_camera.y(), rotated_x, rotated_y);
+			// Vector3d world_point_target(
+			// 	_camera_gimbal->get_position().x() - rotated_x,
+			// 	_camera_gimbal->get_position().y() - rotated_y,
+			// 	0.0f
+			// );
+			// auto output_pixel_opt = _camera_gimbal->worldToPixel(world_point_target);
+			// if (output_pixel_opt.has_value()) {
+			// 	Vector2d output_pixel = output_pixel_opt.value();
+			// 	t2p_target.r = 0.0f; 
+			// 	t2p_target.g = 0.0f;
+			// 	t2p_target.b = 1.0f;
+			// 	t2p_target.x = output_pixel.x();
+			// 	t2p_target.y = output_pixel.y();
+			// 	t2p_target.category = std::string("h").append("_t2p");
+			// 	t2p_target.radius = accuracy;
+			// } else {
 				RCLCPP_ERROR(this->get_logger(), "Doland: worldToPixel failed, using read target position");
 				t2p_target.x = target.x;
 				t2p_target.y = target.y;
-			}
+			// }
 
 			if (!_yolo->is_get_target(YOLO::TARGET_TYPE::H)) // yolo未识别到YOLO::TARGET_TYPE::H   (YOLO::TARGET_TYPE::CIRCLE)
 			{
@@ -733,7 +743,7 @@ bool OffboardControl::Doland()
 						RCLCPP_INFO(this->get_logger(), "Doland: surround_land = %d", surround_land);
 						rotate_global2stand(scout_x + static_cast<double>(surround_land) * 1.0, scout_y, x_home, y_home);
 						RCLCPP_INFO(this->get_logger(), "Doland: land点 x: %lf   y: %lf    angle: %lf", x_home, y_home, 0.0); // 开始执行程序+x_home位置
-						send_local_setpoint_command(x_home, y_home, scout_halt, 0);
+						send_start_setpoint_command(x_home, y_home, scout_halt, 0);
 						timer_.set_timepoint();
 						surround_land++;
 				}
@@ -933,7 +943,11 @@ bool OffboardControl::autotune(bool &result, enum YOLO::TARGET_TYPE target)
 	return true;
 }
 
-void OffboardControl::send_local_setpoint_command(float x, float y, float z, float yaw){
+void OffboardControl::send_start_setpoint_command(float x, float y, float z, float yaw){
+	_pose_control->send_local_setpoint_command(x + get_x_home_pos(), y + get_y_home_pos(), z, default_yaw - yaw);
+}
+
+void OffboardControl::send_world_setpoint_command(float x, float y, float z, float yaw){
 	// yaw = fmod(M_PI / 2 - yaw + 2 * M_PI, 2 * M_PI);
 	// default_yaw M_PI/2 - headingangle_compass 
 	_pose_control->send_local_setpoint_command(x, y, z, default_yaw - yaw);

@@ -21,7 +21,7 @@ void StateMachine::handle_state<FlyState::takeoff>() {
 	if (current_state_ == FlyState::takeoff){
 		RCLCPP_INFO_ONCE(owner_->get_logger(), "开始起飞");
 
-		if (owner_->_motors->takeoff(owner_->get_z_pos(), 5.0f, owner_->get_yaw())) {
+		if (owner_->_motors->takeoff(owner_->get_z_pos(), 5.0f, owner_->get_world_yaw())) {
 				RCLCPP_INFO_ONCE(owner_->get_logger(), "起飞成功");
 				transition_to(FlyState::Goto_shotpoint);
 		} else {
@@ -56,7 +56,7 @@ void StateMachine::handle_state<FlyState::Goto_shotpoint>() {
 			RCLCPP_INFO(owner_->get_logger(), "到达投弹区起点");
 			transition_to(FlyState::Doshot);
 		} else {
-			owner_->send_local_setpoint_command(
+			owner_->send_start_setpoint_command(
 				x_shot, y_shot, owner_->shot_halt, 0
 			);
 			RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 3000, "(THROTTLE 3s)前往投弹区中...%f", owner_->waypoint_timer_.elapsed());
@@ -115,6 +115,11 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					shot_counter = 1; // 重置投弹计数器
 
 					owner_->waypoint_timer_.reset();
+
+					PosControl::Limits_t limits = owner_->_pose_control->get_limits_defaults();
+					limits.speed_max_xy = 1.0; // 设置最大速度为1.0 m/s
+					limits.speed_max_z = 0.3;
+					owner_->set_wp_limits(limits);
 
 				}
 				continue;
@@ -189,7 +194,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					}
 					pre_counter = counter; // 记录上一次的计数器值
 					pre_time = owner_->get_cur_time(); // 记录上一次的时间
-					owner_->send_local_setpoint_command(
+					owner_->send_world_setpoint_command(
 						cal_center_target.x(),
 						cal_center_target.y(),
 						owner_->shot_halt_low, 0 // local yaw=0
@@ -211,6 +216,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				} else if (!shot_flag && (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE) ? circle_counter >= 6 : false)) { // 未找到圆，前往目标过程中最多允许连续n次(n * owner_->get_wait_time()秒)未识别出目标的情况，使用最近一次采集到的位置数据
 					pre_counter = counter; // 记录上一次的计数器值
 					pre_time = owner_->get_cur_time(); // 记录上一次的时间
+					// owner_->reset_wp_limits(); // 恢复默认速度限制
 					owner_->waypoint_goto_next(
 						owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
 						owner_->shot_halt, owner_->surround_shot_points, 5, &counter, "投弹区");
@@ -243,7 +249,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 							break;
 						}
 					} else {
-						// owner_->send_local_setpoint_command(
+						// owner_->send_world_setpoint_command(
 						// 	owner_->cal_center[counter + 1].point.x(),
 						// 	owner_->cal_center[counter + 1].point.y(),
 						// 	owner_->shot_halt_low, 0
@@ -299,7 +305,7 @@ void StateMachine::handle_state<FlyState::Goto_scoutpoint>() {
 			RCLCPP_INFO(owner_->get_logger(), "到达侦查区起点");
 			transition_to(FlyState::Surround_see);
 		} else {
-			owner_->send_local_setpoint_command(
+			owner_->send_start_setpoint_command(
 				x_see, y_see, owner_->see_halt, 0
 			);
 			RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 3000, "(THROTTLE 3s)前往侦查区中...%f", owner_->waypoint_timer_.elapsed());
@@ -396,7 +402,7 @@ void StateMachine::handle_state<FlyState::LandToStart>() {
 				land_to_start_state = LandToStartState::land_to_start_wait; // 切换到等待降落状态
 				continue; // 继续执行下一次循环;
 			case LandToStartState::land_to_start_wait: // 等待降落
-				owner_->send_local_setpoint_command(
+				owner_->send_start_setpoint_command(
 					0, 0, 0, 0
 				);
 				if (owner_->state_timer_.elapsed() > 17.5) { // 如果等待超过17.5秒
@@ -506,6 +512,7 @@ void StateMachine::handle_state<FlyState::Reflush_config>() {
 		// 重新设置PID参数
 		owner_->_pose_control->reset_pid();
 		owner_->_pose_control->set_limits(owner_->_pose_control->limit_defaults);
+		owner_->reset_wp_limits(); // 重置航点速度限制
 
 		RCLCPP_INFO_ONCE(owner_->get_logger(), "配置刷新完成");
 		transition_to(previous_state_); // 切换回上一个状态

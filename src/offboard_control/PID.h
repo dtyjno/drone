@@ -30,12 +30,20 @@ public:
     {
         YAML::Node config = Readyaml::readYAML(filename);
         Defaults pidDefaults;
-        pidDefaults.p = config[pid_name]["p"].as<double>();
-        pidDefaults.i = config[pid_name]["i"].as<double>();
-        pidDefaults.d = config[pid_name]["d"].as<double>();
-        pidDefaults.ff = config[pid_name]["ff"].as<double>();
-        pidDefaults.dff = config[pid_name]["dff"].as<double>();
-        pidDefaults.imax = config[pid_name]["imax"].as<double>();
+        try
+        {
+            pidDefaults.p = config[pid_name]["p"].as<double>();
+            pidDefaults.i = config[pid_name]["i"].as<double>();
+            pidDefaults.d = config[pid_name]["d"].as<double>();
+            pidDefaults.ff = config[pid_name]["ff"].as<double>();
+            pidDefaults.dff = config[pid_name]["dff"].as<double>();
+            pidDefaults.imax = config[pid_name]["imax"].as<double>();
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        
         // std::cout << "读取PID参数: " << pid_name << " p: " << pidDefaults.p
         //           << ", i: " << pidDefaults.i
         //           << ", d: " << pidDefaults.d

@@ -69,7 +69,7 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude, float yaw){
 		//RCLCPP_INFO(this->get_logger(), "vehicle is start");		
 		if (!armed){ // 如果无人机起飞失败重新上锁
 			state_ = State::arm_requested;
-		} else if (local_frame_z - home_position.z() < 0.5f && num_of_takeoff <= 3 && !is_takeoff){ 
+		} else if (get_system_status() == State__system_status::MAV_STATE_STANDBY && local_frame_z - home_position.z() < 0.5f && num_of_takeoff <= 3 && !is_takeoff){ 
 			if(timer->elapsed() > 2.0){
 				num_of_takeoff++;
 				// RCLCPP_INFO(node->get_logger(), "vehicle is taking off");
@@ -285,7 +285,7 @@ void Motors::set_home_position(float lat, float lon, float alt, float yaw)
 	request->latitude = lat;
 	request->longitude = lon;
 	request->altitude = alt;
-	request->yaw = M_PI_2 - yaw;
+	request->yaw = yaw;
 	while (!set_home_client_->wait_for_service(std::chrono::seconds(1))) {
 		if (!rclcpp::ok()) {
 			RCLCPP_ERROR(node->get_logger(), "Interrupted while waiting for the service. Exiting.");
@@ -319,7 +319,7 @@ void Motors::set_home_position(float yaw)
 {
 	auto request = std::make_shared<mavros_msgs::srv::CommandHome::Request>();
 	request->current_gps = true;
-	request->yaw = M_PI_2 -yaw;
+	request->yaw = yaw;
 	while (!set_home_client_->wait_for_service(std::chrono::seconds(1))) {
 		if (!rclcpp::ok()) {
 			RCLCPP_ERROR(node->get_logger(), "Interrupted while waiting for the service. Exiting.");
@@ -371,7 +371,7 @@ void Motors::command_takeoff_or_land(std::string mode, float altitude, float yaw
 		takeoff_request->latitude = 0.0;
 		takeoff_request->longitude = 0.0;
 		takeoff_request->altitude = altitude;
-		takeoff_request->yaw = M_PI_2 - yaw;
+		takeoff_request->yaw = yaw;
 		
 		auto takeoff_result_future = takeoff_client_->async_send_request(takeoff_request,
 			[this,node](rclcpp::Client<mavros_msgs::srv::CommandTOL>::SharedFuture future) {
@@ -394,7 +394,7 @@ void Motors::command_takeoff_or_land(std::string mode, float altitude, float yaw
 			});
 	} else if(mode=="LAND"){
 		auto land_request = std::make_shared<mavros_msgs::srv::CommandTOL::Request>();
-		land_request->yaw = M_PI_2 - yaw;
+		land_request->yaw = yaw;
 		land_request->latitude = 0.0;
 		land_request->longitude = 0.0;
 		land_request->altitude = 0.0;
@@ -419,4 +419,43 @@ void Motors::command_takeoff_or_land(std::string mode, float altitude, float yaw
 				}
 			});
 	}
+}
+
+void Motors::set_param(const std::string& param_id, double value)
+{
+	auto request = std::make_shared<mavros_msgs::srv::ParamSetV2::Request>();
+	request->force_set = false; // 强制设置参数
+	request->param_id = param_id;
+	request->value.type = 3;
+	request->value.double_value = value;
+
+	while (!param_set_client_->wait_for_service(std::chrono::seconds(1))) {
+		if (!rclcpp::ok()) {
+			RCLCPP_ERROR(node->get_logger(), "set_param: Interrupted while waiting for the service. Exiting.");
+			return;
+		}
+		RCLCPP_INFO(node->get_logger(), "set_param: Param set service not available, waiting again...");
+	}
+	RCLCPP_INFO(node->get_logger(), "set_param: %s, value: %f, set param command send,", param_id.c_str(), value);
+	OffboardControl_Base* node = this->node;
+	auto result_future = param_set_client_->async_send_request(request,
+		[node,this,param_id](rclcpp::Client<mavros_msgs::srv::ParamSetV2>::SharedFuture future) {
+			auto status = future.wait_for(1s);
+			if (status == std::future_status::ready) {
+				auto reply = future.get()->success;
+				if (reply) {
+					if (future.get()->value.type == 3) { // 检查返回值类型是否为 double
+						RCLCPP_INFO(node->get_logger(), "Set Param: %s, value: %lf", param_id.c_str(), future.get()->value.double_value);
+					} else {
+						RCLCPP_WARN(node->get_logger(), "Set Param: %s, value type is %d not double", param_id.c_str(), future.get()->value.type);
+					}
+				}
+				else {
+					RCLCPP_ERROR(node->get_logger(), ("Failed to call service "+ardupilot_namespace+"param/set").c_str());
+				}
+			} else {
+				// Wait for the result.
+				RCLCPP_INFO(node->get_logger(), "set_param: Service In-Progress...");
+			}
+		});
 }
