@@ -493,7 +493,7 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 	static bool first = true;
 	if (first) {
 		_pos_target = pos_target;
-		RCLCPP_INFO(node->get_logger(), "trajectory_setpoint: x:%f y:%f z:%f", _pos_target.x(), _pos_target.y(), _pos_target.z());
+		RCLCPP_INFO_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "(THROTTLE 1s) trajectory_setpoint: x:%f y:%f z:%f", _pos_target.x(), _pos_target.y(), _pos_target.z());
 		reset_pid();
 		first = false;
 	}

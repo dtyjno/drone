@@ -84,7 +84,9 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 
 		// static vector<array<double, 3>> surround_shot_scout_points;
 
-		if (owner_->state_timer_.elapsed() > 100 && owner_->doshot_state_ != owner_->DoshotState::doshot_end) // 超时 100 秒
+		RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 5000, "(THROTTLE 5s)投弹任务执行时间 %f", owner_->state_timer_.elapsed());
+
+		if (owner_->state_timer_.elapsed() > 80 && owner_->doshot_state_ != owner_->DoshotState::doshot_end) // 超时 100 秒
 		{
 			doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
 			RCLCPP_INFO(owner_->get_logger(), "超时");
@@ -116,10 +118,10 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 
 					owner_->waypoint_timer_.reset();
 
-					PosControl::Limits_t limits = owner_->_pose_control->get_limits_defaults();
-					limits.speed_max_xy = 1.6; // 设置最大速度为1.6 m/s
-					limits.speed_max_z = 0.5;
-					owner_->set_wp_limits(limits);
+					// PosControl::Limits_t limits = owner_->_pose_control->get_limits_defaults();
+					// limits.speed_max_xy = 1.6; // 设置最大速度为1.6 m/s
+					// limits.speed_max_z = 0.5;
+					// owner_->set_wp_limits(limits);
 
 				}
 				continue;
@@ -185,7 +187,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					double tx, ty;
 					Vector2d cal_center_target = {owner_->cal_center[counter].point.x(), owner_->cal_center[counter].point.y()};
 					owner_->rotate_stand2global(cal_center_target.x(), cal_center_target.y(), tx, ty);
-					if (tx < owner_->dx_shot - owner_->shot_length_max / 2 - 1.0 || tx > owner_->dx_shot + owner_->shot_length_max / 2 + 1.0 ||
+					if (tx < owner_->dx_shot - owner_->shot_length_max / 2 - 1.5 || tx > owner_->dx_shot + owner_->shot_length_max / 2 + 1.5 ||
 						ty < owner_->dy_shot - 1.5 || ty > owner_->dy_shot + owner_->shot_width_max + 1.5) {
 						RCLCPP_WARN(owner_->get_logger(), "侦查点坐标异常，跳过: %d, x: %f, y: %f", counter, tx, ty);
 						counter++;
@@ -242,12 +244,12 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				if(shot_counter <= 1) // 投弹次数小于等于1，再次执行投弹
 				{
 					if (static_cast<size_t>(counter) >= owner_->cal_center.size()){
-						owner_->waypoint_goto_next(
-							owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
-							owner_->shot_halt, owner_->surround_shot_points, owner_->shot_halt, &counter, "投弹区");
-						if (owner_->get_cur_time() - doshot_halt_end_time < 5.0 || counter == pre_counter + 1) {   // 非阻塞等待至第5秒或抵达下一个航点
-							break;
-						}
+						// owner_->waypoint_goto_next(
+						// 	owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
+						// 	owner_->shot_halt, owner_->surround_shot_points, owner_->shot_halt, &counter, "投弹区");
+						// if (owner_->get_cur_time() - doshot_halt_end_time < 5.0 || counter == pre_counter + 1) {   // 非阻塞等待至第5秒或抵达下一个航点
+						// 	break;
+						// }
 					} else {
 						// owner_->send_world_setpoint_command(
 						// 	owner_->cal_center[counter + 1].point.x(),
@@ -275,7 +277,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				if (owner_->get_cur_time() - doshot_halt_end_time < 2.0) {
 					if (owner_->get_cur_time() - doshot_halt_end_time < owner_->get_wait_time()) {
 						RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 1000, "投弹完成，等待2秒后前往侦查区域");
-						owner_->reset_wp_limits();
+						// owner_->reset_wp_limits();
 						owner_->_servo_controller->set_servo(11, owner_->servo_open_position);			// owner_->_servo_controller->set_servo(11, owner_->servo_close_position);
 						owner_->_servo_controller->set_servo(12, owner_->servo_open_position);				// owner_->_servo_controller->set_servo(12, owner_->servo_close_position);
 					}

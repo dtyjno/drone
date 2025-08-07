@@ -350,7 +350,7 @@ bool OffboardControl::catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYP
 	);
 	if (abs(now_x - tar_x) <= accuracy && abs(now_y - tar_y) <= accuracy)
 	{
-		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 0.2s) catch_target_bucket: 到达目标点, x_err: %f像素, y_err: %f像素", abs(now_x - tar_x), abs(now_y - tar_y));
+		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) catch_target_bucket: 到达目标点, x_err: %f像素, y_err: %f像素", abs(now_x - tar_x), abs(now_y - tar_y));
 		return true;
 	}
 	return false;
@@ -752,7 +752,7 @@ bool OffboardControl::Doland()
 			}
 			else
 			{
-				RCLCPP_INFO(this->get_logger(), "Doland: 看见H了，执行PID_rtl");
+				RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) Doland: 看见H了，执行Doland");
 				if (catch_target(
 						defaults,
 						YOLO::TARGET_TYPE::H, // 目标类型
