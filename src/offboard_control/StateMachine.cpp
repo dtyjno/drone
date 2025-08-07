@@ -117,8 +117,8 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					owner_->waypoint_timer_.reset();
 
 					PosControl::Limits_t limits = owner_->_pose_control->get_limits_defaults();
-					limits.speed_max_xy = 1.0; // 设置最大速度为1.0 m/s
-					limits.speed_max_z = 0.3;
+					limits.speed_max_xy = 1.5; // 设置最大速度为1.0 m/s
+					limits.speed_max_z = 0.4;
 					owner_->set_wp_limits(limits);
 
 				}
@@ -174,7 +174,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 1000, "handle_state<Doshot>:(THROTTLE 1s) counter=%d shot_counter=%d x:%f, y:%f max:%f", counter, shot_counter,
 					abs(owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_width()/2), abs(owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_height()/2), max_accurate);
 				if (!shot_flag && static_cast<size_t>(counter) < owner_->cal_center.size() && (
-						owner_->waypoint_timer_.elapsed() < 5.0 || ( // 至少稳定5秒
+						owner_->waypoint_timer_.elapsed() < 6.0 || ( // 至少稳定6秒
 							owner_->waypoint_timer_.elapsed() < 10.0 && ( // 如果小于10秒，且当前无人机位置偏差大于最大距离
 							abs(owner_->get_x_pos() - (owner_->cal_center[counter].point.x() + drone_to_camera_rotated.x())) > max_accurate && 
 							abs(owner_->get_y_pos() - (owner_->cal_center[counter].point.y() + drone_to_camera_rotated.y())) > max_accurate
@@ -281,6 +281,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					break; // 等待2秒
 				}
 				// 重置状态
+				owner_->reset_wp_limits();
 				owner_->doshot_state_ = owner_->DoshotState::doshot_init; // 重置投弹状态
 				transition_to(FlyState::Goto_scoutpoint);
 				break;
@@ -590,6 +591,7 @@ void StateMachine::transition_to(FlyState new_state) {
 
 	owner_->waypoint_timer_.reset(); // 重置航点计时器
 	owner_->state_timer_.reset(); // 重置状态计时器
+	owner_->reset_wp_limits();
 	owner_->is_first_run_ = true; // 重置第一次运行标志
 	if (new_state == current_state_) {
 		RCLCPP_INFO(owner_->get_logger(), "状态未改变，保持当前状态: %d", static_cast<int>(current_state_));

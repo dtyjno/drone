@@ -69,7 +69,7 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude, float yaw){
 		//RCLCPP_INFO(this->get_logger(), "vehicle is start");		
 		if (!armed){ // 如果无人机起飞失败重新上锁
 			state_ = State::arm_requested;
-		} else if (get_system_status() == State__system_status::MAV_STATE_STANDBY && local_frame_z - home_position.z() < 0.5f && num_of_takeoff <= 3 && !is_takeoff){ 
+		} else if (get_system_status() != State__system_status::MAV_STATE_ACTIVE && local_frame_z - home_position.z() < 1.5f && num_of_takeoff <= 4 && !is_takeoff){ 
 			if(timer->elapsed() > 2.0){
 				num_of_takeoff++;
 				// RCLCPP_INFO(node->get_logger(), "vehicle is taking off");

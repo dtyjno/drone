@@ -731,9 +731,9 @@ bool OffboardControl::Doland()
 			// 	t2p_target.category = std::string("h").append("_t2p");
 			// 	t2p_target.radius = accuracy;
 			// } else {
-				RCLCPP_ERROR(this->get_logger(), "Doland: worldToPixel failed, using read target position");
-				t2p_target.x = target.x;
-				t2p_target.y = target.y;
+				// RCLCPP_ERROR(this->get_logger(), "Doland: worldToPixel failed, using read target position");
+			t2p_target.x = target.x;
+			t2p_target.y = target.y;
 			// }
 
 			if (!_yolo->is_get_target(YOLO::TARGET_TYPE::H)) // yolo未识别到YOLO::TARGET_TYPE::H   (YOLO::TARGET_TYPE::CIRCLE)
