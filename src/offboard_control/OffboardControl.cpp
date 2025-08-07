@@ -90,7 +90,7 @@ void OffboardControl::timer_callback(void)
 		if (target1.has_value()) {
 			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) Example 1 - Target position: %f, %f, %f. Diameter: %f",
 				target1->x(), target1->y(), target1->z(), diameter);
-			Target_Samples.push_back({*target1, 0, diameter});
+			Target_Samples.push_back({*target1, 0, 0,diameter});
 		}
 		else {
 			RCLCPP_WARN(this->get_logger(), "Example 1 - 无效的目标位置");
