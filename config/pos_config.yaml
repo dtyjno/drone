@@ -1,5 +1,5 @@
 limits:
-  speed_max_xy: 3.00
+  speed_max_xy: 4.00
   speed_max_yaw: 0.2
   speed_max_z: 0.80
   accel_max_xy: 1.5

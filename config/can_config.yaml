@@ -1,12 +1,12 @@
 pid:
-  p: 0.175 #0.160 #0.195
+  p: 0.165 #0.160 #0.195
   i: 0.035 #0.035 #0.070
   d: 0.030 #0.170 #0.250
   ff: 0
   dff: 0
   imax: 0.1
 limits:
-  speed_max_xy: 0.3
+  speed_max_xy: 0.7
   speed_max_z: 0.15
   speed_max_yaw: 0.05
   accel_max_xy: 0.5

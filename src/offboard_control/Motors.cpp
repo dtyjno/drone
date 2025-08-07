@@ -64,9 +64,11 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude, float yaw){
 			if (get_system_status() == State__system_status::MAV_STATE_ACTIVE) {
 				RCLCPP_INFO(node->get_logger(), "无人机已经起飞");
 				state_ = State::end; // 重置状态
+			} else {
+				set_home_position(yaw); // 设置家的位置
+				command_takeoff_or_land("TAKEOFF", takeoff_altitude * 2, yaw);
+				state_ = State::takeoff;
 			}
-			command_takeoff_or_land("TAKEOFF", takeoff_altitude, yaw);
-			state_ = State::takeoff;
 		}
 		break;
 	case State::takeoff:
@@ -76,7 +78,7 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude, float yaw){
 		} else if (get_system_status() != State__system_status::MAV_STATE_ACTIVE && local_frame_z - home_position.z() < 0.5f && num_of_takeoff <= 5 && !is_takeoff){ 
 			if(timer->elapsed() > 2.0){
 				num_of_takeoff++;
-				command_takeoff_or_land("TAKEOFF", takeoff_altitude, yaw);
+				command_takeoff_or_land("TAKEOFF", takeoff_altitude * 2, yaw);
 				timer->reset(); // 重置计时器
 			}
 		}else if (local_frame_z - home_position.z() >= takeoff_altitude - 0.5f && get_system_status() == State__system_status::MAV_STATE_ACTIVE) {
@@ -434,7 +436,7 @@ void Motors::set_param(const std::string& param_id, double value)
 		}
 		RCLCPP_INFO(node->get_logger(), "set_param: Param set service not available, waiting again...");
 	}
-	RCLCPP_INFO(node->get_logger(), "set_param: %s, value: %f, set param command send,", param_id.c_str(), value);
+	RCLCPP_INFO(node->get_logger(), "set param command send, param: %s, value: %f, ", param_id.c_str(), value);
 	OffboardControl_Base* node = this->node;
 	auto result_future = param_set_client_->async_send_request(request,
 		[node,this,param_id](rclcpp::Client<mavros_msgs::srv::ParamSetV2>::SharedFuture future) {
@@ -443,9 +445,9 @@ void Motors::set_param(const std::string& param_id, double value)
 				auto reply = future.get()->success;
 				if (reply) {
 					if (future.get()->value.type == 3) { // 检查返回值类型是否为 double
-						RCLCPP_INFO(node->get_logger(), "Set Param: %s, value: %lf", param_id.c_str(), future.get()->value.double_value);
+						RCLCPP_INFO(node->get_logger(), "Set Param: %s success, value: %lf", param_id.c_str(), future.get()->value.double_value);
 					} else {
-						RCLCPP_WARN(node->get_logger(), "Set Param: %s, value type is %d not double", param_id.c_str(), future.get()->value.type);
+						RCLCPP_WARN(node->get_logger(), "Set Param: %s success, value type is %d not double", param_id.c_str(), future.get()->value.type);
 					}
 				}
 				else {

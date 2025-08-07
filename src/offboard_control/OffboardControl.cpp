@@ -35,7 +35,7 @@ void OffboardControl::timer_callback(void)
 	// 检查位置数据的有效性，防止段错误
 	if (!debug_mode_ && !print_info_) {
 		if (_motors->get_system_status() == Motors::State__system_status::MAV_STATE_UNINIT) {
-			RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "MAVROS待启动，等待MAVROSd创建ROS节点...");
+			RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "MAVROS待启动，等待MAVROS创建ROS节点...");
 			return;
 		} else if (_motors->get_system_status() == Motors::State__system_status::MAV_STATE_BOOT) {
 			RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "飞控正在启动，等待...");
@@ -75,7 +75,7 @@ void OffboardControl::timer_callback(void)
 	}
 
 	_camera_gimbal->camera_relative_rotation = Vector3d(0, 0, 0); // 相机相对飞机的旋转，roll=0, pitch=0 (垂直向下), yaw=0
-	_camera_gimbal->parent_rotation = Vector3d(roll, pitch, yaw - M_PI_2); 
+	_camera_gimbal->parent_rotation = Vector3d(roll, pitch, get_world_yaw()); 
 
 	// 测试目标可视化
 	if (debug_mode_) {
@@ -107,7 +107,7 @@ void OffboardControl::timer_callback(void)
 		if (target1.has_value()) {
 			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) Example 1 - Target position: %f, %f, %f. Diameter: %f",
 				target1->x(), target1->y(), target1->z(), diameter);
-			Target_Samples.push_back({*target1, 0, diameter});
+			Target_Samples.push_back({*target1, 0, static_cast<size_t>(0), diameter});
 		}
 		else {
 			RCLCPP_WARN(this->get_logger(), "Example 1 - 无效的目标位置");
@@ -156,7 +156,7 @@ void OffboardControl::timer_callback(void)
 			shot_count++;
 		}
 	}
-	if (_motors->mode == "LAND" && state_machine_.get_current_state() != FlyState::end && !print_info_)
+	if (_motors->mode == "LAND" && state_machine_.get_current_state() != FlyState::init && state_machine_.get_current_state() != FlyState::end && !print_info_)
 	{
 		RCLCPP_INFO(this->get_logger(), "飞行结束，进入结束状态");
 		state_machine_.transition_to(FlyState::end);
@@ -258,6 +258,8 @@ void OffboardControl::FlyState_init()
 	// 重新设置家地址
 	if (_motors->get_system_status() != Motors::State__system_status::MAV_STATE_ACTIVE)
 		_motors->set_home_position(get_yaw());
+
+	_motors->switch_mode("GUIDED");
 
 	reset_wp_limits();
 }
@@ -731,9 +733,9 @@ bool OffboardControl::Doland()
 			// 	t2p_target.category = std::string("h").append("_t2p");
 			// 	t2p_target.radius = accuracy;
 			// } else {
-				RCLCPP_ERROR(this->get_logger(), "Doland: worldToPixel failed, using read target position");
-				t2p_target.x = target.x;
-				t2p_target.y = target.y;
+				// RCLCPP_ERROR(this->get_logger(), "Doland: worldToPixel failed, using read target position");
+			t2p_target.x = target.x;
+			t2p_target.y = target.y;
 			// }
 
 			if (!_yolo->is_get_target(YOLO::TARGET_TYPE::H)) // yolo未识别到YOLO::TARGET_TYPE::H   (YOLO::TARGET_TYPE::CIRCLE)

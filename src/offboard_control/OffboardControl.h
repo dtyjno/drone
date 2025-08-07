@@ -109,7 +109,6 @@ public:
 		// }
 		
 		timestamp_init = get_cur_time();
-		_motors->switch_mode("GUIDED");
 		timer_ = this->create_wall_timer(wait_time, std::bind(&OffboardControl::timer_callback, this));
 		#ifdef PAL_STATISTIC_VISIBILITY
 		stats_publisher_ = this->create_publisher<pal_statistics_msgs::msg::Statistics>("/statistics", 10);
@@ -504,14 +503,15 @@ private:
 	// const float shot_halt = 4.0;
 
 	// 侦查区域巡航属性
-	const float see_length = 6.6;
-	const float see_width = 4.8;
+	const float see_length = 8.0;
+	const float see_width = 5.0;
 	// const double see_halt = 3.0;
 
 	// 定义投弹侦察点位 原始数据
 	float dx_shot, dy_shot;
 	float dx_see, dy_see;
 	float shot_halt;
+	float shot_halt_surround; // 投弹区巡航时，周围巡航高度
 	float shot_halt_low; // 投弹区预测目标低高度巡航
 	float see_halt;
 	// 坐标待旋转处理后坐标
@@ -602,6 +602,7 @@ private:
 			dx_see = config["dx_see"].as<float>(); 
 			dy_see = config["dy_see"].as<float>();
 			shot_halt = config["shot_halt"].as<float>();
+			shot_halt_surround = config["shot_halt_surround"].as<float>();
 			shot_halt_low = config["shot_halt_low"].as<float>();
 			see_halt = config["see_halt"].as<float>();
 			drone_to_camera[0] = config["drone_to_camera_x"].as<float>();
