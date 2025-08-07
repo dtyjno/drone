@@ -22,13 +22,13 @@ using namespace std::chrono_literals;
 // 5. 起飞
 // 6. 若未解锁则回到第3步
 bool Motors::takeoff(float local_frame_z,float takeoff_altitude, float yaw){
-	(void)local_frame_z;
 	static bool is_takeoff = false;
 	static uint8_t num_of_steps = 0, num_of_takeoff = 0;
 	static Timer *timer;
 	switch (state_)
 	{
 	case State::init :
+		is_takeoff = false;
 		RCLCPP_INFO_ONCE(node->get_logger(), "Entered guided mode");
 		switch_mode("GUIDED");
 		state_ = State::wait_for_takeoff_command;
@@ -61,6 +61,10 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude, float yaw){
 			//RCLCPP_INFO(this->get_logger(), "vehicle is armed");
 			timer->reset(); // 重置计时器
 			num_of_takeoff = 1;
+			if (get_system_status() == State__system_status::MAV_STATE_ACTIVE) {
+				RCLCPP_INFO(node->get_logger(), "无人机已经起飞");
+				state_ = State::end; // 重置状态
+			}
 			command_takeoff_or_land("TAKEOFF", takeoff_altitude, yaw);
 			state_ = State::takeoff;
 		}
@@ -69,28 +73,22 @@ bool Motors::takeoff(float local_frame_z,float takeoff_altitude, float yaw){
 		//RCLCPP_INFO(this->get_logger(), "vehicle is start");		
 		if (!armed){ // 如果无人机起飞失败重新上锁
 			state_ = State::arm_requested;
-		} else if (get_system_status() == State__system_status::MAV_STATE_STANDBY && local_frame_z - home_position.z() < 0.5f && num_of_takeoff <= 3 && !is_takeoff){ 
+		} else if (get_system_status() != State__system_status::MAV_STATE_ACTIVE && local_frame_z - home_position.z() < 0.5f && num_of_takeoff <= 5 && !is_takeoff){ 
 			if(timer->elapsed() > 2.0){
 				num_of_takeoff++;
-				// RCLCPP_INFO(node->get_logger(), "vehicle is taking off");
 				command_takeoff_or_land("TAKEOFF", takeoff_altitude, yaw);
 				timer->reset(); // 重置计时器
 			}
-		}else{ // 起飞或等待时间长于重新上锁时间
-			is_takeoff = true;
-			delete timer; // 删除计时器对象
-			timer = nullptr; // 设置指针为空，避免悬挂指针
+		}else if (local_frame_z - home_position.z() >= takeoff_altitude - 0.5f && get_system_status() == State__system_status::MAV_STATE_ACTIVE) {
 			RCLCPP_INFO(node->get_logger(), "takeoff done");
-			state_ = State::init;
+			state_ = State::end;
 		}
 		break;
-	case State::autotune_mode:
-		if(!armed){
-			is_takeoff = false;
-			num_of_steps = 0;
-			RCLCPP_INFO(node->get_logger(), "vehicle is not armed");
-			state_ = State::wait_for_stable_offboard_mode;
-		}
+	case State::end:
+		is_takeoff = true;
+		delete timer; // 删除计时器对象
+		timer = nullptr; // 设置指针为空，避免悬挂指针
+		state_ = State::init; // 重置状态
 		break;
 	default:
 		break;

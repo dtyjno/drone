@@ -111,8 +111,7 @@ public:
 		wait_for_stable_offboard_mode,
 		arm_requested,
 		takeoff,
-		autotune_mode,
-		
+		end
 	} state_;
 	// State: GUIDED, Armed: 0, Connected: 1, Guided: 1, System Status: 
 	// State: GUIDED, Armed: 1, Connected: 1, Guided: 1, System Status:
