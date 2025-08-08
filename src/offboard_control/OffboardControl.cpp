@@ -142,14 +142,18 @@ void OffboardControl::timer_callback(void)
 		{
 			double tx, ty;
 			rotate_stand2global(cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
-			// if (tx < dx_shot - shot_length_max / 2 || tx > dx_shot + shot_length_max / 2 ||
-			// 	ty < dy_shot || ty > dy_shot + shot_width_max) {
-			// 	RCLCPP_WARN(this->get_logger(), "侦查点坐标异常，跳过: %zu, x: %f, y: %f", i, cal_center[i].point.x(), cal_center[i].point.y());
-			// 	continue; // 跳过无效坐标
-			// }
-			// sort(cal_center.begin(), cal_center.end(), [](const Circles& a, const Circles& b) {
-			// 	return a.diameters < b.diameters;
-			// });
+			if (tx < dx_shot - shot_length_max / 2 - 1.5 || tx > dx_shot + shot_length_max / 2 + 1.5 ||
+				ty < dy_shot - 1.5 || ty > dy_shot + shot_width_max + 1.5) {
+				RCLCPP_WARN(this->get_logger(), "侦查点坐标异常，跳过: %zu, x: %f, y: %f", i, cal_center[i].point.x(), cal_center[i].point.y());
+				cal_center.erase(cal_center.begin() + i);
+				i--; // 调整索引以适应删除后的数组
+				continue;
+			}
+			
+			sort(cal_center.begin(), cal_center.end(), [](const Circles& a, const Circles& b) {
+				return a.diameters > b.diameters;
+			});
+
 			surround_shot_points[shot_count] = Vector2f((tx - dx_shot) / shot_length_max, (ty - dy_shot) / shot_width_max);
 			// RCLCPP_INFO(this->get_logger(), "侦查点坐标 %zu: x: %f, y: %f ,n_x: %f, n_y: %f d: %lf", 
 			// 	i, cal_center[i].point.x(), cal_center[i].point.y(), surround_shot_points[shot_count].x(), surround_shot_points[shot_count].y(), cal_center[i].diameters);

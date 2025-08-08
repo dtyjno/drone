@@ -21,7 +21,6 @@ double distance(Circles a, Circles b);
 double computeMean(const std::vector<double>& data);
 double computeStdDev(const std::vector<double>& data, double mean);
 std::vector<Circles> normalizeCircles(const std::vector<Circles>& originalCircles);
-void allocate_centers(std::vector<Circles> samples);
 std::vector<Circles> computeClusterCentersInOriginalSpace(const std::vector<Circles>& clusteredData,const std::vector<Circles>& originalData);
 double AbsoluteDistance(double a, double b);
 std::vector<Circles> calculate_center(std::vector<Circles> samples);

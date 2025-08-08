@@ -157,7 +157,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				   if (static_cast<int>(owner_->cal_center.size()) > counter) {
 					   Vector3d world_point(owner_->cal_center[counter].point.x(), 
 										   owner_->cal_center[counter].point.y(), 
-										   owner_->cal_center[counter].point.z());
+										   owner_->bucket_height);
 					   auto shot_center_opt = owner_->_camera_gimbal->worldToPixel(world_point);
 					   if (shot_center_opt.has_value()) {
 						   Vector2d shot_center = shot_center_opt.value();
@@ -166,7 +166,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 						   temp_target.fx = owner_->_camera_gimbal->fx;
 						   temp_target.radius = owner_->cal_center[counter].diameters / 2.0;
 						   temp_target.category = std::string("circle").append("_w2p");
-						   temp_target.relative_z = owner_->_camera_gimbal->get_position().z() - owner_->bucket_height; // 设置目标的高度为相机高度
+						   temp_target.relative_z = owner_->_camera_gimbal->get_position().z() - world_point.z(); // 设置目标的高度为相机高度
 						   owner_->_yolo->append_target(temp_target);
 					   }
 				   }
@@ -184,16 +184,18 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 						)
 					)
 				) {
-					double tx, ty;
-					Vector2d cal_center_target = {owner_->cal_center[counter].point.x(), owner_->cal_center[counter].point.y()};
-					owner_->rotate_stand2global(cal_center_target.x(), cal_center_target.y(), tx, ty);
-					if (tx < owner_->dx_shot - owner_->shot_length_max / 2 - 1.5 || tx > owner_->dx_shot + owner_->shot_length_max / 2 + 1.5 ||
-						ty < owner_->dy_shot - 1.5 || ty > owner_->dy_shot + owner_->shot_width_max + 1.5) {
-						RCLCPP_WARN(owner_->get_logger(), "侦查点坐标异常，跳过: %d, x: %f, y: %f", counter, tx, ty);
-						counter++;
-						pre_counter = counter;
-						continue; // 跳过无效坐标
-					}
+					Vector2d drone_to_shot_rotated; // 中间变量
+					owner_->rotate_local2world(0.0, 0.10, drone_to_shot_rotated.x(), drone_to_shot_rotated.y());
+					// double tx, ty;
+					Vector2d cal_center_target = {owner_->cal_center[counter].point.x() + drone_to_shot_rotated.x(), owner_->cal_center[counter].point.y() + drone_to_shot_rotated.y()}; // 投弹点适当偏后
+					// owner_->rotate_stand2global(cal_center_target.x(), cal_center_target.y(), tx, ty);
+					// if (tx < owner_->dx_shot - owner_->shot_length_max / 2 - 1.5 || tx > owner_->dx_shot + owner_->shot_length_max / 2 + 1.5 ||
+					// 	ty < owner_->dy_shot - 1.5 || ty > owner_->dy_shot + owner_->shot_width_max + 1.5) {
+					// 	RCLCPP_WARN(owner_->get_logger(), "侦查点坐标异常，跳过: %d, x: %f, y: %f", counter, tx, ty);
+					// 	counter++;
+					// 	pre_counter = counter;
+					// 	continue; // 跳过无效坐标
+					// }
 					pre_counter = counter; // 记录上一次的计数器值
 					pre_time = owner_->get_cur_time(); // 记录上一次的时间
 					owner_->send_world_setpoint_command(
