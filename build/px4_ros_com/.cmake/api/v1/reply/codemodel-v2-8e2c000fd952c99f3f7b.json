@@ -1,0 +1,97 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-abad3b13f63577401bd9.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.15"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					]
+				}
+			],
+			"name" : "",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "px4_ros_com",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "frame_transforms::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-frame_transforms-d8146c3a3ddd90d61b15.json",
+					"name" : "frame_transforms",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "offboard_control::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-offboard_control-503361f7b1d3ab371bcd.json",
+					"name" : "offboard_control",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "pose_subscriber::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-pose_subscriber-29f7f33a1ba5ebd2ee68.json",
+					"name" : "pose_subscriber",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "px4_ros_com_uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-px4_ros_com_uninstall-22ca47d11b1c11525682.json",
+					"name" : "px4_ros_com_uninstall",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-uninstall-c8d5761a6e9317ff20c0.json",
+					"name" : "uninstall",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/limile/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com",
+		"source" : "/home/limile/dxy_apm_ws/src/px4_ros_com"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

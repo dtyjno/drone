@@ -6,7 +6,6 @@
 
 std::vector<Circles> Target_Samples;// 全局变量，存储目标样本点
 
-// 计算均值
 double computeMean(const std::vector<double>& data) 
 {
     double sum = 0.0;
@@ -68,40 +67,6 @@ double AbsoluteDistance(double a, double b)
     return std::fabs(a - b);
 }
 
-// 更新中心点
-std::vector<Circles> calculate_center(std::vector<Circles> circles_sample) 
-{
-    std::vector<Circles> centers(3); // 提前声明
-    for (int j = 0; j < 3; ++j)
-    {
-        double sum_x = 0, sum_y = 0, sum_d = 0;
-        int count = 0;
-        for(const auto& circle: circles_sample)
-        {
-            if (circle.cluster_id == j) 
-            {
-                sum_x += circle.point.x();
-                sum_y += circle.point.y();
-                sum_d += circle.diameters; // 累加直径
-                count++;
-            }
-        }
-        if(count > 0)
-        {
-            centers[j].point.x() = sum_x / count;
-            centers[j].point.y() = sum_y / count;
-            centers[j].diameters = sum_d / count; 
-        } 
-        else 
-        {
-            centers[j].point.setZero();
-            centers[j].diameters = 0; // 防止除0
-        }
-    }
-    return centers;
-}
-
-
 //从原样本空间中选取三个点作为起始点
 std::vector<Circles> Initialize_Clustering(std::vector<Circles> samples)
 {
@@ -134,80 +99,106 @@ std::vector<Circles> Initialize_Clustering(std::vector<Circles> samples)
     return Center;
 }
 
-//分配每个数据点到最近的簇
-void allocate_centers(std::vector<Circles> samples)
+// 分配每个点到最近的中心点，返回labels
+std::vector<int> assignLabels(const std::vector<Circles>& data, const std::vector<Circles>& centers) 
 {
-    std::vector<Circles> Clustering_Result = Initialize_Clustering(samples); // 清空之前的聚类结果
-    for (auto& sample: samples)
-    {
-        double min_dist = distance(sample, Clustering_Result[0]);
-        sample.cluster_id = 0;
-        for(size_t j = 1; j < Clustering_Result.size(); ++j)
-        {
-            double dist = distance(sample, Clustering_Result[j]);
-            if (min_dist > dist)
-            {
+    std::vector<int> labels(data.size(), 0);
+    for (size_t i = 0; i < data.size(); ++i) {
+        double min_dist = distance(data[i], centers[0]);
+        int min_id = 0;
+        for (size_t j = 1; j < centers.size(); ++j) {
+            double dist = distance(data[i], centers[j]);
+            if (dist < min_dist) {
                 min_dist = dist;
-                sample.cluster_id = j;
+                min_id = j;
             }
         }
+        labels[i] = min_id;
     }
+    return labels;
 }
 
-// 将标准化后的聚类结果映射回原始空间
-vector<Circles> computeClusterCentersInOriginalSpace(
-    const vector<Circles>& clusteredData,
-    const vector<Circles>& originalData 
-) {
-    const int NUM_CLUSTERS = 3;
-
-    vector<Vector2d> sumXY(NUM_CLUSTERS, Vector2d::Zero());
-    vector<double> sumD(NUM_CLUSTERS, 0.0);
-    vector<int> count(NUM_CLUSTERS, 0);
-
-    // 遍历聚类结果，通过 original_index 找回原始数据
-    for (const auto& c : clusteredData) 
-    {
-        int cid = c.cluster_id;
-        int idx = c.original_index;
-
-        const auto& orig = originalData[idx];
-        sumXY[cid] += Vector2d(orig.point.x(), orig.point.y());
-        sumD[cid] += orig.diameters;
+// 根据labels重新计算中心点
+std::vector<Circles> updateCenters(const std::vector<Circles>& data, const std::vector<int>& labels, int K) 
+{
+    std::vector<Eigen::Vector2d> sumXY(K, Eigen::Vector2d::Zero());
+    std::vector<double> sumD(K, 0.0);
+    std::vector<int> count(K, 0);
+    std::vector<Circles> centers(K);
+    for (size_t i = 0; i < data.size(); ++i) {
+        int cid = labels[i];
+        sumXY[cid] += Eigen::Vector2d(data[i].point.x(), data[i].point.y());
+        sumD[cid] += data[i].diameters;
         count[cid]++;
     }
-
-    // 构造返回值
-    vector<Circles> centers;
-    for (int i = 0; i < NUM_CLUSTERS; ++i) 
-    {
-        if (count[i] == 0) continue;
-
-        Circles center;
-        center.point.x() = sumXY[i].x() / count[i];
-        center.point.y() = sumXY[i].y() / count[i];
-                                
-        center.diameters = sumD[i] / count[i];
-        center.cluster_id = i;
-        center.original_index = -1; // 表示为聚类中心点
-
-        centers.push_back(center);
+    for (int j = 0; j < K; ++j) {
+        if (count[j] > 0) {
+            centers[j].point.x() = sumXY[j].x() / count[j];
+            centers[j].point.y() = sumXY[j].y() / count[j];
+            centers[j].diameters = sumD[j] / count[j];
+        } else {
+            centers[j].point.x() = 0;
+            centers[j].point.y() = 0;
+            centers[j].diameters = 0;
+        }
+        centers[j].cluster_id = j;
+        centers[j].original_index = -1;
     }
-
     return centers;
 }
 
-//聚类算法
+// 反标准化中心点
+std::vector<Circles> denormalizeCenters(const std::vector<Circles>& centers, double meanX, double stdX, double meanY, double stdY, double meanD, double stdD) 
+{
+    std::vector<Circles> result;
+    for (const auto& c : centers) {
+        Circles cc = c;
+        cc.point.x() = c.point.x() * stdX + meanX;
+        cc.point.y() = c.point.y() * stdY + meanY;
+        cc.diameters = c.diameters * stdD + meanD;
+        result.push_back(cc);
+    }
+    return result;
+}
+
+// 排序函数
+bool cmpByDiameter(const Circles& a, const Circles& b) 
+{
+    return a.diameters < b.diameters;
+}
+
+// 主聚类算法
 std::vector<Circles> Clustering(std::vector<Circles> samples)
 {
-    std::vector<Circles> normalize_data = normalizeCircles(samples); // 标准化处理
-    std::vector<Circles> Noramalize_Clustering = Initialize_Clustering(normalize_data); //初始化,Normallize_Clustering用于储存标准化后的聚类结果
-    // 第一步：分配每个点到最近的簇
-    allocate_centers(normalize_data);
-    // 第二步：更新中心点
-    Noramalize_Clustering = calculate_center(normalize_data);
-    // 第三步：将标准化后的聚类结果映射回原始空间
-    std::vector<Circles> Clustering_Result = computeClusterCentersInOriginalSpace(Noramalize_Clustering, samples);//Clustering_Result用于储存聚类结果
-
-    return Clustering_Result;
+    std::vector<Circles> data = normalizeCircles(samples);//数据标准化
+    const int K = 3;
+    const int max_iter = 300;//最大迭代次数
+    std::vector<Circles> centers = Initialize_Clustering(data);
+    std::vector<int> labels(data.size(), 0);
+    
+    //根据lables分配中心点（即簇id）
+    for (int iter = 0; iter < max_iter; ++iter) 
+    {
+        std::vector<int> new_labels = assignLabels(data, centers);
+        if (new_labels == labels && iter > 0)
+        {
+            break;
+        } 
+        labels = new_labels;
+        centers = updateCenters(data, labels, K);
+    }
+    // 将结果映射回原始空间
+    std::vector<double> xs, ys, ds;
+    for (const auto& c : samples)
+    {
+        xs.push_back(c.point.x());
+        ys.push_back(c.point.y());
+        ds.push_back(c.diameters);
+    }
+    double meanX = computeMean(xs), meanY = computeMean(ys), meanD = computeMean(ds);
+    double stdX = computeStdDev(xs, meanX), stdY = computeStdDev(ys, meanY), stdD = computeStdDev(ds, meanD);
+    std::vector<Circles> result = denormalizeCenters(centers, meanX, stdX, meanY, stdY, meanD, stdD);
+    std::sort(result.begin(), result.end(), cmpByDiameter);
+    
+    return result;
 }

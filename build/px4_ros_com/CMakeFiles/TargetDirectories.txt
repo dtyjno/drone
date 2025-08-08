@@ -1,0 +1,12 @@
+/home/limile/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com/CMakeFiles/install/strip.dir
+/home/limile/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com/CMakeFiles/install/local.dir
+/home/limile/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com/CMakeFiles/edit_cache.dir
+/home/limile/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com/CMakeFiles/test.dir
+/home/limile/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com/CMakeFiles/pose_subscriber.dir
+/home/limile/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com/CMakeFiles/install.dir
+/home/limile/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com/CMakeFiles/list_install_components.dir
+/home/limile/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com/CMakeFiles/rebuild_cache.dir
+/home/limile/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com/CMakeFiles/offboard_control.dir
+/home/limile/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com/CMakeFiles/frame_transforms.dir
+/home/limile/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com/CMakeFiles/px4_ros_com_uninstall.dir
+/home/limile/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com/CMakeFiles/uninstall.dir

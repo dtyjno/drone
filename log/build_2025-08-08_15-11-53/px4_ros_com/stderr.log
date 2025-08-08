@@ -1,0 +1,21 @@
+[01m[K/home/limile/dxy_apm_ws/src/px4_ros_com/src/offboard_control/FuzzyPID.cpp:[m[K In member function ‘[01m[Kvoid FuzzyPID::[01;32m[Kmoc[m[K(const float*, const unsigned int*, const unsigned int*)[m[K’:
+[01m[K/home/limile/dxy_apm_ws/src/px4_ros_com/src/offboard_control/FuzzyPID.cpp:292:11:[m[K [01;35m[Kwarning: [m[KISO C++ forbids variable length array ‘[01m[Knumerator_count[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wvla-Wvla]8;;[m[K]
+  292 |     float [01;35m[Knumerator_count[m[K[fuzzy_output_num];
+      |           [01;35m[K^~~~~~~~~~~~~~~[m[K
+[01m[K/home/limile/dxy_apm_ws/src/px4_ros_com/src/offboard_control/FuzzyPID.cpp:[m[K In member function ‘[01m[Kvoid FuzzyPID::[01;32m[Kfuzzy_control[m[K(float, float)[m[K’:
+[01m[K/home/limile/dxy_apm_ws/src/px4_ros_com/src/offboard_control/FuzzyPID.cpp:415:11:[m[K [01;35m[Kwarning: [m[KISO C++ forbids variable length array ‘[01m[Kjoint_membership[m[K’ [[01;35m[K]8;;https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wvla-Wvla]8;;[m[K]
+  415 |     float [01;35m[Kjoint_membership[m[K[count[0] * count[1]];
+      |           [01;35m[K^~~~~~~~~~~~~~~~[m[K
+gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:244: CMakeFiles/offboard_control.dir/src/offboard_control/clustering.cpp.o] Interrupt
+gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:118: CMakeFiles/offboard_control.dir/src/offboard_control/InertialNav.cpp.o] Interrupt
+gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:132: CMakeFiles/offboard_control.dir/src/offboard_control/Motors.cpp.o] Interrupt
+gmake[2]: *** [CMakeFiles/frame_transforms.dir/build.make:76: CMakeFiles/frame_transforms.dir/src/lib/frame_transforms.cpp.o] Interrupt
+gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:146: CMakeFiles/offboard_control.dir/src/offboard_control/OffboardControl.cpp.o] Interrupt
+gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:216: CMakeFiles/offboard_control.dir/src/offboard_control/StateMachine.cpp.o] Interrupt
+gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:258: CMakeFiles/offboard_control.dir/src/offboard_control/main.cpp.o] Interrupt
+gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:188: CMakeFiles/offboard_control.dir/src/offboard_control/PosControl.cpp.o] Interrupt
+gmake[1]: *** [CMakeFiles/Makefile2:141: CMakeFiles/frame_transforms.dir/all] Interrupt
+gmake[1]: *** [CMakeFiles/Makefile2:115: CMakeFiles/offboard_control.dir/all] Interrupt
+gmake[2]: *** [CMakeFiles/pose_subscriber.dir/build.make:76: CMakeFiles/pose_subscriber.dir/src/listeners/pose_subscriber.cpp.o] Interrupt
+gmake[1]: *** [CMakeFiles/Makefile2:89: CMakeFiles/pose_subscriber.dir/all] Interrupt
+gmake: *** [Makefile:146: all] Interrupt
