@@ -59,6 +59,18 @@ public:
 
 	}
 
+	// 获取当前时间
+	double get_cur_time() {
+		auto now = this->get_clock()->now();
+		return now.seconds() - timestamp_init;  // 直接计算时间差并转为秒
+	}
+	double get_start_time() {
+		return start_time;  // 返回开始时间
+	}
+	void set_start_time(double time) {
+		start_time = time;  // 设置开始时间
+	}
+
 	bool sim_mode_ = false; // 是否为仿真模式
 	bool debug_mode_ = false; // 是否验证状态
 	bool print_info_ = false; // 是否打印信息
@@ -80,6 +92,8 @@ public:
 	static Vector4f start;
 
 protected:
+	double timestamp_init = 0;
+	double start_time;
 // #ifdef PAL_STATISTIC_VISIBILITY
 // 	rclcpp::Publisher<pal_statistics_msgs::msg::Statistics>::SharedPtr stats_publisher_;
 // 	rclcpp::TimerBase::SharedPtr stats_timer_;
@@ -90,6 +104,8 @@ protected:
 // #endif
 
 private:
+
+
 	// class GlobalFrame{
 	// public:
 	// 	float lat;

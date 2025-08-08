@@ -203,7 +203,7 @@ public:
         // 2. 应用相机旋转矩阵的逆变换 (世界坐标 -> 相机坐标)
         Matrix3d R = eulerAnglesToRotationMatrixWorldToCamera();
         // std::cout << "相机旋转矩阵:\n" << R << "\n";
-        Vector3d cam_point = ENU2ESD * R * relative_pos;
+        Vector3d cam_point = NED2ESD * R * ENU2NED * relative_pos;
 
         // std::cout << "变换后的相机坐标: " << cam_point.transpose() << std::endl;
 
@@ -241,7 +241,7 @@ public:
     double calculatePixelRadius(const Vector3d& world_center, double world_radius) const {
         Vector3d relative_pos = world_center - get_position();
         Matrix3d R = eulerAnglesToRotationMatrixWorldToCamera();
-        Vector3d cam_point = ENU2ESD * R * relative_pos;
+        Vector3d cam_point = NED2ESD * R * ENU2NED * relative_pos;
         // 检查点是否在相机前方
         if (cam_point.z() <= 0) {
             return 0.0; // 目标在相机后方
@@ -340,7 +340,7 @@ public:
         
         // 4. 创建归一化相机坐标系中的射线方向 (Z=1)
         Vector3d ray_cam(norm_point.x(), norm_point.y(), 1.0);
-        ray_cam = ESD2ENU * ray_cam; // 转换到ENU坐标系
+        ray_cam = ESD2NED * ray_cam; // 转换到ENU坐标系
         // std::cout << "ray_cam ENU" << std::endl;
         // std::cout << ray_cam.transpose() << std::endl;  // 横向显示
         
@@ -350,7 +350,7 @@ public:
 
         // std::cout << "R.transpose():" << std::endl;
         // std::cout << R.transpose() << std::endl;  // 横向显示
-        Vector3d ray_world = R.transpose() * ray_cam;
+        Vector3d ray_world = NED2ENU * R.transpose() * ray_cam;
         // std::cout << "ray_world ENU:" << std::endl;
         // std::cout << ray_world.transpose() << std::endl;  // 横向显示
         ray_world.normalize();
