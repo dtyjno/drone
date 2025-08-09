@@ -69,7 +69,7 @@ void OffboardControl::timer_callback(void)
 	float roll, pitch, yaw;
 	get_euler(roll, pitch, yaw);
 
-	if (debug_mode_) {
+	if (debug_mode_ && _motors->get_system_status() == Motors::State__system_status::MAV_STATE_UNINIT) {
 		roll = 0.0f;
 		pitch = 0.0f;
 	}
@@ -127,6 +127,7 @@ void OffboardControl::timer_callback(void)
 					<< ", d: " << cal_center[i].diameters << "\n";
 			}
 			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "%s", ss.str().c_str());
+			// RCLCPP_INFO_STREAM(this->get_logger(), ss.str());
 			// cal_center[0].diameters = 0.25;
 			// if (cal_center.size() > 1)
 			// {
@@ -160,7 +161,7 @@ void OffboardControl::timer_callback(void)
 			shot_count++;
 		}
 	}
-	if (_motors->mode == "LAND" && state_machine_.get_current_state() != FlyState::init && state_machine_.get_current_state() != FlyState::end && !print_info_)
+	if (_motors->mode == "LAND" && state_machine_.get_current_state() != FlyState::init && state_machine_.get_current_state() != FlyState::takeoff && state_machine_.get_current_state() != FlyState::end && !print_info_)
 	{
 		RCLCPP_INFO(this->get_logger(), "飞行结束，进入结束状态");
 		state_machine_.transition_to(FlyState::end);
@@ -531,9 +532,22 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 							t2p_target.y = output_pixel.y();
 							t2p_target.category = std::string("circle").append("_t2p").append(targets_str[i]);
 							if (!debug_mode_) {
-								if (static_cast<int>(cal_center.size()) > shot_index)
-									t2p_target.radius = cal_center[shot_index].diameters / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
-								
+								Circles nearest_circle;
+								double min_distance = std::numeric_limits<double>::max();
+								for (size_t j = 0; j < cal_center.size(); j++) {
+									double new_min_distance = 
+										std::pow(cal_center[j].point.x() - get_x_pos(), 2) +
+										std::pow(cal_center[j].point.y() - get_y_pos(), 2);
+									if (new_min_distance < min_distance) {
+										min_distance = new_min_distance;
+										nearest_circle = cal_center[j];
+									}
+								}
+								t2p_target.radius = nearest_circle.diameters / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
+
+								// } else if (static_cast<int>(cal_center.size()) > shot_index){
+								// 	t2p_target.radius = cal_center[shot_index].diameters / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
+								// }
 								t2p_targets.push_back(t2p_target);
 							} else { // 发布所有的目标
 								t2p_target.radius = 0.15 / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
