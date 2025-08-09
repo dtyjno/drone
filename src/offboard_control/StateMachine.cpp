@@ -150,7 +150,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				// 	owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE),
 				// 	owner_->_yolo->get_x(YOLO::TARGET_TYPE::H), owner_->_yolo->get_y(YOLO::TARGET_TYPE::H),
 				// 	owner_->_yolo->get_servo_flag());
-
+				// RCLCPP_INFO(owner_->get_logger(), "handle_state<Doshot>: counter=%d shot_flag=%s waypoint_timer_.elapsed=%lf owner_->cal_center.size()=%ld", counter, shot_flag?"true":"false", owner_->waypoint_timer_.elapsed(), owner_->cal_center.size());
 			   // 显示当前目标
 			   {
 				   YOLO::Target temp_target;
@@ -197,7 +197,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					// 	continue; // 跳过无效坐标
 					// }
 					pre_counter = counter; // 记录上一次的计数器值
-					pre_time = owner_->get_cur_time(); // 记录上一次的时间
+					pre_time = owner_->waypoint_timer_.elapsed(); // 记录上一次的时间
 					owner_->send_world_setpoint_command(
 						cal_center_target.x(),
 						cal_center_target.y(),
@@ -219,7 +219,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					continue; // 直接跳到下一个状态;
 				} else if (!shot_flag && (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE) ? circle_counter >= 6 : false)) { // 未找到圆，前往目标过程中最多允许连续n次(n * owner_->get_wait_time()秒)未识别出目标的情况，使用最近一次采集到的位置数据
 					pre_counter = counter; // 记录上一次的计数器值
-					pre_time = owner_->get_cur_time(); // 记录上一次的时间
+					pre_time = owner_->waypoint_timer_.elapsed(); // 记录上一次的时间
 					// owner_->reset_wp_limits(); // 恢复默认速度限制
 					owner_->waypoint_goto_next(
 						owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
@@ -264,10 +264,11 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 						counter++; // 增加计数器
 						pre_counter = counter; // 更新上一次计数器值
 					}
-					RCLCPP_INFO(owner_->get_logger(), "投弹完成，继续投弹 shot_counter=%d", shot_counter);
+					RCLCPP_INFO(owner_->get_logger(), "投弹完成，继续投弹 shot_counter=%d counter=%d", shot_counter, counter);
 					shot_counter++;
 					owner_->doshot_state_ = owner_->DoshotState::doshot_shot; // 设置投弹状态为投弹
 					owner_->waypoint_timer_.reset(); // 重置航点计时器
+					pre_time = owner_->waypoint_timer_.elapsed(); // 记录上一次的时间
 					doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
 					continue; // 继续投弹
 				} else {
@@ -323,7 +324,7 @@ void StateMachine::handle_state<FlyState::Surround_see>() {
 	if (current_state_ == FlyState::Surround_see) {
 		static int counter = 0; // 航点计数器
 		if (owner_->waypoint_goto_next(
-			owner_->dx_see, owner_->dy_see + 0.1, owner_->see_length - 1.2, owner_->see_width - 0.4, 
+			owner_->dx_see, owner_->dy_see, owner_->see_length - 0.8, owner_->see_width - 0.2, 
 			owner_->see_halt, owner_->surround_see_points, 3.5, &counter, "侦查区"))
 		{
 			RCLCPP_INFO_ONCE(owner_->get_logger(), "侦查完毕");

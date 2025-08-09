@@ -164,7 +164,7 @@ std::vector<Circles> denormalizeCenters(const std::vector<Circles>& centers, dou
 // 排序函数
 bool cmpByDiameter(const Circles& a, const Circles& b) 
 {
-    return a.diameters < b.diameters;
+    return a.diameters > b.diameters;
 }
 
 // 主聚类算法

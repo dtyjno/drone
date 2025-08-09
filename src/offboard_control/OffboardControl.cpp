@@ -145,7 +145,8 @@ void OffboardControl::timer_callback(void)
 			rotate_stand2global(cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
 			if (tx < dx_shot - shot_length_max / 2 - 1.5 || tx > dx_shot + shot_length_max / 2 + 1.5 ||
 				ty < dy_shot - 1.5 || ty > dy_shot + shot_width_max + 1.5) {
-				RCLCPP_WARN(this->get_logger(), "侦查点坐标异常，跳过: %zu, x: %f, y: %f", i, cal_center[i].point.x(), cal_center[i].point.y());
+				// RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "(THROTTLE 2s)侦查点坐标异常，跳过: %zu, x: %f, y: %f, tx: %f, ty: %f", i, cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
+				RCLCPP_WARN(this->get_logger(), "侦查点坐标异常，跳过: %zu, x: %f, y: %f, tx: %f, ty: %f", i, cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
 				cal_center.erase(cal_center.begin() + i);
 				i--; // 调整索引以适应删除后的数组
 				continue;

@@ -99,9 +99,11 @@ public:
 			start_time_ = std::chrono::steady_clock::time_point();
 		}
 
-        void set_start_time_to_time_point(float time_point) {
-            // 将计时器的开始时间设置为指定的时间点
-            start_time_ = std::chrono::steady_clock::time_point(std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::milliseconds(static_cast<int64_t>(time_point * 1000))));
+        void set_start_time_to_time_point(double seconds_from_now) {
+            // 将计时器的开始时间设置为从当前时间偏移指定秒数的时间点
+            auto offset = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+                std::chrono::duration<double>(seconds_from_now));
+            start_time_ = std::chrono::steady_clock::now() - offset;
         }
 private:
     std::chrono::steady_clock::time_point start_time_;
