@@ -324,7 +324,7 @@ void StateMachine::handle_state<FlyState::Surround_see>() {
 	if (current_state_ == FlyState::Surround_see) {
 		static int counter = 0; // 航点计数器
 		if (owner_->waypoint_goto_next(
-			owner_->dx_see, owner_->dy_see, owner_->see_length - 0.8, owner_->see_width - 0.2, 
+			owner_->dx_see, owner_->dy_see, owner_->see_length - 2.0, owner_->see_width - 0.2, 
 			owner_->see_halt, owner_->surround_see_points, 3.5, &counter, "侦查区"))
 		{
 			RCLCPP_INFO_ONCE(owner_->get_logger(), "侦查完毕");

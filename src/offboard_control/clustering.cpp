@@ -198,7 +198,7 @@ std::vector<Circles> Clustering(std::vector<Circles> samples)
     double meanX = computeMean(xs), meanY = computeMean(ys), meanD = computeMean(ds);
     double stdX = computeStdDev(xs, meanX), stdY = computeStdDev(ys, meanY), stdD = computeStdDev(ds, meanD);
     std::vector<Circles> result = denormalizeCenters(centers, meanX, stdX, meanY, stdY, meanD, stdD);
-    std::sort(result.begin(), result.end(), cmpByDiameter);
+    // std::sort(result.begin(), result.end(), cmpByDiameter);
     
     return result;
 }

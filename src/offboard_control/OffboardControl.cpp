@@ -151,9 +151,9 @@ void OffboardControl::timer_callback(void)
 				i--; // 调整索引以适应删除后的数组
 				continue;
 			}
-			
+			// 从大到小排列
 			sort(cal_center.begin(), cal_center.end(), [](const Circles& a, const Circles& b) {
-				return a.diameters > b.diameters;
+				return a.diameters < b.diameters; // >
 			});
 
 			surround_shot_points[shot_count] = Vector2f((tx - dx_shot) / shot_length_max, (ty - dy_shot) / shot_width_max);
@@ -545,7 +545,9 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 									}
 								}
 								t2p_target.radius = nearest_circle.diameters / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
-
+								if (cal_center.empty()){
+									t2p_target.radius = 0.08;
+								}
 								// } else if (static_cast<int>(cal_center.size()) > shot_index){
 								// 	t2p_target.radius = cal_center[shot_index].diameters / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
 								// }
@@ -788,7 +790,8 @@ bool OffboardControl::Doland()
 				}
 				else
 				{
-					RCLCPP_INFO(this->get_logger(), "Doland: 未到达降落点");
+					RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) Doland: 未到达降落点");
+					// RCLCPP_INFO(this->get_logger(), "Doland: 未到达降落点");
 				}
 			}
 			_yolo->append_target(t2p_target); // 将目标添加到YOLO中准备发布

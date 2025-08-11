@@ -569,7 +569,7 @@ void PID::update_i(float dt, float limit)
     _pid_info.I = constrain_float(_pid_info.I, _kimax, -_kimax);
     
     // 积分项衰减机制（当误差接近零时）
-    if (fabs(_error) < 0.03f && fabs(_pid_info.I) > 0.010f)
+    if (fabs(_error) < 0.025f && fabs(_pid_info.I) > 0.010f)
     {
         // printf("PID%s: Integral decay applied: %f\n", pid_name.c_str(), _pid_info.I);
         _pid_info.I *= 0.97f; // 轻微衰减，避免长期偏差

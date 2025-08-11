@@ -532,7 +532,7 @@ bool PosControl::trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target
 	if (first)
 	{
 		pos_target_temp = pos_target;
-		RCLCPP_INFO(node->get_logger(), "trajectory_setpoint_world: pos_target_x:%f pos_target_y:%f", pos_target.x(), pos_target.y());
+		RCLCPP_INFO_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "(THROTTLE 1s)trajectory_setpoint_world: pos_target_x:%f pos_target_y:%f", pos_target.x(), pos_target.y());
 		// 设置pid参数
 		set_pid(pid_x, defaults);
 		set_pid(pid_y, defaults);
