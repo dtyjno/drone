@@ -49,7 +49,7 @@ void OffboardControl::timer_callback(void)
 			_motors->get_system_status_uint8_t(), _motors->get_state_name().c_str());
 		}
 		if (!isfinite(get_x_pos()) || !isfinite(get_y_pos()) || !isfinite(get_z_pos())) {
-			RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "位置数据无效，等待有效GPS信号...");
+			RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "位置数据无效，等待有效GPS信号(EKF3 IMU0/1 is using GPS)...");
 			return;
 		}
 	}
@@ -107,7 +107,7 @@ void OffboardControl::timer_callback(void)
 		if (target1.has_value()) {
 			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) Example 1 - Target position: %f, %f, %f. Diameter: %f",
 				target1->x(), target1->y(), target1->z(), diameter);
-			Target_Samples.push_back({*target1, 0, static_cast<size_t>(0), diameter});
+			Target_Samples.push_back({*target1, 0, diameter});
 		}
 		else {
 			RCLCPP_WARN(this->get_logger(), "Example 1 - 无效的目标位置");
@@ -142,7 +142,7 @@ void OffboardControl::timer_callback(void)
 		for(size_t i = 0; i < cal_center.size(); ++i)
 		{
 			double tx, ty;
-			rotate_stand2global(cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
+			rotate_realstand2global(cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
 			if (tx < dx_shot - shot_length_max / 2 - 1.5 || tx > dx_shot + shot_length_max / 2 + 1.5 ||
 				ty < dy_shot - 1.5 || ty > dy_shot + shot_width_max + 1.5) {
 				// RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "(THROTTLE 2s)侦查点坐标异常，跳过: %zu, x: %f, y: %f, tx: %f, ty: %f", i, cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
@@ -717,7 +717,7 @@ bool OffboardControl::Doland()
 			target.fx = _camera_gimbal->fx;
 			target.radius = accuracy;
 			RCLCPP_INFO(this->get_logger(), "Doland");
-			rotate_global2stand(scout_x, scout_y, x_home, y_home);
+			// rotate_global2stand(scout_x, scout_y, x_home, y_home);
 			// RCLCPP_INFO(this->get_logger(), "返回降落准备点 x: %lf   y: %lf    angle: %lf", x_home, y_home, headingangle_compass);
 			// rclcpp::sleep_for(std::chrono::seconds(6));
 			rotate_global2stand(scout_x, scout_y + 0.3, x_home, y_home);

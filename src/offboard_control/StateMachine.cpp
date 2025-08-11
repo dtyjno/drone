@@ -410,7 +410,7 @@ void StateMachine::handle_state<FlyState::LandToStart>() {
 				continue; // 继续执行下一次循环;
 			case LandToStartState::land_to_start_wait: // 等待降落
 				owner_->send_world_setpoint_command(
-					0, 0, 0, 0
+					0, 0, 2, 0
 				);
 				if (owner_->state_timer_.elapsed() > 19 || owner_->_motors->get_system_status() == Motors::State__system_status::MAV_STATE_STANDBY) { // 如果等待超过19秒
 					RCLCPP_INFO(owner_->get_logger(), "等待降落超过19秒，开始降落");

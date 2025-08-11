@@ -316,6 +316,20 @@ public:
 	}
 
 	template <typename T>
+	void rotate_realglobal2stand(T in_x,T in_y, T &out_x, T &out_y) {
+		rotate_angle(in_x, in_y, -headingangle_real);
+		out_x = in_x;
+		out_y = in_y;
+	}
+
+	template <typename T>
+	void rotate_realstand2global(T in_x, T in_y, T &out_x, T &out_y) {
+		rotate_angle(in_x, in_y, headingangle_real);
+		out_x = in_x;
+		out_y = in_y;
+	}
+
+	template <typename T>
 	void rotate_world2start(T in_x, T in_y, T &out_x, T &out_y) {
 		rotate_angle(in_x, in_y, start.w());
 		out_x = in_x;
@@ -493,7 +507,8 @@ private:
 
 	float default_yaw = 0.0; // 默认偏转角 = 450 - headingangle_compass 角度
 	// headingangle_compass为罗盘读数 角度制
-	float headingangle_compass = M_PI_2; // 默认罗盘读数，待读取
+	float headingangle_compass; // 默认罗盘读数，待读取
+	float headingangle_real;
 
 	// 投弹区域巡航属性
 	const float shot_length_max = 8.0; //x方向，左右方向 
@@ -590,13 +605,15 @@ private:
 	{
 		YAML::Node config = Readyaml::readYAML(filename);
 		try {
-			headingangle_compass = config["headingangle_compass"].as<float>();
+			headingangle_compass = config["headingangle_compass"].as<float>(180.0); // 默认罗盘角度
+			headingangle_real = config["headingangle_real"].as<float>(headingangle_compass);
 			// 1. 航向角转换：指南针角度 → 数学标准角度（东为0°，逆时针）
 			// default_yaw = fmod(90.0 - headingangle_compass + 720.0, 360.0); // 确保角度在0到360度之间
 			default_yaw = fmod(headingangle_compass + 360.0, 360.0); // 确保角度在0到360度之间
-			RCLCPP_INFO(this->get_logger(), "读取罗盘角度: %f，默认旋转角：%f", headingangle_compass, default_yaw);
+			RCLCPP_INFO(this->get_logger(), "读取罗盘角度: %f，默认旋转角：%f, 实际方向角：%f", headingangle_compass, default_yaw, headingangle_real);
 			headingangle_compass = headingangle_compass * M_PI / 180.0; // 弧度制
 			default_yaw = M_PI/2 - default_yaw * M_PI / 180.0; // 弧度制
+			headingangle_real = headingangle_real * M_PI / 180.0; // 弧度制
 			dx_shot = config["dx_shot"].as<float>();
 			dy_shot = config["dy_shot"].as<float>();
 			dx_see = config["dx_see"].as<float>(); 
