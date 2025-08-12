@@ -107,7 +107,7 @@ void OffboardControl::timer_callback(void)
 		if (target1.has_value()) {
 			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) Example 1 - Target position: %f, %f, %f. Diameter: %f",
 				target1->x(), target1->y(), target1->z(), diameter);
-			Target_Samples.push_back({*target1, 0, diameter});
+			Target_Samples.push_back({*target1, 0, static_cast<size_t>(0), diameter});
 		}
 		else {
 			RCLCPP_WARN(this->get_logger(), "Example 1 - 无效的目标位置");
@@ -152,8 +152,8 @@ void OffboardControl::timer_callback(void)
 				continue;
 			}
 			// 从大到小排列
-			sort(cal_center.begin(), cal_center.end(), [](const Circles& a, const Circles& b) {
-				return shot_big_target ? a.diameters > b.diameters : a.diameters < b.diameters;
+			sort(cal_center.begin(), cal_center.end(), [this](const Circles& a, const Circles& b) {
+				return this->shot_big_target ? a.diameters > b.diameters : a.diameters < b.diameters;
 			});
 
 			surround_shot_points[shot_count] = Vector2f((tx - dx_shot) / shot_length_max, (ty - dy_shot) / shot_width_max);
