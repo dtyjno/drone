@@ -529,6 +529,7 @@ private:
 	float shot_halt_surround; // 投弹区巡航时，周围巡航高度
 	float shot_halt_low; // 投弹区预测目标低高度巡航
 	float see_halt;
+	bool shot_big_target; // 是否投放大目标
 	// 坐标待旋转处理后坐标
 	float tx_shot;
 	float ty_shot;
@@ -627,6 +628,8 @@ private:
 			drone_to_camera[2] = config["drone_to_camera_z"].as<float>();
 			servo_open_position = config["servo_open_position"].as<float>();
 			servo_close_position = config["servo_close_position"].as<float>();
+
+			shot_big_target = config["shot_big_target"].as<bool>(true);
 
 			RCLCPP_INFO(this->get_logger(), "读取投弹区起点坐标: dx_shot: %f, dy_shot: %f shot_halt: %f", dx_shot, dy_shot, shot_halt);
 			RCLCPP_INFO(this->get_logger(), "读取侦查区起点坐标: dx_see: %f, dy_see: %f see_halt: %f", dx_see, dy_see, see_halt);

@@ -142,7 +142,7 @@ void OffboardControl::timer_callback(void)
 		for(size_t i = 0; i < cal_center.size(); ++i)
 		{
 			double tx, ty;
-			rotate_realstand2global(cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
+			rotate_stand2global(cal_center[i].point.x() - get_x_home_pos(), cal_center[i].point.y() - get_y_home_pos(), tx, ty);
 			if (tx < dx_shot - shot_length_max / 2 - 1.5 || tx > dx_shot + shot_length_max / 2 + 1.5 ||
 				ty < dy_shot - 1.5 || ty > dy_shot + shot_width_max + 1.5) {
 				// RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "(THROTTLE 2s)侦查点坐标异常，跳过: %zu, x: %f, y: %f, tx: %f, ty: %f", i, cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
@@ -153,7 +153,7 @@ void OffboardControl::timer_callback(void)
 			}
 			// 从大到小排列
 			sort(cal_center.begin(), cal_center.end(), [](const Circles& a, const Circles& b) {
-				return a.diameters < b.diameters; // >
+				return shot_big_target ? a.diameters > b.diameters : a.diameters < b.diameters;
 			});
 
 			surround_shot_points[shot_count] = Vector2f((tx - dx_shot) / shot_length_max, (ty - dy_shot) / shot_width_max);
@@ -533,7 +533,7 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 							t2p_target.y = output_pixel.y();
 							t2p_target.category = std::string("circle").append("_t2p").append(targets_str[i]);
 							if (!debug_mode_) {
-								Circles nearest_circle;
+								uint8_t nearest_circle_index = 0;
 								double min_distance = std::numeric_limits<double>::max();
 								for (size_t j = 0; j < cal_center.size(); j++) {
 									double new_min_distance = 
@@ -541,10 +541,10 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 										std::pow(cal_center[j].point.y() - get_y_pos(), 2);
 									if (new_min_distance < min_distance) {
 										min_distance = new_min_distance;
-										nearest_circle = cal_center[j];
+										nearest_circle_index = j;
 									}
 								}
-								t2p_target.radius = nearest_circle.diameters / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
+								t2p_target.radius = cal_center[nearest_circle_index].diameters / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
 								if (cal_center.empty()){
 									t2p_target.radius = 0.08;
 								}
