@@ -105,7 +105,7 @@ void OffboardControl::timer_callback(void)
 			diameter = _camera_gimbal->calculateRealDiameter(avg_size, distance_to_bucket);
 		}
 		if (target1.has_value()) {
-			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) Example 1 - Target position: %f, %f, %f. Diameter: %f",
+			RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(T 1s) Example 1 - Target position: %f, %f, %f. Diameter: %f",
 				target1->x(), target1->y(), target1->z(), diameter);
 			Target_Samples.push_back({*target1, 0, static_cast<size_t>(0), diameter});
 		}
@@ -118,7 +118,7 @@ void OffboardControl::timer_callback(void)
 		this->cal_center = Clustering(Target_Samples);
 		if (!cal_center.empty()) {
 			std::ostringstream ss;
-			ss << "(THROTTLE 2s) \n";
+			ss << "(T 2s) \n";
 			for (size_t i = 0; i < cal_center.size(); ++i) {
 				ss << "侦查点坐标 " << i << ": x: " << cal_center[i].point.x() 
 					<< ", y: " << cal_center[i].point.y() 
@@ -145,7 +145,7 @@ void OffboardControl::timer_callback(void)
 			rotate_stand2global(cal_center[i].point.x() - get_x_home_pos(), cal_center[i].point.y() - get_y_home_pos(), tx, ty);
 			if (tx < dx_shot - shot_length_max / 2 - 1.5 || tx > dx_shot + shot_length_max / 2 + 1.5 ||
 				ty < dy_shot - 1.5 || ty > dy_shot + shot_width_max + 1.5) {
-				// RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "(THROTTLE 2s)侦查点坐标异常，跳过: %zu, x: %f, y: %f, tx: %f, ty: %f", i, cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
+				// RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "(T 2s)侦查点坐标异常，跳过: %zu, x: %f, y: %f, tx: %f, ty: %f", i, cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
 				RCLCPP_WARN(this->get_logger(), "侦查点坐标异常，跳过: %zu, x: %f, y: %f, tx: %f, ty: %f", i, cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
 				cal_center.erase(cal_center.begin() + i);
 				i--; // 调整索引以适应删除后的数组
@@ -289,7 +289,7 @@ bool OffboardControl::waypoint_goto_next(float x, float y, float length, float w
 	float x_temp = 0.0, y_temp = 0.0;
 	int count_n = count == nullptr? surround_cnt : *count;
 	if(count!=nullptr)
-		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) w_g_n,counter: %d, time=%lf", *count, waypoint_timer_.elapsed());
+		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(T 1s) w_g_n,counter: %d, time=%lf", *count, waypoint_timer_.elapsed());
 	x_temp = x + (length * way_points[count_n].x());
 	y_temp = y + (width * way_points[count_n].y());
 	if (waypoint_timer_.elapsed() > time || (is_equal(get_x_pos(), x_temp, 0.2f) && is_equal(get_y_pos(), y_temp, 0.2f))) 
@@ -356,7 +356,7 @@ bool OffboardControl::catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYP
 	);
 	if (abs(now_x - tar_x) <= accuracy && abs(now_y - tar_y) <= accuracy)
 	{
-		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) catch_target_bucket: 到达目标点, x_err: %f像素, y_err: %f像素", abs(now_x - tar_x), abs(now_y - tar_y));
+		RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(T 1s) catch_target_bucket: 到达目标点, x_err: %f像素, y_err: %f像素", abs(now_x - tar_x), abs(now_y - tar_y));
 		return true;
 	}
 	return false;
@@ -615,7 +615,7 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 				shot_index_target.r = 0.0f; // 设置当前目标颜色为绿色
 				shot_index_target.g = 1.0f;
 				shot_index_target.b = 0.0f;
-				// RCLCPP_INFO(this->get_logger(), "Doshot: Approach, Doshot, time = %fs", find_duration);
+				RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 100, "(T 0.1s) Doshot: Approach, Doshot, time = %fs", find_duration);
 				// if(error_x<0.05 && error_y<0.05){
 					// RCLCPP_INFO(this->get_logger(), "Arrive, Doshot");
 					// catch_state_=CatchState::end;
@@ -773,7 +773,7 @@ bool OffboardControl::Doland()
 			}
 			else
 			{
-				RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) Doland: 看见H了，执行Doland");
+				RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(T 1s) Doland: 看见H了，执行Doland");
 				if (catch_target(
 						defaults,
 						YOLO::TARGET_TYPE::H, // 目标类型
@@ -790,7 +790,7 @@ bool OffboardControl::Doland()
 				}
 				else
 				{
-					RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(THROTTLE 1s) Doland: 未到达降落点");
+					RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "(T 1s) Doland: 未到达降落点");
 					// RCLCPP_INFO(this->get_logger(), "Doland: 未到达降落点");
 				}
 			}
