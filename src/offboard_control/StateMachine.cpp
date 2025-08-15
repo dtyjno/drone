@@ -217,13 +217,13 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					owner_->doshot_state_ = owner_->DoshotState::doshot_wait; // 设置投弹状态为等待
 					doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
 					continue; // 直接跳到下一个状态;
-				} else if (!shot_flag && (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE) ? circle_counter >= 6 : false)) { // 未找到圆，前往目标过程中最多允许连续n次(n * owner_->get_wait_time()秒)未识别出目标的情况，使用最近一次采集到的位置数据
+				} else if (!shot_flag && (!owner_->_yolo->is_get_target(YOLO::TARGET_TYPE::CIRCLE) ? circle_counter >= 12 : false)) { // 未找到圆，前往目标过程中最多允许连续n次(n * owner_->get_wait_time()秒)未识别出目标的情况，使用最近一次采集到的位置数据
 					pre_counter = counter; // 记录上一次的计数器值
 					pre_time = owner_->waypoint_timer_.elapsed(); // 记录上一次的时间
 					// owner_->reset_wp_limits(); // 恢复默认速度限制
 					owner_->waypoint_goto_next(
-						owner_->dx_shot, owner_->dy_shot, owner_->shot_length, owner_->shot_width, 
-						owner_->shot_halt_surround, owner_->surround_shot_points, 5, &counter, "投弹区");
+						owner_->dx_shot, owner_->dy_shot, owner_->shot_length - 3.5, owner_->shot_width, 
+						owner_->shot_halt_surround, owner_->surround_shot_points, 5, &counter, "投弹区"); // 进入投弹区,距离左右边界各1.5m
 				} else if (owner_->Doshot(shot_counter, shot_flag)) { // 如果到达投弹点
 					// RCLCPP_INFO(owner_->get_logger(), "寻找完毕，投弹!!投弹!!");
 					RCLCPP_INFO(owner_->get_logger(), "已经锁定%d号桶，坐标为（%f,%f）", shot_counter, owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE), owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE));

@@ -512,7 +512,7 @@ private:
 
 	// 投弹区域巡航属性
 	const float shot_length_max = 8.0; //x方向，左右方向 
-	const float shot_length = 7.0; //x方向，左右方向 
+	const float shot_length = 8.0; //x方向，左右方向 
 	const float shot_width_max = 5.0; //y方向向前
 	const float shot_width = 5.0; //y方向，前后方向 符合直角坐标系
 	// const float shot_halt = 4.0;

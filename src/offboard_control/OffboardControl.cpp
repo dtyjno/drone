@@ -544,9 +544,11 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 										nearest_circle_index = j;
 									}
 								}
-								t2p_target.radius = cal_center[nearest_circle_index].diameters / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
+								// 如果cal_center为空，设置默认半径，防止段错误
 								if (cal_center.empty()){
 									t2p_target.radius = 0.08;
+								} else {
+									t2p_target.radius = cal_center[nearest_circle_index].diameters / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
 								}
 								// } else if (static_cast<int>(cal_center.size()) > shot_index){
 								// 	t2p_target.radius = cal_center[shot_index].diameters / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
