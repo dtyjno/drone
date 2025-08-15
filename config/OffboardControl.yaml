@@ -6,7 +6,7 @@ dx_see: 0.0
 dy_see: 54.7
 shot_halt: 4.5
 shot_halt_surround: 3.0
-shot_halt_low: 1.8
+shot_halt_low: 1.9
 see_halt: 3.5
 drone_to_camera_x: 0.0
 drone_to_camera_y: 0.16

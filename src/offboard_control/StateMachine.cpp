@@ -86,7 +86,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 
 		RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 5000, "(THROTTLE 5s)投弹任务执行时间 %f", owner_->state_timer_.elapsed());
 
-		if (owner_->state_timer_.elapsed() > 80 && owner_->doshot_state_ != owner_->DoshotState::doshot_end) // 超时 100 秒
+		if (owner_->state_timer_.elapsed() > 70 && owner_->doshot_state_ != owner_->DoshotState::doshot_end) // 超时 100 秒
 		{
 			doshot_halt_end_time = owner_->get_cur_time(); // 记录结束时间
 			RCLCPP_INFO(owner_->get_logger(), "超时");
