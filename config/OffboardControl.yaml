@@ -8,13 +8,13 @@ shot_halt: 4.5
 shot_halt_surround: 3.0
 shot_halt_low: 1.8
 see_halt: 3.5
-drone_to_camera_x: -0.050 # 2
-drone_to_camera_y: 0.230   # 2
-drone_to_camera_z: 0.20   # 2
+# drone_to_camera_x: -0.050 # 2
+# drone_to_camera_y: 0.230   # 2
+# drone_to_camera_z: 0.20   # 2
 
-# drone_to_camera_x: -0.045 # 1
-# drone_to_camera_y: 0.30   # 1
-# drone_to_camera_z: 0.30   # 1 0.20
+drone_to_camera_x: -0.049 # 1
+drone_to_camera_y: 0.30   # 1
+drone_to_camera_z: 0.20   # 1
 
 servo_open_position: 1980
 servo_close_position: 1200
