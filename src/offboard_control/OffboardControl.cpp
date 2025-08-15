@@ -522,7 +522,8 @@ bool OffboardControl::Doshot(int shot_count, bool &shot_flag)
 						Vector3d world_point_target(
 							_camera_gimbal->get_position().x() + rotated_x,
 							_camera_gimbal->get_position().y() + rotated_y,
-							bucket_height + shot_point[i].z()
+							bucket_height
+							// bucket_height + shot_point[i].z()
 						);
 						// std::cout << "Doshot: camera_gimbal position: " << _camera_gimbal->get_position().transpose() << " shot_point: " << shot_point[i].transpose() << " world_point_target: " << world_point_target.transpose() << std::endl;
 						auto output_pixel_opt = _camera_gimbal->worldToPixel(world_point_target);
