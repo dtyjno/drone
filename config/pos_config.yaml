@@ -28,7 +28,7 @@ pos_y:
   ff: 0
   imax: 5
 pos_yaw:
-  p: 0.2
+  p: 0.1
   i: 0.04
   d: 0.05
   dff: 0
@@ -37,7 +37,7 @@ pos_yaw:
 pos_z:
   p: 0.30
   i: 0.10
-  d: 0.15
+  d: 0.10
   dff: 0
   ff: 0
   imax: 10
