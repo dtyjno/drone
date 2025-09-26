@@ -1,0 +1,96 @@
+[0.227s] DEBUG:colcon:Command line arguments: ['/usr/bin/colcon', 'build', '--packages-select', 'px4_ros_com']
+[0.227s] DEBUG:colcon:Parsed command line arguments: Namespace(log_base=None, log_level=None, verb_name='build', build_base='build', install_base='install', merge_install=False, symlink_install=False, test_result_base=None, continue_on_error=False, executor='parallel', parallel_workers=32, event_handlers=None, ignore_user_meta=False, metas=['./colcon.meta'], base_paths=['.'], packages_ignore=None, packages_ignore_regex=None, paths=None, packages_up_to=None, packages_up_to_regex=None, packages_above=None, packages_above_and_dependencies=None, packages_above_depth=None, packages_select_by_dep=None, packages_skip_by_dep=None, packages_skip_up_to=None, packages_select_build_failed=False, packages_skip_build_finished=False, packages_select_test_failures=False, packages_skip_test_passed=False, packages_select=['px4_ros_com'], packages_skip=None, packages_select_regex=None, packages_skip_regex=None, packages_start=None, packages_end=None, allow_overriding=[], cmake_args=None, cmake_target=None, cmake_target_skip_unavailable=False, cmake_clean_cache=False, cmake_clean_first=False, cmake_force_configure=False, ament_cmake_args=None, catkin_cmake_args=None, catkin_skip_building_tests=False, mixin_files=None, mixin=None, verb_parser=<colcon_mixin.mixin.mixin_argument.MixinArgumentDecorator object at 0x7786a7ab5100>, verb_extension=<colcon_core.verb.build.BuildVerb object at 0x7786a7a2efc0>, main=<bound method BuildVerb.main of <colcon_core.verb.build.BuildVerb object at 0x7786a7a2efc0>>, mixin_verb=('build',))
+[0.267s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) check parameters
+[0.268s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) check parameters
+[0.268s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) check parameters
+[0.268s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) check parameters
+[0.268s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) discover
+[0.268s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) discover
+[0.268s] INFO:colcon.colcon_core.package_discovery:Crawling recursively for packages in '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com'
+[0.268s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ignore', 'ignore_ament_install']
+[0.268s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore'
+[0.268s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore_ament_install'
+[0.268s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_pkg']
+[0.268s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_pkg'
+[0.268s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_meta']
+[0.268s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_meta'
+[0.268s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ros']
+[0.268s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ros'
+[0.292s] DEBUG:colcon.colcon_core.package_identification:Package '.' with type 'ros.ament_cmake' and name 'px4_ros_com'
+[0.292s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) using defaults
+[0.292s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) discover
+[0.292s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) using defaults
+[0.292s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) discover
+[0.292s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) using defaults
+[0.308s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) check parameters
+[0.308s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) discover
+[0.312s] DEBUG:colcon.colcon_installed_package_information.package_discovery:Found 326 installed packages in /opt/ros/jazzy
+[0.312s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) using defaults
+[0.369s] Level 5:colcon.colcon_core.verb:set package 'px4_ros_com' build argument 'cmake_args' from command line to 'None'
+[0.370s] Level 5:colcon.colcon_core.verb:set package 'px4_ros_com' build argument 'cmake_target' from command line to 'None'
+[0.370s] Level 5:colcon.colcon_core.verb:set package 'px4_ros_com' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[0.370s] Level 5:colcon.colcon_core.verb:set package 'px4_ros_com' build argument 'cmake_clean_cache' from command line to 'False'
+[0.370s] Level 5:colcon.colcon_core.verb:set package 'px4_ros_com' build argument 'cmake_clean_first' from command line to 'False'
+[0.370s] Level 5:colcon.colcon_core.verb:set package 'px4_ros_com' build argument 'cmake_force_configure' from command line to 'False'
+[0.370s] Level 5:colcon.colcon_core.verb:set package 'px4_ros_com' build argument 'ament_cmake_args' from command line to 'None'
+[0.370s] Level 5:colcon.colcon_core.verb:set package 'px4_ros_com' build argument 'catkin_cmake_args' from command line to 'None'
+[0.370s] Level 5:colcon.colcon_core.verb:set package 'px4_ros_com' build argument 'catkin_skip_building_tests' from command line to 'False'
+[0.370s] DEBUG:colcon.colcon_core.verb:Building package 'px4_ros_com' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/px4_ros_com', 'merge_install': False, 'path': '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com', 'symlink_install': False, 'test_result_base': None}
+[0.370s] INFO:colcon.colcon_core.executor:Executing jobs using 'parallel' executor
+[0.371s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete
+[0.371s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com' with build type 'ament_cmake'
+[0.371s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com'
+[0.373s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_core.shell.bat': Not used on non-Windows systems
+[0.373s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[0.373s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[0.379s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy CONDA_PROMPT_MODIFIER=(base) DEBUGINFOD_URLS=https://debuginfod.ubuntu.com /usr/bin/cmake --build /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com -- -j32 -l32
+[84.462s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com' returned '2': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy CONDA_PROMPT_MODIFIER=(base) DEBUGINFOD_URLS=https://debuginfod.ubuntu.com /usr/bin/cmake --build /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com -- -j32 -l32
+[84.465s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(px4_ros_com)
+[84.479s] Level 1:colcon.colcon_core.environment:checking '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/px4_ros_com' for CMake module files
+[84.480s] Level 1:colcon.colcon_core.environment:checking '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/px4_ros_com' for CMake config files
+[84.481s] Level 1:colcon.colcon_core.environment:checking '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/px4_ros_com/bin'
+[84.481s] Level 1:colcon.colcon_core.environment:checking '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/px4_ros_com/lib/pkgconfig/px4_ros_com.pc'
+[84.482s] Level 1:colcon.colcon_core.environment:checking '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/px4_ros_com/lib/python3.12/site-packages'
+[84.482s] Level 1:colcon.colcon_core.environment:checking '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/px4_ros_com/bin'
+[84.482s] INFO:colcon.colcon_core.shell:Creating package script '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/px4_ros_com/share/px4_ros_com/package.ps1'
+[84.483s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/px4_ros_com/share/px4_ros_com/package.dsv'
+[84.484s] INFO:colcon.colcon_core.shell:Creating package script '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/px4_ros_com/share/px4_ros_com/package.sh'
+[84.485s] INFO:colcon.colcon_core.shell:Creating package script '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/px4_ros_com/share/px4_ros_com/package.bash'
+[84.486s] INFO:colcon.colcon_core.shell:Creating package script '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/px4_ros_com/share/px4_ros_com/package.zsh'
+[84.486s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/px4_ros_com/share/colcon-core/packages/px4_ros_com)
+[84.497s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:closing loop
+[84.497s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:loop closed
+[84.497s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete finished with '2'
+[84.497s] DEBUG:colcon.colcon_core.event_reactor:joining thread
+[84.542s] ERROR:colcon.colcon_core.event_reactor:Exception in event handler extension 'console_stderr': [Errno 32] Broken pipe
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/colcon_core/event_reactor.py", line 78, in _notify_observers
+    retval = observer(event)
+             ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/colcon_output/event_handler/console_stderr.py", line 52, in __call__
+    print(msg, file=sys.stderr, flush=True)
+BrokenPipeError: [Errno 32] Broken pipe
+
+[84.543s] ERROR:colcon.colcon_core.event_reactor:Exception in event handler extension 'console_start_end': [Errno 32] Broken pipe
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/colcon_core/event_reactor.py", line 78, in _notify_observers
+    retval = observer(event)
+             ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/colcon_core/event_handler/console_start_end.py", line 72, in __call__
+    print(Style.SectionEnd(msg), file=writable, flush=True)
+BrokenPipeError: [Errno 32] Broken pipe
+
+[84.561s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.terminal_notifier': Not used on non-Darwin systems
+[84.561s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.win32': Not used on non-Windows systems
+[84.561s] INFO:colcon.colcon_notification.desktop_notification:Sending desktop notification using 'notify2'
+[84.630s] DEBUG:colcon.colcon_core.event_reactor:joined thread
+[84.631s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/local_setup.ps1'
+[84.631s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/_local_setup_util_ps1.py'
+[84.632s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/setup.ps1'
+[84.634s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/local_setup.sh'
+[84.635s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/_local_setup_util_sh.py'
+[84.635s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/setup.sh'
+[84.635s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/local_setup.bash'
+[84.636s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/setup.bash'
+[84.636s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/local_setup.zsh'
+[84.637s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/install/setup.zsh'

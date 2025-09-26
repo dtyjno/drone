@@ -1,0 +1,93 @@
+#pragma once
+
+#include <vector>
+#include <functional>
+#include "../../task/Task.h"
+#include "../../utils/math.h"
+#include "../../algorithm/pid/PID.h"  // Add this include for PID::Defaults
+#include "../../module/YOLOTargetType.h"
+// 前向声明
+class AbstractDrone;
+class ROS2Drone;
+class APMROS2Drone;
+class YOLODetector;
+
+class AppochTargetTask : public Task<AppochTargetTask>
+{
+public:
+    static std::map<std::string, std::shared_ptr<AppochTargetTask>> TASKS;
+
+    // 静态工厂方法
+    static std::shared_ptr<AppochTargetTask> createTask(const std::string& task_name = "DoShot");
+    static std::shared_ptr<AppochTargetTask> getTask(const std::string& task_name = "DoShot");
+public:
+    struct Parameters{
+        std::string config_file_name = "shot_config.yaml";                      // 配置文件名
+        std::string config_device_name_prefix = "shot_target";                  // 配置文件中目标前缀
+        std::vector<std::string> config_device_name_suffix = {"_r", "_l"};      // 配置文件中目标后缀，决定了支持的目标数量
+        YOLO_TARGET_TYPE target_type;                                  // 目标类型
+        size_t device_index = 1;                                                // 当前接近的设备索引
+        float fx = 1.0f;                                        // 相机焦距，像素单位
+        std::function<Vector4f()> dynamic_target_position_callback;         // 获取动态准确目标坐标的回调函数 x,y,z,r
+        std::function<Vector2f()> dynamic_target_image_callback;         // 获取动态图像目标坐标的回调函数 x,y
+        float target_height = 0.0f;                             // 目标的高度，默认为地面高度0.0m
+        float target_yaw = 0.0f;                                // 目标偏航角
+        enum class Type{
+            PID,
+            TARGET
+        } type = Type::PID;
+    };
+
+private:
+    AppochTargetTask(std::string name) : 
+        Task<AppochTargetTask>(name) {}
+
+    // 任务执行
+	float find_duration = 0; 					    // 累计连续接近目标时间
+	float accuracy = 0.1;						    // 声明读取的准确度
+    PID::Defaults pid_defaults;                     // 声明读取的默认PID参数
+    std::vector<Vector3f> device_position;          // 声明读取的设备需要接近目标的位置
+    std::vector<YOLO_TARGET_TYPE> targets; 		// 声明读取的映射失败时目标u和v坐标
+    std::vector<TargetData> image_targets;    // 声明读取的映射失败时目标u和v坐标
+    float radius = 0.1; 						    // 声明读取的映射失败时使用的像素精度
+    Parameters parameters;
+public:
+
+    void setParameters(Parameters &parameters) {
+        this->parameters = parameters;
+    }
+
+    // 设置动态目标坐标回调函数
+    void setDynamicPositionTargetCallback(std::function<Vector4f()> callback) {
+        parameters.dynamic_target_position_callback = callback;
+    }
+    
+    // 获取当前目标坐标（动态或静态）
+    Vector4f getCurrentPositionTargets() {
+        if (parameters.dynamic_target_position_callback) {
+            return parameters.dynamic_target_position_callback();
+        }
+        return {};
+    }
+
+    // 设置动态目标坐标回调函数
+    void setDynamicImageTargetCallback(std::function<Vector2f()> callback) {
+        parameters.dynamic_target_image_callback = callback;
+    }
+    
+    // 获取当前目标坐标（动态或静态）
+    Vector2f getCurrentImageTargets() {
+        if (parameters.dynamic_target_image_callback) {
+            return parameters.dynamic_target_image_callback();
+        }
+        return {};
+    }
+public:
+    // CRTP 需要的方法 - 由基类的 impl() 调用
+    template<typename DeviceType>
+    bool init(DeviceType device);  // 初始化任务
+    template<typename DeviceType>
+    bool run(DeviceType device);   // 执行任务
+    template<typename DeviceType>
+    bool end(DeviceType device);   // 结束任务
+};

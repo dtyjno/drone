@@ -1,0 +1,317 @@
+#include "AppochTargetTask.h"
+#include "../../drone/AbstractDrone.h"
+#include "../../ROS2drone/ROS2Drone.h"
+#include "../APMROS2Drone.h"
+#include "../../module/YOLODetector.h"
+
+// 定义静态成员
+std::map<std::string, std::shared_ptr<AppochTargetTask>> AppochTargetTask::TASKS;
+
+std::shared_ptr<AppochTargetTask> AppochTargetTask::createTask(const std::string& task_name) {
+    if (TASKS.find(task_name) == TASKS.end()) {
+        AppochTargetTask *new_task = new AppochTargetTask(task_name);
+        TASKS[task_name] = std::shared_ptr<AppochTargetTask>(new_task);
+        std::cout << "Creating " << TASKS[task_name]->get_name() << " instance." << std::endl;
+    }
+    TASKS[task_name]->next_task(TASKS[task_name]);
+    return TASKS[task_name];
+}
+
+std::shared_ptr<AppochTargetTask> AppochTargetTask::getTask(const std::string& task_name) {
+    auto it = TASKS.find(task_name);
+    if (it != TASKS.end()) {
+        return it->second;
+    }
+    std::cerr << "Warning: Task " << task_name << " not found." << std::endl;
+    return nullptr;
+}
+
+template<typename DeviceType>
+bool AppochTargetTask::init(DeviceType device) {
+    device->log_info(get_string().c_str());
+    if constexpr (!std::is_same_v<DeviceType, std::shared_ptr<APMROS2Drone>>) {
+        // device->log_error("%s: AppochTargetTask::init can only be used with APMROS2Drone", get_string().c_str());
+        device->log_error("%s: init can only be used with APMROS2Drone", get_string().c_str());
+        return false;
+    } else {
+        device->get_position_controller()->reset_pid();
+        pid_defaults = PID::readPIDParameters(parameters.config_file_name, "pid");
+        PosController::Limits_t limits = device->get_position_controller()->readLimits(parameters.config_file_name, "limits");
+        device->get_position_controller()->set_limits(limits);
+        // 读取距离目标一定范围内退出的距离
+        YAML::Node config = Readyaml::readYAML(parameters.config_file_name);
+        radius = config["radius"].as<float>();
+        accuracy = config["accuracy"].as<float>();
+        // tar_z = config["tar_z"].as<float>();
+        this->device_position.clear();
+        this->image_targets.clear();
+        // 读取目标点相对于无人机机体坐标系的坐标
+        for (size_t i = 0; i < parameters.config_device_name_suffix.size(); i++)
+        {
+            std::string key_x = parameters.config_device_name_prefix + "_x" + parameters.config_device_name_suffix[i];
+            std::string key_y = parameters.config_device_name_prefix + "_y" + parameters.config_device_name_suffix[i];
+            std::string key_z = parameters.config_device_name_prefix + "_z" + parameters.config_device_name_suffix[i];
+            std::cout << "Reading position for target suffix: " << key_x << std::endl;
+            float adjusted_x = config[key_x].as<float>() - device->drone_to_camera[0];
+            float adjusted_y = config[key_y].as<float>() - device->drone_to_camera[1];
+            float adjusted_z = config[key_z].as<float>() - device->drone_to_camera[2];
+            this->device_position.push_back(Vector3f(adjusted_x, adjusted_y, adjusted_z)); // 调整高度 待旋转
+            std::cout << parameters.config_device_name_prefix << "_x" << parameters.config_device_name_suffix[i] << ": " << this->device_position[i].x() << std::endl;
+            std::cout << parameters.config_device_name_prefix << "_y" << parameters.config_device_name_suffix[i] << ": " << this->device_position[i].y() << std::endl;
+            std::cout << parameters.config_device_name_prefix << "_z" << parameters.config_device_name_suffix[i] << ": " << this->device_position[i].z() << std::endl;
+        }
+        // 初始化图像上的目标像素目标，解析目标位置在图像上的映射失败时，使用图像中心点
+        for (size_t i = 0; i < parameters.config_device_name_suffix.size(); i++)
+        {
+            TargetData target;
+            target.category = YOLODetector::enumToString(parameters.target_type).append(parameters.config_device_name_suffix[i]);
+            std::string key_x = std::string("tar_x").append(parameters.config_device_name_suffix[i]);
+            std::string key_y = std::string("tar_y").append(parameters.config_device_name_suffix[i]);
+            std::string key_z = std::string("tar_z").append(parameters.config_device_name_suffix[i]);
+            target.x = config[key_x].as<float>();
+            target.y = config[key_y].as<float>();
+            target.z = config[key_z].as<float>();
+            target.x = (is_equal(target.x, 0.0f) ? device->get_yolo_detector()->get_cap_frame_width() / 2 : target.x);
+            target.y = (is_equal(target.y, 0.0f) ? device->get_yolo_detector()->get_cap_frame_height() / 2 : target.y);
+            // target.z = (is_equal(target.z, 0.0f) ? tar_z : target.z);
+            target.x = device->get_yolo_detector()->get_cap_frame_width() / 2;
+            target.y = device->get_yolo_detector()->get_cap_frame_height() / 2;
+            target.r = 1.0f; 
+            target.g = 0.0f;
+            target.b = 0.0f;
+            target.fx = parameters.fx;
+            target.radius = radius;
+            device->log_info("%s: tar_x: %f, tar_y: %f, tar_z: %f", get_string().c_str(), target.x, target.y, target.z);
+            this->image_targets.push_back(target);
+        }
+        device->log_info("%s: cap_frame_width: %d, cap_frame_height: %d, radius: %f, accuracy: %f", 
+            get_string().c_str(),
+            device->get_yolo_detector()->get_cap_frame_width(), device->get_yolo_detector()->get_cap_frame_height(),
+            radius, accuracy
+        );
+
+        find_duration = 0.0f;               // 重置查找持续时间
+        return true;
+    }
+}
+
+template<typename DeviceType>
+bool AppochTargetTask::run(DeviceType device) {
+    // device->log_info(get_string().c_str());
+    // return true;
+    if constexpr (!std::is_same_v<DeviceType, std::shared_ptr<APMROS2Drone>>) {
+        device->log_error("%s: init can only be used with APMROS2Drone", get_string().c_str());
+        return false;
+    } else {
+        // TARGET
+        if (!getCurrentPositionTargets().isZero()) {
+            // 显示目标位置
+            TargetData temp_target = this->image_targets[0];
+            Vector4f current_targets = getCurrentPositionTargets();
+            Vector3d world_target_point(current_targets.x(), current_targets.y(), current_targets.z());
+            auto shot_target_opt = device->get_camera_gimbal()->worldToPixel(world_target_point);
+            if (shot_target_opt.has_value()) {
+                Vector2d shot_center = shot_target_opt.value();
+                temp_target.x = shot_center.x();
+                temp_target.y = shot_center.y();
+                temp_target.category = YOLODetector::enumToString(parameters.target_type).append("_t2p");
+                device->get_yolo_detector()->append_target(temp_target);
+            }
+
+            device->log_info_throttle(std::chrono::milliseconds(1000), "%s: Approaching target at (%.2f, %.2f, %.2f) with accuracy %.2f", 
+                get_string().c_str(), 
+                getCurrentPositionTargets().x(), getCurrentPositionTargets().y(), getCurrentPositionTargets().z(), 
+                getCurrentPositionTargets().w());
+            float target_z = getCurrentPositionTargets().z() > 2 ? getCurrentPositionTargets().z() :
+                             getCurrentPositionTargets().z() < 1.8 && device->get_z_pos() > 2 ? 1.8 :
+                             getCurrentPositionTargets().z() < 1.5 && device->get_z_pos() > 1.5 ? 1.2 : getCurrentPositionTargets().z();
+            if (is_equal(target_z, device->get_z_pos(), 0.40f)) {
+                target_z = getCurrentPositionTargets().z();
+            }
+            device->send_world_setpoint_command(getCurrentPositionTargets().x(), getCurrentPositionTargets().y(), target_z, getCurrentPositionTargets().w()); // 发送世界坐标系下的航点指令
+            if (is_equal(getCurrentPositionTargets().x(), device->get_x_pos(), 0.10f)
+                && is_equal(getCurrentPositionTargets().y(), device->get_y_pos(), 0.10f)
+                && is_equal(getCurrentPositionTargets().z(), device->get_z_pos(), 0.40f)) {
+                // device->log_info("Arrive, Doshot");
+                task_result = true;
+            } else {
+                task_result = false;
+            }
+            return false;
+        }
+
+        // PID
+        if (!getCurrentImageTargets().isZero()) {
+            device->log_info_throttle(std::chrono::milliseconds(1000), "%s: Approaching image target at (%.2f, %.2f)", 
+                get_string().c_str(), 
+                getCurrentImageTargets().x(), getCurrentImageTargets().y());
+            // pid_defaults = PID::readPIDParameters(parameters.config_file_name, "pid");
+
+            // 检查是否有目标
+            if (parameters.config_device_name_suffix.empty() && image_targets.empty()) {
+                device->log_error("%s: 目标不存在", get_string().c_str());
+                return true; // 结束任务
+            }
+            
+            // 验证设定的当前目标索引有效性 (removed < 0 check since device_index is unsigned)
+            if (parameters.device_index >= image_targets.size() &&
+                parameters.device_index >= device_position.size()) {
+                device->log_error("%s: Invalid parameters.device_index: %d, image_targets.size(): %zu, device_position.size(): %zu",
+                            get_string().c_str(), parameters.device_index, image_targets.size(), device_position.size());
+                return true;
+            }
+            
+            // 重置可视化目标的颜色
+            for (size_t i = 0; i < this->image_targets.size(); i++)
+            {
+                this->image_targets[i].r = 1.0f; // 设置所有目标颜色为红色
+                this->image_targets[i].g = 0.0f;
+                this->image_targets[i].b = 0.0f;
+                this->image_targets[i].relative_z = device->get_camera_gimbal()->get_position().z() - parameters.target_height; // 设置目标的高度为相机高度
+            }
+
+
+            std::vector<TargetData> t2p_targets;
+            for(size_t i = 0; i < this->device_position.size(); i++)
+            {
+                TargetData t2p_target = image_targets[0];
+                float rotated_x, rotated_y;  // 声明待旋转目标坐标
+                // std::cout << "%s: device_position[" << i << "]: " << device_position[i].transpose() << std::endl;
+                device->rotate_local2world(this->device_position[i].x(), this->device_position[i].y(), rotated_x, rotated_y);
+                // std::cout << "%s: rotated_x: " << rotated_x << ", rotated_y: " << rotated_y << std::endl;
+                Vector3d world_point_target(
+                    device->get_camera_gimbal()->get_position().x() + rotated_x,
+                    device->get_camera_gimbal()->get_position().y() + rotated_y,
+                    parameters.target_height + this->device_position[i].z()
+                    // -1.0
+                    // device->get_target_position().z() + this->device_position[i].z()
+                );
+                // std::cout << world_point_target.transpose() << std::endl;
+                // 获取读取的需要接近的相对飞机目标在地面上的映射像素坐标
+                auto output_pixel_opt = device->get_camera_gimbal()->worldToPixel(world_point_target);
+                // std::cout <<output_pixel_opt.has_value() << std::endl;
+                if (output_pixel_opt.has_value()) {
+                    Vector2d output_pixel = output_pixel_opt.value();
+                    t2p_target.x = output_pixel.x();
+                    t2p_target.y = output_pixel.y();
+                    t2p_target.category = YOLODetector::enumToString(parameters.target_type).append("_d2p").append(parameters.config_device_name_suffix[i]);
+                    if (!device->debug_mode_) {
+                        t2p_target.radius = getCurrentPositionTargets().w() / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
+                        t2p_targets.push_back(t2p_target);
+                    } else { // 发布所有的目标
+                        t2p_target.radius = 0.15 / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
+                        t2p_targets.push_back(t2p_target);
+                        t2p_target.radius = 0.20 / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
+                        t2p_targets.push_back(t2p_target);
+                        t2p_target.radius = 0.25 / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
+                        t2p_targets.push_back(t2p_target);
+                    }
+                }
+            }
+            device->get_yolo_detector()->append_targets(t2p_targets); // 将投弹到拍摄目标添加到YOLO中准备发布
+            
+            TargetData current_target; // 当前投弹目标
+            if(parameters.device_index < t2p_targets.size() && !t2p_targets.empty()){    // 使用计算出的图像上目标
+                current_target = t2p_targets[parameters.device_index];
+                t2p_targets.erase(t2p_targets.begin() + parameters.device_index); // 移除当前投弹目标，避免重复添加
+            } else if (parameters.device_index < image_targets.size()) {     // 使用读取的对应目标
+                device->log_info("%s: 找不到目标在图像的映射，parameters.device_index: %d, t2p_targets.size(): %zu, image_targets.size(): %zu", get_string().c_str(), parameters.device_index, t2p_targets.size(), image_targets.size());
+                current_target = image_targets[parameters.device_index];
+                // targets.erase(targets.begin() + parameters.device_index); // 移除当前投弹目标，避免重复添加
+            } else {  // 如果没有有效目标，使用默认值
+                current_target = image_targets[0];
+            }
+            // 设置当前目标颜色为黄色
+            current_target.r = 1.0f;
+            current_target.g = 1.0f; 
+            current_target.b = 0.0f;
+            // std::cout << "%s: current_target: " << current_target.x << ", " << current_target.y << ", " << current_target.z  << ", " << current_target.radius << std::endl;
+
+
+            // PID发布速度接近目标点, 输入目标像素坐标，返回是否到达目标点
+
+            // RCLCPP_INFO(device->get_node()->get_logger(), "--------------------\n\n读取pid参数: p: %f, i: %f, d: %f, ff: %f, dff: %f, imax: %f", defaults.p, defaults.i, defaults.d, defaults.ff, defaults.dff, defaults.imax);d_max_xy: %f, speed_max_z: %f, accel_max_x: %f, accel_max_z: %f", limits.speed_max_xy, limits.speed_max_z, limits.accel_max_xy, limits.accel_max_z);
+            // 检查YOLO帧尺寸是否有效
+            // if (get_cap_frame_width() <= 0 || get_cap_frame_height() <= 0) {
+            //     RCLCPP_ERROR(device->get_node()->get_logger(), "Invalid YOLO frame dimensions: width=%d, height=%d", 
+            //                  get_cap_frame_width(), get_cap_frame_height());
+            //     return false;
+            // }
+            // yolo返回值坐标系：x右y下（x_flip|y_flip = false），转换为飞机坐标系：x右y上
+            float now_x = getCurrentImageTargets().x();    // get_cap_frame_width() - get_x(target);
+            float now_y = device->get_yolo_detector()->get_cap_frame_height() - getCurrentImageTargets().y();    // get_y(target);
+            float tar_u = current_target.x;    // get_cap_frame_width() - current_target.x; // 目标x坐标
+            float tar_v = device->get_yolo_detector()->get_cap_frame_height() - current_target.y;    // tar_y; // 目标y坐标
+            // 检查坐标是否有效
+            // if (!std::isfinite(now_x) || !std::isfinite(now_y) || !std::isfinite(current_target.x) || !std::isfinite(tar_y)) {
+            //     RCLCPP_ERROR(device->get_node()->get_logger(), "Invalid coordinates detected");
+            //     return false;
+            // }
+            rotate_xy(now_x, now_y, -device->get_world_yaw()); // 将目标坐标旋转到世界坐标系 headingangle_compass
+            rotate_xy(tar_u, tar_v, -device->get_world_yaw()); // 将目标坐标旋转到世界坐标系 headingangle_compass
+            float max_frame = std::max(device->get_yolo_detector()->get_cap_frame_width(), device->get_yolo_detector()->get_cap_frame_height());
+            // RCLCPP_INFO(device->get_node()->get_logger(), "catch_target_bucket: yaw: %f, default_yaw: %f, headingangle_compass: %f", get_yaw(), default_yaw, headingangle_compass);
+            // RCLCPP_INFO(device->get_node()->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_u: %f, tar_y: %f", now_x, now_y, tar_u, tar_y);
+            // RCLCPP_INFO(device->get_node()->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_u: %f, tar_y: %f", now_x / get_cap_frame_width(), now_y / get_cap_frame_height(), (tar_u) / get_cap_frame_width(), (tar_y) / get_cap_frame_height());
+            // RCLCPP_INFO(device->get_node()->get_logger(), "catch_target_bucket: now_z: %f, current_target.z: %f, now_yaw: %f, parameters.target_yaw: %f", get_z_pos(), current_target.z, get_yaw(), parameters.target_yaw);
+            // RCLCPP_INFO(device->get_node()->get_logger(), "catch_target: current_target.caculate_pixel_radius(): %f, max_frame: %f", current_target.caculate_pixel_radius(), max_frame);
+
+            // bool trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target, PID::Defaults defaults, double current_target.caculate_pixel_radius(), double yaw_current_target.caculate_pixel_radius(), bool calculate_or_get_vel, float vel_x = DEFAULT_VELOCITY, float vel_y = DEFAULT_VELOCITY);
+            device->log_info_throttle(std::chrono::milliseconds(1000), "%s: now_x: %.2f, now_y: %.2f, tar_u: %.2f, tar_v: %.2f, target_z: %.2f", 
+                get_string().c_str(), now_x, now_y, tar_u, tar_v, current_target.z);
+            device->get_position_controller()->trajectory_setpoint_world(
+                Vector4f{tar_u / max_frame, tar_v / max_frame, static_cast<float>(device->get_z_pos()), static_cast<float>(device->get_world_yaw())}, // 当前坐标        get_world_yaw()  // 当前坐标
+                Vector4f{now_x / max_frame, now_y / max_frame, current_target.z, parameters.target_yaw + device->get_default_yaw()}, // 目标坐标  parameters.target_yaw
+                pid_defaults,
+                0.0,               				// 精度
+                0.0 			 				// 偏航精度
+                // true             				// 是否不使用飞机速度计算
+                //	get_velocity_x(target) / max_frame, 	// 飞机速度
+                //	get_velocity_y(target) / max_frame  	// 飞机速度
+            );
+            if (abs(now_x - tar_u) <= current_target.caculate_pixel_radius() && abs(now_y - tar_v) <= current_target.caculate_pixel_radius())
+            {
+                RCLCPP_INFO_THROTTLE(device->get_node()->get_logger(), *device->get_node()->get_clock(), 1000, "(T 1s) catch_target_bucket: 到达目标点, x_err: %f像素, y_err: %f像素", abs(now_x - current_target.x), abs(now_y - current_target.y));
+                // return true;
+                current_target.r = 0.0f; // 设置当前目标颜色为绿色
+                current_target.g = 1.0f;
+                current_target.b = 0.0f;
+                task_result = true; // 设置任务结果为成功   
+            }
+            // return false;
+            task_result = false; // 设置任务结果为失败
+            device->get_yolo_detector()->append_target(current_target); // 将当前投弹目标添加到YOLO中准备发布
+            // 接近目标
+            return false;
+        }
+
+        // return true; // 没有目标，结束任务
+    }
+    device->log_info_throttle(std::chrono::milliseconds(1000), "%s: No target found", get_string().c_str());
+    return false;
+}
+
+template<typename DeviceType>
+bool AppochTargetTask::end(DeviceType device) {
+    if constexpr (!std::is_same_v<DeviceType, std::shared_ptr<APMROS2Drone>>) {
+        device->log_error("%s: init can only be used with APMROS2Drone", get_string().c_str());
+        return false;
+    } else {
+        device->log_info(get_string().c_str());
+        device->get_position_controller()->reset_limits();
+        return true;
+    }
+}
+
+// Explicit template instantiations
+template bool AppochTargetTask::init<std::shared_ptr<AbstractDrone>>(std::shared_ptr<AbstractDrone> device);
+template bool AppochTargetTask::run<std::shared_ptr<AbstractDrone>>(std::shared_ptr<AbstractDrone> device);
+template bool AppochTargetTask::end<std::shared_ptr<AbstractDrone>>(std::shared_ptr<AbstractDrone> device);
+
+template bool AppochTargetTask::init<std::shared_ptr<ROS2Drone>>(std::shared_ptr<ROS2Drone> device);
+template bool AppochTargetTask::run<std::shared_ptr<ROS2Drone>>(std::shared_ptr<ROS2Drone> device);
+template bool AppochTargetTask::end<std::shared_ptr<ROS2Drone>>(std::shared_ptr<ROS2Drone> device);
+
+template bool AppochTargetTask::init<std::shared_ptr<APMROS2Drone>>(std::shared_ptr<APMROS2Drone> device);
+template bool AppochTargetTask::run<std::shared_ptr<APMROS2Drone>>(std::shared_ptr<APMROS2Drone> device);
+template bool AppochTargetTask::end<std::shared_ptr<APMROS2Drone>>(std::shared_ptr<APMROS2Drone> device);

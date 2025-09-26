@@ -1,7 +1,6 @@
 #include <rclcpp/rclcpp.hpp>
-#include "Yolo.h"
-#include "ServoController.h"
-#include "OffboardControl.h"
+// #include "module/ServoController.h"
+#include "APMROS2drone/APMROS2Drone.h"
 
 int main(int argc, char *argv[])
 {
@@ -10,13 +9,15 @@ int main(int argc, char *argv[])
 
 	rclcpp::executors::MultiThreadedExecutor executor;
 
-	auto yolo_ = std::make_shared<YOLO>();
-	auto node = std::make_shared<OffboardControl>("/mavros/",yolo_);
-	
-	/* 运行节点，并检测退出信号*/
-	executor.add_node(yolo_);
-	executor.add_node(node);
+	// auto yolo_ = std::make_shared<YOLO>();
+	// std::cout << "YOLO node initialized." << std::endl;
+	auto offboard_control = APMROS2Drone::create("/mavros/");
+	std::cout << "APMROS2Drone node initialized." << std::endl;
 
+	/* 运行节点，并检测退出信号*/
+	// executor.add_node(yolo_);
+	executor.add_node(offboard_control->get_node());
+	std::cout << "Nodes added to executor. Spinning..." << std::endl;
 	executor.spin();
 
 	rclcpp::shutdown();

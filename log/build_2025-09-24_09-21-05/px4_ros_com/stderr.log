@@ -1,0 +1,1125 @@
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/RTLLandTask.cpp:2:10: fatal error: ../APMROS2Drone.h: No such file or directory
+    2 | #include "../APMROS2Drone.h"
+      |          ^~~~~~~~~~~~~~~~~~~
+compilation terminated.
+gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:482: CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/RTLLandTask.cpp.o] Error 1
+gmake[2]: *** Waiting for unfinished jobs....
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/WayPointTask.cpp:4:10: fatal error: ../APMROS2Drone.h: No such file or directory
+    4 | #include "../APMROS2Drone.h"
+      |          ^~~~~~~~~~~~~~~~~~~
+compilation terminated.
+gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:510: CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/WayPointTask.cpp.o] Error 1
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/SetPointTask.cpp:4:10: fatal error: ../APMROS2Drone.h: No such file or directory
+    4 | #include "../APMROS2Drone.h"
+      |          ^~~~~~~~~~~~~~~~~~~
+compilation terminated.
+gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:496: CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/SetPointTask.cpp.o] Error 1
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/PrintInfoTask.cpp: In instantiation of ‘bool PrintInfoTask::init(DeviceType) [with DeviceType = std::shared_ptr<ROS2Drone>]’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:91:32:   required from ‘bool Task<T>::execute(DeviceType) [with DeviceType = std::shared_ptr<ROS2Drone>; T = PrintInfoTask]’
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:171:51:   required from ‘bool Task<T>::execute_ros2(std::shared_ptr<ROS2Drone>) [with T = PrintInfoTask]’
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:170:10:   required from here
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/PrintInfoTask.cpp:30:17: error: invalid use of incomplete type ‘using std::__shared_ptr_access<ROS2Drone, __gnu_cxx::_S_atomic, false, false>::element_type = class ROS2Drone’ {aka ‘class ROS2Drone’}
+   30 |         device->log_error("%s: can only be used with AbstractDrone", get_string().c_str());
+      |         ~~~~~~~~^~~~~~~~~
+In file included from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/TaskBase.h:9,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:10,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/PrintInfoTask.h:3,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/PrintInfoTask.cpp:1:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/DeviceVisitor.h:7:7: note: forward declaration of ‘using std::__shared_ptr_access<ROS2Drone, __gnu_cxx::_S_atomic, false, false>::element_type = class ROS2Drone’ {aka ‘class ROS2Drone’}
+    7 | class ROS2Drone;
+      |       ^~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/PrintInfoTask.cpp: In instantiation of ‘bool PrintInfoTask::run(DeviceType) [with DeviceType = std::shared_ptr<ROS2Drone>]’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:101:31:   required from ‘bool Task<T>::execute(DeviceType) [with DeviceType = std::shared_ptr<ROS2Drone>; T = PrintInfoTask]’
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:171:51:   required from ‘bool Task<T>::execute_ros2(std::shared_ptr<ROS2Drone>) [with T = PrintInfoTask]’
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:170:10:   required from here
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/PrintInfoTask.cpp:49:17: error: invalid use of incomplete type ‘using std::__shared_ptr_access<ROS2Drone, __gnu_cxx::_S_atomic, false, false>::element_type = class ROS2Drone’ {aka ‘class ROS2Drone’}
+   49 |         device->log_error("%s: can only be used with AbstractDrone", get_string().c_str());
+      |         ~~~~~~~~^~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/DeviceVisitor.h:7:7: note: forward declaration of ‘using std::__shared_ptr_access<ROS2Drone, __gnu_cxx::_S_atomic, false, false>::element_type = class ROS2Drone’ {aka ‘class ROS2Drone’}
+    7 | class ROS2Drone;
+      |       ^~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/PrintInfoTask.cpp: In instantiation of ‘bool PrintInfoTask::end(DeviceType) [with DeviceType = std::shared_ptr<ROS2Drone>]’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:110:31:   required from ‘bool Task<T>::execute(DeviceType) [with DeviceType = std::shared_ptr<ROS2Drone>; T = PrintInfoTask]’
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:171:51:   required from ‘bool Task<T>::execute_ros2(std::shared_ptr<ROS2Drone>) [with T = PrintInfoTask]’
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:170:10:   required from here
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/PrintInfoTask.cpp:100:17: error: invalid use of incomplete type ‘using std::__shared_ptr_access<ROS2Drone, __gnu_cxx::_S_atomic, false, false>::element_type = class ROS2Drone’ {aka ‘class ROS2Drone’}
+  100 |         device->log_error("%s: can only be used with AbstractDrone", get_string().c_str());
+      |         ~~~~~~~~^~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/DeviceVisitor.h:7:7: note: forward declaration of ‘using std::__shared_ptr_access<ROS2Drone, __gnu_cxx::_S_atomic, false, false>::element_type = class ROS2Drone’ {aka ‘class ROS2Drone’}
+    7 | class ROS2Drone;
+      |       ^~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/PrintInfoTask.cpp: In instantiation of ‘bool PrintInfoTask::init(DeviceType) [with DeviceType = std::shared_ptr<APMROS2Drone>]’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:91:32:   required from ‘bool Task<T>::execute(DeviceType) [with DeviceType = std::shared_ptr<APMROS2Drone>; T = PrintInfoTask]’
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:175:54:   required from ‘bool Task<T>::execute_apm(std::shared_ptr<APMROS2Drone>) [with T = PrintInfoTask]’
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:174:10:   required from here
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/PrintInfoTask.cpp:30:17: error: invalid use of incomplete type ‘using std::__shared_ptr_access<APMROS2Drone, __gnu_cxx::_S_atomic, false, false>::element_type = class APMROS2Drone’ {aka ‘class APMROS2Drone’}
+   30 |         device->log_error("%s: can only be used with AbstractDrone", get_string().c_str());
+      |         ~~~~~~~~^~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/DeviceVisitor.h:8:7: note: forward declaration of ‘using std::__shared_ptr_access<APMROS2Drone, __gnu_cxx::_S_atomic, false, false>::element_type = class APMROS2Drone’ {aka ‘class APMROS2Drone’}
+    8 | class APMROS2Drone;
+      |       ^~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/PrintInfoTask.cpp: In instantiation of ‘bool PrintInfoTask::run(DeviceType) [with DeviceType = std::shared_ptr<APMROS2Drone>]’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:101:31:   required from ‘bool Task<T>::execute(DeviceType) [with DeviceType = std::shared_ptr<APMROS2Drone>; T = PrintInfoTask]’
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:175:54:   required from ‘bool Task<T>::execute_apm(std::shared_ptr<APMROS2Drone>) [with T = PrintInfoTask]’
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:174:10:   required from here
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/PrintInfoTask.cpp:49:17: error: invalid use of incomplete type ‘using std::__shared_ptr_access<APMROS2Drone, __gnu_cxx::_S_atomic, false, false>::element_type = class APMROS2Drone’ {aka ‘class APMROS2Drone’}
+   49 |         device->log_error("%s: can only be used with AbstractDrone", get_string().c_str());
+      |         ~~~~~~~~^~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/DeviceVisitor.h:8:7: note: forward declaration of ‘using std::__shared_ptr_access<APMROS2Drone, __gnu_cxx::_S_atomic, false, false>::element_type = class APMROS2Drone’ {aka ‘class APMROS2Drone’}
+    8 | class APMROS2Drone;
+      |       ^~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/PrintInfoTask.cpp: In instantiation of ‘bool PrintInfoTask::end(DeviceType) [with DeviceType = std::shared_ptr<APMROS2Drone>]’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:110:31:   required from ‘bool Task<T>::execute(DeviceType) [with DeviceType = std::shared_ptr<APMROS2Drone>; T = PrintInfoTask]’
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:175:54:   required from ‘bool Task<T>::execute_apm(std::shared_ptr<APMROS2Drone>) [with T = PrintInfoTask]’
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/Task.h:174:10:   required from here
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/PrintInfoTask.cpp:100:17: error: invalid use of incomplete type ‘using std::__shared_ptr_access<APMROS2Drone, __gnu_cxx::_S_atomic, false, false>::element_type = class APMROS2Drone’ {aka ‘class APMROS2Drone’}
+  100 |         device->log_error("%s: can only be used with AbstractDrone", get_string().c_str());
+      |         ~~~~~~~~^~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/task/../../task/DeviceVisitor.h:8:7: note: forward declaration of ‘using std::__shared_ptr_access<APMROS2Drone, __gnu_cxx::_S_atomic, false, false>::element_type = class APMROS2Drone’ {aka ‘class APMROS2Drone’}
+    8 | class APMROS2Drone;
+      |       ^~~~~~~~~~~~
+gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:468: CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/PrintInfoTask.cpp.o] Error 1
+In file included from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:1:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.h:7:36: error: ‘AbstractDrone’ was not declared in this scope
+    7 |     class InitState : public State<AbstractDrone> {
+      |                                    ^~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.h:7:49: error: template argument 1 is invalid
+    7 |     class InitState : public State<AbstractDrone> {
+      |                                                 ^
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.h:15:14: error: ‘void States::InitState::executeImpl() const’ marked ‘override’, but does not override
+   15 |         void executeImpl() const override;
+      |              ^~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.h: In constructor ‘States::InitState::InitState()’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.h:18:23: error: class ‘States::InitState’ does not have any field named ‘State’
+   18 |         InitState() : State("init", 1) {}
+      |                       ^~~~~
+In file included from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/states.h:3,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:2:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.h: At global scope:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.h:7:11: error: redefinition of ‘class States::InitState’
+    7 |     class InitState : public State<AbstractDrone> {
+      |           ^~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.h:7:11: note: previous definition of ‘class States::InitState’
+    7 |     class InitState : public State<AbstractDrone> {
+      |           ^~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:4:6: error: ‘InitState’ has not been declared
+    4 | void InitState::executeImpl() const override {
+      |      ^~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:4:37: error: virt-specifiers in ‘executeImpl’ not allowed outside a class definition
+    4 | void InitState::executeImpl() const override {
+      |                                     ^~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:4:37: error: non-member function ‘void executeImpl()’ cannot have cv-qualifier
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp: In function ‘void executeImpl()’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:7:39: error: ‘APMROS2Drone’ was not declared in this scope
+    7 |     auto& stateMachine = StateMachine<APMROS2Drone>::getInstance();
+      |                                       ^~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:7:51: error: template argument 1 is invalid
+    7 |     auto& stateMachine = StateMachine<APMROS2Drone>::getInstance();
+      |                                                   ^
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:8:43: error: ‘InitState’ has not been declared
+    8 |     if (stateMachine.getCurrentState() == InitState::getInstance()) {
+      |                                           ^~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:9:9: error: ‘owner_’ was not declared in this scope
+    9 |         owner_->FlyState_init();
+      |         ^~~~~~
+In file included from /opt/ros/jazzy/include/rclcpp/rclcpp/copy_all_parameter_values.hpp:27,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/rclcpp.hpp:171,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/../../stateMachine/State.h:8,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.h:2:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:10:9: error: template argument 1 is invalid
+   10 |         RCLCPP_INFO_ONCE(owner_->node->get_logger(), "初始化完成");
+      |         ^~~~~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:10:9: error: template argument 1 is invalid
+   10 |         RCLCPP_INFO_ONCE(owner_->node->get_logger(), "初始化完成");
+      |         ^~~~~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:10:9: error: template argument 1 is invalid
+   10 |         RCLCPP_INFO_ONCE(owner_->node->get_logger(), "初始化完成");
+      |         ^~~~~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:12:13: error: template argument 1 is invalid
+   12 |             RCLCPP_INFO_ONCE(owner_->node->get_logger(), "测试模式下, 不进行起飞");
+      |             ^~~~~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:12:13: error: template argument 1 is invalid
+   12 |             RCLCPP_INFO_ONCE(owner_->node->get_logger(), "测试模式下, 不进行起飞");
+      |             ^~~~~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:12:13: error: template argument 1 is invalid
+   12 |             RCLCPP_INFO_ONCE(owner_->node->get_logger(), "测试模式下, 不进行起飞");
+      |             ^~~~~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:13:27: error: ‘GotoShotPointState’ has not been declared
+   13 |             transition_to(GotoShotPointState::getInstance());
+      |                           ^~~~~~~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:13:13: error: ‘transition_to’ was not declared in this scope
+   13 |             transition_to(GotoShotPointState::getInstance());
+      |             ^~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:16:23: error: ‘TakeoffState’ has not been declared
+   16 |         transition_to(TakeoffState::getInstance());
+      |                       ^~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/InitState.cpp:16:9: error: ‘transition_to’ was not declared in this scope
+   16 |         transition_to(TakeoffState::getInstance());
+      |         ^~~~~~~~~~~~~
+gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:440: CMakeFiles/offboard_control.dir/src/offboard_control/drone/state/InitState.cpp.o] Error 1
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp: In member function ‘virtual void States::InitState::executeImpl() const’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:19:47: error: ‘APMROS2Drone’ was not declared in this scope
+   19 |             auto& stateMachine = StateMachine<APMROS2Drone>::getInstance();
+      |                                               ^~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:19:59: error: template argument 1 is invalid
+   19 |             auto& stateMachine = StateMachine<APMROS2Drone>::getInstance();
+      |                                                           ^
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:21:25: error: ‘using std::__shared_ptr_access<AbstractDrone, __gnu_cxx::_S_atomic, false, false>::element_type = class AbstractDrone’ {aka ‘class AbstractDrone’} has no member named ‘FlyState_init’
+   21 |                 owner_->FlyState_init();
+      |                         ^~~~~~~~~~~~~
+In file included from /opt/ros/jazzy/include/rclcpp/rclcpp/copy_all_parameter_values.hpp:27,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/rclcpp.hpp:171,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/../../stateMachine/State.h:8,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:2:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:22:42: error: ‘using std::__shared_ptr_access<AbstractDrone, __gnu_cxx::_S_atomic, false, false>::element_type = class AbstractDrone’ {aka ‘class AbstractDrone’} has no member named ‘node’
+   22 |                 RCLCPP_INFO_ONCE(owner_->node->get_logger(), "初始化完成");
+      |                                          ^~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:22:42: error: ‘using std::__shared_ptr_access<AbstractDrone, __gnu_cxx::_S_atomic, false, false>::element_type = class AbstractDrone’ {aka ‘class AbstractDrone’} has no member named ‘node’
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:22:17: error: template argument 1 is invalid
+   22 |                 RCLCPP_INFO_ONCE(owner_->node->get_logger(), "初始化完成");
+      |                 ^~~~~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:22:17: error: template argument 1 is invalid
+   22 |                 RCLCPP_INFO_ONCE(owner_->node->get_logger(), "初始化完成");
+      |                 ^~~~~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:22:17: error: template argument 1 is invalid
+   22 |                 RCLCPP_INFO_ONCE(owner_->node->get_logger(), "初始化完成");
+      |                 ^~~~~~~~~~~~~~~~
+In file included from /opt/ros/jazzy/include/rclcpp/rclcpp/logging.hpp:24:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:22:42: error: ‘using std::__shared_ptr_access<AbstractDrone, __gnu_cxx::_S_atomic, false, false>::element_type = class AbstractDrone’ {aka ‘class AbstractDrone’} has no member named ‘node’
+   22 |                 RCLCPP_INFO_ONCE(owner_->node->get_logger(), "初始化完成");
+      |                                          ^~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:22:42: error: ‘using std::__shared_ptr_access<AbstractDrone, __gnu_cxx::_S_atomic, false, false>::element_type = class AbstractDrone’ {aka ‘class AbstractDrone’} has no member named ‘node’
+   22 |                 RCLCPP_INFO_ONCE(owner_->node->get_logger(), "初始化完成");
+      |                                          ^~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:23:29: error: ‘using std::__shared_ptr_access<AbstractDrone, __gnu_cxx::_S_atomic, false, false>::element_type = class AbstractDrone’ {aka ‘class AbstractDrone’} has no member named ‘debug_mode_’
+   23 |                 if (owner_->debug_mode_) {
+      |                             ^~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:24:46: error: ‘using std::__shared_ptr_access<AbstractDrone, __gnu_cxx::_S_atomic, false, false>::element_type = class AbstractDrone’ {aka ‘class AbstractDrone’} has no member named ‘node’
+   24 |                     RCLCPP_INFO_ONCE(owner_->node->get_logger(), "测试模式下, 不进行起飞");
+      |                                              ^~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:24:46: error: ‘using std::__shared_ptr_access<AbstractDrone, __gnu_cxx::_S_atomic, false, false>::element_type = class AbstractDrone’ {aka ‘class AbstractDrone’} has no member named ‘node’
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:24:21: error: template argument 1 is invalid
+   24 |                     RCLCPP_INFO_ONCE(owner_->node->get_logger(), "测试模式下, 不进行起飞");
+      |                     ^~~~~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:24:21: error: template argument 1 is invalid
+   24 |                     RCLCPP_INFO_ONCE(owner_->node->get_logger(), "测试模式下, 不进行起飞");
+      |                     ^~~~~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:24:21: error: template argument 1 is invalid
+   24 |                     RCLCPP_INFO_ONCE(owner_->node->get_logger(), "测试模式下, 不进行起飞");
+      |                     ^~~~~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:24:46: error: ‘using std::__shared_ptr_access<AbstractDrone, __gnu_cxx::_S_atomic, false, false>::element_type = class AbstractDrone’ {aka ‘class AbstractDrone’} has no member named ‘node’
+   24 |                     RCLCPP_INFO_ONCE(owner_->node->get_logger(), "测试模式下, 不进行起飞");
+      |                                              ^~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:24:46: error: ‘using std::__shared_ptr_access<AbstractDrone, __gnu_cxx::_S_atomic, false, false>::element_type = class AbstractDrone’ {aka ‘class AbstractDrone’} has no member named ‘node’
+   24 |                     RCLCPP_INFO_ONCE(owner_->node->get_logger(), "测试模式下, 不进行起飞");
+      |                                              ^~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:25:35: error: ‘GotoShotPointState’ has not been declared
+   25 |                     transition_to(GotoShotPointState::getInstance());
+      |                                   ^~~~~~~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:28:31: error: ‘TakeoffState’ has not been declared
+   28 |                 transition_to(TakeoffState::getInstance());
+      |                               ^~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/../../stateMachine/State.h: In instantiation of ‘State<T>::State(const std::string&, int) [with T = AbstractDrone; std::string = std::__cxx11::basic_string<char>]’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/State.cpp:33:38:   required from here
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/../../stateMachine/State.h:131:66: error: incomplete type ‘StateMachine<AbstractDrone>’ used in nested name specifier
+  131 |                 auto& stateMachine = StateMachine<T>::getInstance();
+      |                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/../../stateMachine/State.h: In instantiation of ‘std::future<void> State<T>::executeAsync() const [with T = AbstractDrone]’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/../../stateMachine/State.h:75:28:   required from here
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/drone/state/../../stateMachine/State.h:77:66: error: incomplete type ‘StateMachine<AbstractDrone>’ used in nested name specifier
+   77 |                 auto& stateMachine = StateMachine<T>::getInstance();
+      |                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
+gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:454: CMakeFiles/offboard_control.dir/src/offboard_control/drone/state/State.cpp.o] Error 1
+In file included from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:1:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.h:32:31: error: incomplete type ‘YOLODetector’ used in nested name specifier
+   32 |     std::vector<YOLODetector::Target> targets;          // 声明读取的映射失败时目标u和v坐标
+      |                               ^~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.h:32:37: error: template argument 1 is invalid
+   32 |     std::vector<YOLODetector::Target> targets;          // 声明读取的映射失败时目标u和v坐标
+      |                                     ^
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.h:32:37: error: template argument 2 is invalid
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.h:39:23: error: invalid use of incomplete type ‘class YOLODetector’
+   39 |         YOLODetector::TARGET_TYPE target_type;                                  // 目标类型
+      |                       ^~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.h:13:7: note: forward declaration of ‘class YOLODetector’
+   13 | class YOLODetector;
+      |       ^~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp: In member function ‘bool AppochTargetTask::init(DeviceType)’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:47:23: error: request for member ‘clear’ in ‘((AppochTargetTask*)this)->targets’, which is of non-class type ‘int’
+   47 |         this->targets.clear();
+      |                       ^~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:63:69: error: ‘struct AppochTargetTask::Parameters’ has no member named ‘target_type’; did you mean ‘target_yaw’?
+   63 |             target.category = YOLODetector::enumToString(parameters.target_type).append(parameters.config_device_name_suffix[i]);
+      |                                                                     ^~~~~~~~~~~
+      |                                                                     target_yaw
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:69:52: error: ‘tar_z’ was not declared in this scope
+   69 |             target.z = (is_equal(target.z, 0.0f) ? tar_z : target.z);
+      |                                                    ^~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:78:19: error: ‘class AppochTargetTask’ has no member named ‘image_targets’
+   78 |             this->image_targets.push_back(target);
+      |                   ^~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:83:31: error: ‘shot_duration’ was not declared in this scope; did you mean ‘find_duration’?
+   83 |             radius, accuracy, shot_duration, shot_wait
+      |                               ^~~~~~~~~~~~~
+      |                               find_duration
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:83:46: error: ‘shot_wait’ was not declared in this scope
+   83 |             radius, accuracy, shot_duration, shot_wait
+      |                                              ^~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp: In member function ‘bool AppochTargetTask::run(DeviceType)’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:118:61: error: ‘image_targets’ was not declared in this scope
+  118 |         if (parameters.config_device_name_suffix.empty() && image_targets.empty()) {
+      |                                                             ^~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:124:72: error: ‘image_targets’ was not declared in this scope
+  124 |         if (parameters.device_index < 0 || (parameters.device_index >= image_targets.size() &&
+      |                                                                        ^~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:132:38: error: ‘class AppochTargetTask’ has no member named ‘image_targets’
+  132 |         for (size_t i = 0; i < this->image_targets.size(); i++)
+      |                                      ^~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:134:19: error: ‘class AppochTargetTask’ has no member named ‘image_targets’
+  134 |             this->image_targets[i].r = 1.0f; // 设置所有目标颜色为红色
+      |                   ^~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:135:19: error: ‘class AppochTargetTask’ has no member named ‘image_targets’
+  135 |             this->image_targets[i].g = 0.0f;
+      |                   ^~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:136:19: error: ‘class AppochTargetTask’ has no member named ‘image_targets’
+  136 |             this->image_targets[i].b = 0.0f;
+      |                   ^~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:137:19: error: ‘class AppochTargetTask’ has no member named ‘image_targets’
+  137 |             this->image_targets[i].relative_z = device->get_camera_gimbal()->get_position().z() - parameters.target_height; // 设置目标的高度为相机高度
+      |                   ^~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:142:50: error: ‘class AppochTargetTask’ has no member named ‘image_targets’
+  142 |         YOLODetector::Target temp_target = this->image_targets[0];
+      |                                                  ^~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:143:32: error: ‘_camera_gimbal’ was not declared in this scope; did you mean ‘CameraGimbal’?
+  143 |         auto shot_target_opt = _camera_gimbal->worldToPixel(getCurrentTargets());
+      |                                ^~~~~~~~~~~~~~
+      |                                CameraGimbal
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:148:74: error: ‘struct AppochTargetTask::Parameters’ has no member named ‘target_type’; did you mean ‘target_yaw’?
+  148 |             temp_target.category = YOLODetector::enumToString(parameters.target_type).append("_t2p");
+      |                                                                          ^~~~~~~~~~~
+      |                                                                          target_yaw
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:155:47: error: ‘image_targets’ was not declared in this scope; did you mean ‘t2p_targets’?
+  155 |             YOLODetector::Target t2p_target = image_targets[0];
+      |                                               ^~~~~~~~~~~~~
+      |                                               t2p_targets
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:173:77: error: ‘struct AppochTargetTask::Parameters’ has no member named ‘target_type’; did you mean ‘target_yaw’?
+  173 |                 t2p_target.category = YOLODetector::enumToString(parameters.target_type).append("_d2p").append(parameters.config_device_name_suffix[i]);
+      |                                                                             ^~~~~~~~~~~
+      |                                                                             target_yaw
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:193:46: error: ‘image_targets’ was not declared in this scope; did you mean ‘t2p_targets’?
+  193 |         } else if (parameters.device_index < image_targets.size()) {     // 使用读取的对应目标
+      |                                              ^~~~~~~~~~~~~
+      |                                              t2p_targets
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:209:28: error: ‘struct AppochTargetTask::Parameters’ has no member named ‘target_type’; did you mean ‘target_yaw’?
+  209 |                 parameters.target_type,  // 目标类型
+      |                            ^~~~~~~~~~~
+      |                            target_yaw
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp: In instantiation of ‘bool AppochTargetTask::run(DeviceType) [with DeviceType = std::shared_ptr<APMROS2Drone>]’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:253:104:   required from here
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:102:44: error: ‘using std::__shared_ptr_access<APMROS2Drone, __gnu_cxx::_S_atomic, false, false>::element_type = class APMROS2Drone’ {aka ‘class APMROS2Drone’} has no member named ‘get_pos_z’; did you mean ‘get_pos_3f’?
+  102 |             if (is_equal(target_z, device->get_pos_z(), 0.40)) {
+      |                                    ~~~~~~~~^~~~~~~~~
+      |                                    get_pos_3f
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:105:42: error: ‘using std::__shared_ptr_access<APMROS2Drone, __gnu_cxx::_S_atomic, false, false>::element_type = class APMROS2Drone’ {aka ‘class APMROS2Drone’} has no member named ‘get_pos_z’; did you mean ‘get_pos_3f’?
+  105 |                 target_z = 0.8 * device->get_pos_z() + target.z() + (device->get_pos_z() - target.z() > 0) ? -0.1 : +0.1;
+      |                                  ~~~~~~~~^~~~~~~~~
+      |                                  get_pos_3f
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:105:78: error: ‘using std::__shared_ptr_access<APMROS2Drone, __gnu_cxx::_S_atomic, false, false>::element_type = class APMROS2Drone’ {aka ‘class APMROS2Drone’} has no member named ‘get_pos_z’; did you mean ‘get_pos_3f’?
+  105 |                 target_z = 0.8 * device->get_pos_z() + target.z() + (device->get_pos_z() - target.z() > 0) ? -0.1 : +0.1;
+      |                                                                      ~~~~~~~~^~~~~~~~~
+      |                                                                      get_pos_3f
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:108:44: error: ‘using std::__shared_ptr_access<APMROS2Drone, __gnu_cxx::_S_atomic, false, false>::element_type = class APMROS2Drone’ {aka ‘class APMROS2Drone’} has no member named ‘get_pos_z’; did you mean ‘get_pos_3f’?
+  108 |             if (is_equal(target_z, device->get_pos_z(), 0.10)) {
+      |                                    ~~~~~~~~^~~~~~~~~
+      |                                    get_pos_3f
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp:164:25: error: ‘using std::__shared_ptr_access<APMROS2Drone, __gnu_cxx::_S_atomic, false, false>::element_type = class APMROS2Drone’ {aka ‘class APMROS2Drone’} has no member named ‘get_target_position’
+  164 |                 device->get_target_position().z() + this->device_position[i].z()
+      |                 ~~~~~~~~^~~~~~~~~~~~~~~~~~~
+gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:300: CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp.o] Error 1
+In file included from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/states.h:3,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../APMROS2Drone.h:18,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.h:3,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:1:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/DolandState.h:5:34: error: ‘APMROS2Drone’ was not declared in this scope; did you mean ‘ROS2Drone’?
+    5 | class DolandState : public State<APMROS2Drone> {
+      |                                  ^~~~~~~~~~~~
+      |                                  ROS2Drone
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/DolandState.h:5:46: error: template argument 1 is invalid
+    5 | class DolandState : public State<APMROS2Drone> {
+      |                                              ^
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/DolandState.h:16:18: error: template argument required for ‘class State’
+   16 |     friend class State;
+      |                  ^~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/DolandState.h:16:5: error: friend declaration does not name a class or function
+   16 |     friend class State;
+      |     ^~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/DolandState.h:13:10: error: ‘void DolandState::executeImpl() const’ marked ‘override’, but does not override
+   13 |     void executeImpl() const override;
+      |          ^~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/DolandState.h: In constructor ‘DolandState::DolandState()’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/DolandState.h:15:21: error: class ‘DolandState’ does not have any field named ‘State’
+   15 |     DolandState() : State("doland", 4) {}
+      |                     ^~~~~
+In file included from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/states.h:4:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/DoshotState.h: At global scope:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/DoshotState.h:5:34: error: ‘APMROS2Drone’ was not declared in this scope; did you mean ‘ROS2Drone’?
+    5 | class DoshotState : public State<APMROS2Drone> {
+      |                                  ^~~~~~~~~~~~
+      |                                  ROS2Drone
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/DoshotState.h:5:46: error: template argument 1 is invalid
+    5 | class DoshotState : public State<APMROS2Drone> {
+      |                                              ^
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/DoshotState.h:16:18: error: template argument required for ‘class State’
+   16 |     friend class State;
+      |                  ^~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/DoshotState.h:16:5: error: friend declaration does not name a class or function
+   16 |     friend class State;
+      |     ^~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/DoshotState.h:13:10: error: ‘void DoshotState::executeImpl() const’ marked ‘override’, but does not override
+   13 |     void executeImpl() const override;
+      |          ^~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/DoshotState.h: In constructor ‘DoshotState::DoshotState()’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/DoshotState.h:15:21: error: class ‘DoshotState’ does not have any field named ‘State’
+   15 |     DoshotState() : State("doshot", 0) {}
+      |                     ^~~~~
+In file included from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/states.h:5:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/EndState.h: At global scope:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/EndState.h:5:31: error: ‘APMROS2Drone’ was not declared in this scope; did you mean ‘ROS2Drone’?
+    5 | class EndState : public State<APMROS2Drone> {
+      |                               ^~~~~~~~~~~~
+      |                               ROS2Drone
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/EndState.h:5:43: error: template argument 1 is invalid
+    5 | class EndState : public State<APMROS2Drone> {
+      |                                           ^
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/EndState.h:16:18: error: template argument required for ‘class State’
+   16 |     friend class State;
+      |                  ^~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/EndState.h:16:5: error: friend declaration does not name a class or function
+   16 |     friend class State;
+      |     ^~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/EndState.h:13:10: error: ‘void EndState::executeImpl() const’ marked ‘override’, but does not override
+   13 |     void executeImpl() const override;
+      |          ^~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/EndState.h: In constructor ‘EndState::EndState()’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/EndState.h:15:18: error: class ‘EndState’ does not have any field named ‘State’
+   15 |     EndState() : State("EndState", 2) {}
+      |                  ^~~~~
+In file included from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/states.h:6:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/GotoScoutPointState.h: At global scope:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/GotoScoutPointState.h:5:42: error: ‘APMROS2Drone’ was not declared in this scope; did you mean ‘ROS2Drone’?
+    5 | class GotoScoutPointState : public State<APMROS2Drone> {
+      |                                          ^~~~~~~~~~~~
+      |                                          ROS2Drone
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/GotoScoutPointState.h:5:54: error: template argument 1 is invalid
+    5 | class GotoScoutPointState : public State<APMROS2Drone> {
+      |                                                      ^
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/GotoScoutPointState.h:17:18: error: template argument required for ‘class State’
+   17 |     friend class State;
+      |                  ^~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/GotoScoutPointState.h:17:5: error: friend declaration does not name a class or function
+   17 |     friend class State;
+      |     ^~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/GotoScoutPointState.h:13:10: error: ‘void GotoScoutPointState::executeImpl() const’ marked ‘override’, but does not override
+   13 |     void executeImpl() const override;
+      |          ^~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/GotoScoutPointState.h: In constructor ‘GotoScoutPointState::GotoScoutPointState()’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/GotoScoutPointState.h:16:29: error: class ‘GotoScoutPointState’ does not have any field named ‘State’
+   16 |     GotoScoutPointState() : State("goto_scoutpoint", 1) {}
+      |                             ^~~~~
+In file included from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/states.h:7:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/GotoShotPointState.h: At global scope:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/GotoShotPointState.h:5:41: error: ‘APMROS2Drone’ was not declared in this scope; did you mean ‘ROS2Drone’?
+    5 | class GotoShotPointState : public State<APMROS2Drone> {
+      |                                         ^~~~~~~~~~~~
+      |                                         ROS2Drone
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/GotoShotPointState.h:5:53: error: template argument 1 is invalid
+    5 | class GotoShotPointState : public State<APMROS2Drone> {
+      |                                                     ^
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/GotoShotPointState.h:17:18: error: template argument required for ‘class State’
+   17 |     friend class State;
+      |                  ^~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/GotoShotPointState.h:17:5: error: friend declaration does not name a class or function
+   17 |     friend class State;
+      |     ^~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/GotoShotPointState.h:13:10: error: ‘void GotoShotPointState::executeImpl() const’ marked ‘override’, but does not override
+   13 |     void executeImpl() const override;
+      |          ^~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/GotoShotPointState.h: In constructor ‘GotoShotPointState::GotoShotPointState()’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/GotoShotPointState.h:16:28: error: class ‘GotoShotPointState’ does not have any field named ‘State’
+   16 |     GotoShotPointState() : State("goto_shotpoint", 1) {}
+      |                            ^~~~~
+In file included from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/states.h:8:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/InitState.h: At global scope:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/InitState.h:8:36: error: ‘APMROS2Drone’ was not declared in this scope; did you mean ‘ROS2Drone’?
+    8 |     class InitState : public State<APMROS2Drone> {
+      |                                    ^~~~~~~~~~~~
+      |                                    ROS2Drone
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/InitState.h:8:48: error: template argument 1 is invalid
+    8 |     class InitState : public State<APMROS2Drone> {
+      |                                                ^
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/InitState.h:20:22: error: template argument required for ‘class State’
+   20 |         friend class State;
+      |                      ^~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/InitState.h:20:9: error: friend declaration does not name a class or function
+   20 |         friend class State;
+      |         ^~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/InitState.h:16:14: error: ‘void InitState::executeImpl() const’ marked ‘override’, but does not override
+   16 |         void executeImpl() const override;
+      |              ^~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/InitState.h: In constructor ‘InitState::InitState()’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/InitState.h:19:23: error: class ‘InitState’ does not have any field named ‘State’
+   19 |         InitState() : State("init", 1) {}
+      |                       ^~~~~
+In file included from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/states.h:9:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/ReflushConfigState.h: At global scope:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/ReflushConfigState.h:6:41: error: ‘APMROS2Drone’ was not declared in this scope; did you mean ‘ROS2Drone’?
+    6 | class ReflushConfigState : public State<APMROS2Drone> {
+      |                                         ^~~~~~~~~~~~
+      |                                         ROS2Drone
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/ReflushConfigState.h:6:53: error: template argument 1 is invalid
+    6 | class ReflushConfigState : public State<APMROS2Drone> {
+      |                                                     ^
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/ReflushConfigState.h:18:18: error: template argument required for ‘class State’
+   18 |     friend class State;
+      |                  ^~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/ReflushConfigState.h:18:5: error: friend declaration does not name a class or function
+   18 |     friend class State;
+      |     ^~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/ReflushConfigState.h:14:10: error: ‘void ReflushConfigState::executeImpl() const’ marked ‘override’, but does not override
+   14 |     void executeImpl() const override;
+      |          ^~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/ReflushConfigState.h: In constructor ‘ReflushConfigState::ReflushConfigState()’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/ReflushConfigState.h:17:28: error: class ‘ReflushConfigState’ does not have any field named ‘State’
+   17 |     ReflushConfigState() : State("reflush_config", 1) {}
+      |                            ^~~~~
+In file included from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/states.h:10:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/StopState.h: At global scope:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/StopState.h:6:32: error: ‘APMROS2Drone’ was not declared in this scope; did you mean ‘ROS2Drone’?
+    6 | class StopState : public State<APMROS2Drone> {
+      |                                ^~~~~~~~~~~~
+      |                                ROS2Drone
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/StopState.h:6:44: error: template argument 1 is invalid
+    6 | class StopState : public State<APMROS2Drone> {
+      |                                            ^
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/StopState.h:18:18: error: template argument required for ‘class State’
+   18 |     friend class State;
+      |                  ^~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/StopState.h:18:5: error: friend declaration does not name a class or function
+   18 |     friend class State;
+      |     ^~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/StopState.h:14:10: error: ‘void StopState::executeImpl() const’ marked ‘override’, but does not override
+   14 |     void executeImpl() const override;
+      |          ^~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/StopState.h: In constructor ‘StopState::StopState()’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/StopState.h:17:19: error: class ‘StopState’ does not have any field named ‘State’
+   17 |     StopState() : State("stop", 1) {}
+      |                   ^~~~~
+In file included from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/states.h:11:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/SurroundSeeState.h: At global scope:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/SurroundSeeState.h:6:39: error: ‘APMROS2Drone’ was not declared in this scope; did you mean ‘ROS2Drone’?
+    6 | class SurroundSeeState : public State<APMROS2Drone> {
+      |                                       ^~~~~~~~~~~~
+      |                                       ROS2Drone
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/SurroundSeeState.h:6:51: error: template argument 1 is invalid
+    6 | class SurroundSeeState : public State<APMROS2Drone> {
+      |                                                   ^
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/SurroundSeeState.h:18:18: error: template argument required for ‘class State’
+   18 |     friend class State;
+      |                  ^~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/SurroundSeeState.h:18:5: error: friend declaration does not name a class or function
+   18 |     friend class State;
+      |     ^~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/SurroundSeeState.h:14:10: error: ‘void SurroundSeeState::executeImpl() const’ marked ‘override’, but does not override
+   14 |     void executeImpl() const override;
+      |          ^~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/SurroundSeeState.h: In constructor ‘SurroundSeeState::SurroundSeeState()’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/SurroundSeeState.h:17:26: error: class ‘SurroundSeeState’ does not have any field named ‘State’
+   17 |     SurroundSeeState() : State("surround_see", 3) {}
+      |                          ^~~~~
+In file included from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/states.h:12:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/TakeoffState.h: At global scope:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/TakeoffState.h:6:35: error: ‘APMROS2Drone’ was not declared in this scope; did you mean ‘ROS2Drone’?
+    6 | class TakeoffState : public State<APMROS2Drone> {
+      |                                   ^~~~~~~~~~~~
+      |                                   ROS2Drone
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/TakeoffState.h:6:47: error: template argument 1 is invalid
+    6 | class TakeoffState : public State<APMROS2Drone> {
+      |                                               ^
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/TakeoffState.h:18:18: error: template argument required for ‘class State’
+   18 |     friend class State;
+      |                  ^~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/TakeoffState.h:18:5: error: friend declaration does not name a class or function
+   18 |     friend class State;
+      |     ^~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/TakeoffState.h:14:10: error: ‘void TakeoffState::executeImpl() const’ marked ‘override’, but does not override
+   14 |     void executeImpl() const override;
+      |          ^~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/TakeoffState.h: In constructor ‘TakeoffState::TakeoffState()’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/TakeoffState.h:17:22: error: class ‘TakeoffState’ does not have any field named ‘State’
+   17 |     TakeoffState() : State("takeoff", 1) {}
+      |                      ^~~~~
+In file included from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/states.h:13:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/TerminalControlState.h: At global scope:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/TerminalControlState.h:6:43: error: ‘APMROS2Drone’ was not declared in this scope; did you mean ‘ROS2Drone’?
+    6 | class TerminalControlState : public State<APMROS2Drone> {
+      |                                           ^~~~~~~~~~~~
+      |                                           ROS2Drone
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/TerminalControlState.h:6:55: error: template argument 1 is invalid
+    6 | class TerminalControlState : public State<APMROS2Drone> {
+      |                                                       ^
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/TerminalControlState.h:17:18: error: template argument required for ‘class State’
+   17 |     friend class State;
+      |                  ^~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/TerminalControlState.h:17:5: error: friend declaration does not name a class or function
+   17 |     friend class State;
+      |     ^~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/TerminalControlState.h:14:10: error: ‘void TerminalControlState::executeImpl() const’ marked ‘override’, but does not override
+   14 |     void executeImpl() const override;
+      |          ^~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/TerminalControlState.h: In constructor ‘TerminalControlState::TerminalControlState()’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/TerminalControlState.h:16:30: error: class ‘TerminalControlState’ does not have any field named ‘State’
+   16 |     TerminalControlState() : State("terminal_control", 1) {}
+      |                              ^~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.h: At global scope:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.h:6:7: error: redefinition of ‘class StopState’
+    6 | class StopState : public State<APMROS2Drone> {
+      |       ^~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../state/StopState.h:6:7: note: previous definition of ‘class StopState’
+    6 | class StopState : public State<APMROS2Drone> {
+      |       ^~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:4:37: error: virt-specifiers in ‘executeImpl’ not allowed outside a class definition
+    4 | void StopState::executeImpl() const override {
+      |                                     ^~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp: In member function ‘void StopState::executeImpl() const’:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:40: error: no match for ‘operator==’ (operand types are ‘const State<APMROS2Drone>’ and ‘const StopState’)
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ^~ ~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                     |                           |
+      |                                     const State<APMROS2Drone>   const StopState
+In file included from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.h:2:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../../stateMachine/State.h:55:14: note: candidate: ‘bool State<T>::operator==(const State<T>&) const [with T = APMROS2Drone]’
+   55 |         bool operator==(const State& other) const {
+      |              ^~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../../stateMachine/State.h:55:38: note:   no known conversion for argument 1 from ‘const StopState’ to ‘const State<APMROS2Drone>&’
+   55 |         bool operator==(const State& other) const {
+      |                         ~~~~~~~~~~~~~^~~~~
+In file included from /usr/include/c++/13/memory:65,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../../stateMachine/State.h:2:
+/usr/include/c++/13/bits/allocator.h:237:5: note: candidate: ‘template<class _T1, class _T2> bool std::operator==(const allocator<_Tp1>&, const allocator<_T2>&)’
+  237 |     operator==(const allocator<_T1>&, const allocator<_T2>&)
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/allocator.h:237:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::allocator<_Tp1>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/bits/stl_tempbuf.h:62,
+                 from /usr/include/c++/13/memory:66:
+/usr/include/c++/13/bits/stl_pair.h:812:5: note: candidate: ‘template<class _T1, class _T2> constexpr bool std::operator==(const pair<_T1, _T2>&, const pair<_T1, _T2>&)’
+  812 |     operator==(const pair<_T1, _T2>& __x, const pair<_T1, _T2>& __y)
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/stl_pair.h:812:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::pair<_T1, _T2>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/bits/stl_algobase.h:67,
+                 from /usr/include/c++/13/bits/stl_uninitialized.h:63,
+                 from /usr/include/c++/13/memory:69:
+/usr/include/c++/13/bits/stl_iterator.h:448:5: note: candidate: ‘template<class _Iterator> constexpr bool std::operator==(const reverse_iterator<_Iterator>&, const reverse_iterator<_Iterator>&)’
+  448 |     operator==(const reverse_iterator<_Iterator>& __x,
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/stl_iterator.h:448:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::reverse_iterator<_Iterator>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/stl_iterator.h:493:5: note: candidate: ‘template<class _IteratorL, class _IteratorR> constexpr bool std::operator==(const reverse_iterator<_Iterator>&, const reverse_iterator<_IteratorR>&)’
+  493 |     operator==(const reverse_iterator<_IteratorL>& __x,
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/stl_iterator.h:493:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::reverse_iterator<_Iterator>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/stl_iterator.h:1678:5: note: candidate: ‘template<class _IteratorL, class _IteratorR> constexpr bool std::operator==(const move_iterator<_IteratorL>&, const move_iterator<_IteratorR>&)’
+ 1678 |     operator==(const move_iterator<_IteratorL>& __x,
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/stl_iterator.h:1678:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::move_iterator<_IteratorL>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/stl_iterator.h:1748:5: note: candidate: ‘template<class _Iterator> constexpr bool std::operator==(const move_iterator<_IteratorL>&, const move_iterator<_IteratorL>&)’
+ 1748 |     operator==(const move_iterator<_Iterator>& __x,
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/stl_iterator.h:1748:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::move_iterator<_IteratorL>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/bits/unique_ptr.h:36,
+                 from /usr/include/c++/13/memory:78:
+/usr/include/c++/13/tuple:1919:5: note: candidate: ‘template<class ... _TElements, class ... _UElements> constexpr bool std::operator==(const tuple<_UTypes ...>&, const tuple<_UTypes ...>&)’
+ 1919 |     operator==(const tuple<_TElements...>& __t,
+      |     ^~~~~~~~
+/usr/include/c++/13/tuple:1919:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::tuple<_UTypes ...>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/unique_ptr.h:829:5: note: candidate: ‘template<class _Tp, class _Dp, class _Up, class _Ep> bool std::operator==(const unique_ptr<_Tp, _Dp>&, const unique_ptr<_Up, _Ep>&)’
+  829 |     operator==(const unique_ptr<_Tp, _Dp>& __x,
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/unique_ptr.h:829:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::unique_ptr<_Tp, _Dp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/unique_ptr.h:837:5: note: candidate: ‘template<class _Tp, class _Dp> bool std::operator==(const unique_ptr<_Tp, _Dp>&, nullptr_t)’
+  837 |     operator==(const unique_ptr<_Tp, _Dp>& __x, nullptr_t) noexcept
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/unique_ptr.h:837:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::unique_ptr<_Tp, _Dp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/unique_ptr.h:845:5: note: candidate: ‘template<class _Tp, class _Dp> bool std::operator==(nullptr_t, const unique_ptr<_Tp, _Dp>&)’
+  845 |     operator==(nullptr_t, const unique_ptr<_Tp, _Dp>& __x) noexcept
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/unique_ptr.h:845:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const StopState’ is not derived from ‘const std::unique_ptr<_Tp, _Dp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/iosfwd:42,
+                 from /usr/include/c++/13/bits/shared_ptr.h:52,
+                 from /usr/include/c++/13/memory:80:
+/usr/include/c++/13/bits/postypes.h:192:5: note: candidate: ‘template<class _StateT> bool std::operator==(const fpos<_StateT>&, const fpos<_StateT>&)’
+  192 |     operator==(const fpos<_StateT>& __lhs, const fpos<_StateT>& __rhs)
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/postypes.h:192:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::fpos<_StateT>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/bits/shared_ptr.h:53:
+/usr/include/c++/13/bits/shared_ptr_base.h:1793:5: note: candidate: ‘template<class _Tp1, class _Tp2, __gnu_cxx::_Lock_policy _Lp> bool std::operator==(const __shared_ptr<_Tp1, _Lp>&, const __shared_ptr<_Tp2, _Lp>&)’
+ 1793 |     operator==(const __shared_ptr<_Tp1, _Lp>& __a,
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/shared_ptr_base.h:1793:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::__shared_ptr<_Tp1, _Lp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/shared_ptr_base.h:1799:5: note: candidate: ‘template<class _Tp, __gnu_cxx::_Lock_policy _Lp> bool std::operator==(const __shared_ptr<_Tp, _Lp>&, nullptr_t)’
+ 1799 |     operator==(const __shared_ptr<_Tp, _Lp>& __a, nullptr_t) noexcept
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/shared_ptr_base.h:1799:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::__shared_ptr<_Tp, _Lp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/shared_ptr_base.h:1819:5: note: candidate: ‘template<class _Tp, __gnu_cxx::_Lock_policy _Lp> bool std::operator==(nullptr_t, const __shared_ptr<_Tp, _Lp>&)’
+ 1819 |     operator==(nullptr_t, const __shared_ptr<_Tp, _Lp>& __a) noexcept
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/shared_ptr_base.h:1819:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const StopState’ is not derived from ‘const std::__shared_ptr<_Tp, _Lp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/shared_ptr.h:555:5: note: candidate: ‘template<class _Tp, class _Up> bool std::operator==(const shared_ptr<_Tp>&, const shared_ptr<_Tp>&)’
+  555 |     operator==(const shared_ptr<_Tp>& __a, const shared_ptr<_Up>& __b) noexcept
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/shared_ptr.h:555:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::shared_ptr<_Tp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/shared_ptr.h:561:5: note: candidate: ‘template<class _Tp> bool std::operator==(const shared_ptr<_Tp>&, nullptr_t)’
+  561 |     operator==(const shared_ptr<_Tp>& __a, nullptr_t) noexcept
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/shared_ptr.h:561:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::shared_ptr<_Tp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/shared_ptr.h:582:5: note: candidate: ‘template<class _Tp> bool std::operator==(nullptr_t, const shared_ptr<_Tp>&)’
+  582 |     operator==(nullptr_t, const shared_ptr<_Tp>& __a) noexcept
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/shared_ptr.h:582:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const StopState’ is not derived from ‘const std::shared_ptr<_Tp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/vector:66,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../../stateMachine/State.h:3:
+/usr/include/c++/13/bits/stl_vector.h:2040:5: note: candidate: ‘template<class _Tp, class _Alloc> bool std::operator==(const vector<_Tp, _Alloc>&, const vector<_Tp, _Alloc>&)’
+ 2040 |     operator==(const vector<_Tp, _Alloc>& __x, const vector<_Tp, _Alloc>& __y)
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/stl_vector.h:2040:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::vector<_Tp, _Alloc>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/functional:59,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../../stateMachine/State.h:4:
+/usr/include/c++/13/bits/std_function.h:737:5: note: candidate: ‘template<class _Res, class ... _Args> bool std::operator==(const function<_Res(_ArgTypes ...)>&, nullptr_t)’
+  737 |     operator==(const function<_Res(_Args...)>& __f, nullptr_t) noexcept
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/std_function.h:737:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::function<_Res(_ArgTypes ...)>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/std_function.h:744:5: note: candidate: ‘template<class _Res, class ... _Args> bool std::operator==(nullptr_t, const function<_Res(_ArgTypes ...)>&)’
+  744 |     operator==(nullptr_t, const function<_Res(_Args...)>& __f) noexcept
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/std_function.h:744:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const StopState’ is not derived from ‘const std::function<_Res(_ArgTypes ...)>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/unordered_map:41,
+                 from /usr/include/c++/13/functional:63:
+/usr/include/c++/13/bits/unordered_map.h:2143:5: note: candidate: ‘template<class _Key1, class _Tp1, class _Hash1, class _Pred1, class _Alloc1> bool std::operator==(const unordered_map<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>&, const unordered_map<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>&)’
+ 2143 |     operator==(const unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>& __x,
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/unordered_map.h:2143:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::unordered_map<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/unordered_map.h:2157:5: note: candidate: ‘template<class _Key1, class _Tp1, class _Hash1, class _Pred1, class _Alloc1> bool std::operator==(const unordered_multimap<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>&, const unordered_multimap<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>&)’
+ 2157 |     operator==(const unordered_multimap<_Key, _Tp, _Hash, _Pred, _Alloc>& __x,
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/unordered_map.h:2157:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::unordered_multimap<_Key1, _Tp1, _Hash1, _Pred1, _Alloc1>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/functional:65:
+/usr/include/c++/13/array:297:5: note: candidate: ‘template<class _Tp, long unsigned int _Nm> bool std::operator==(const array<_Tp, _Nm>&, const array<_Tp, _Nm>&)’
+  297 |     operator==(const array<_Tp, _Nm>& __one, const array<_Tp, _Nm>& __two)
+      |     ^~~~~~~~
+/usr/include/c++/13/array:297:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::array<_Tp, _Nm>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/map:63,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../../stateMachine/State.h:5:
+/usr/include/c++/13/bits/stl_map.h:1513:5: note: candidate: ‘template<class _Key, class _Tp, class _Compare, class _Alloc> bool std::operator==(const map<_Key, _Tp, _Compare, _Allocator>&, const map<_Key, _Tp, _Compare, _Allocator>&)’
+ 1513 |     operator==(const map<_Key, _Tp, _Compare, _Alloc>& __x,
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/stl_map.h:1513:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::map<_Key, _Tp, _Compare, _Allocator>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/map:64:
+/usr/include/c++/13/bits/stl_multimap.h:1134:5: note: candidate: ‘template<class _Key, class _Tp, class _Compare, class _Alloc> bool std::operator==(const multimap<_Key, _Tp, _Compare, _Allocator>&, const multimap<_Key, _Tp, _Compare, _Allocator>&)’
+ 1134 |     operator==(const multimap<_Key, _Tp, _Compare, _Alloc>& __x,
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/stl_multimap.h:1134:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::multimap<_Key, _Tp, _Compare, _Allocator>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/bits/basic_string.h:47,
+                 from /usr/include/c++/13/string:54,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/copy_all_parameter_values.hpp:18,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/rclcpp.hpp:171,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../../stateMachine/State.h:8:
+/usr/include/c++/13/string_view:609:5: note: candidate: ‘template<class _CharT, class _Traits> constexpr bool std::operator==(basic_string_view<_CharT, _Traits>, basic_string_view<_CharT, _Traits>)’
+  609 |     operator==(basic_string_view<_CharT, _Traits> __x,
+      |     ^~~~~~~~
+/usr/include/c++/13/string_view:609:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘State<APMROS2Drone>’ is not derived from ‘std::basic_string_view<_CharT, _Traits>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/string_view:616:5: note: candidate: ‘template<class _CharT, class _Traits> constexpr bool std::operator==(basic_string_view<_CharT, _Traits>, __type_identity_t<basic_string_view<_CharT, _Traits> >)’
+  616 |     operator==(basic_string_view<_CharT, _Traits> __x,
+      |     ^~~~~~~~
+/usr/include/c++/13/string_view:616:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘State<APMROS2Drone>’ is not derived from ‘std::basic_string_view<_CharT, _Traits>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/string_view:642:5: note: candidate: ‘template<class _CharT, class _Traits> constexpr bool std::operator==(__type_identity_t<basic_string_view<_CharT, _Traits> >, basic_string_view<_CharT, _Traits>)’
+  642 |     operator==(__type_identity_t<basic_string_view<_CharT, _Traits>> __x,
+      |     ^~~~~~~~
+/usr/include/c++/13/string_view:642:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘StopState’ is not derived from ‘std::basic_string_view<_CharT, _Traits>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/basic_string.h:3710:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> bool std::operator==(const __cxx11::basic_string<_CharT, _Traits, _Allocator>&, const __cxx11::basic_string<_CharT, _Traits, _Allocator>&)’
+ 3710 |     operator==(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/basic_string.h:3710:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::__cxx11::basic_string<_CharT, _Traits, _Allocator>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/basic_string.h:3727:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> bool std::operator==(const __cxx11::basic_string<_CharT, _Traits, _Allocator>&, const _CharT*)’
+ 3727 |     operator==(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/basic_string.h:3727:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::__cxx11::basic_string<_CharT, _Traits, _Allocator>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/basic_string.h:3774:5: note: candidate: ‘template<class _CharT, class _Traits, class _Alloc> bool std::operator==(const _CharT*, const __cxx11::basic_string<_CharT, _Traits, _Allocator>&)’
+ 3774 |     operator==(const _CharT* __lhs,
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/basic_string.h:3774:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   mismatched types ‘const _CharT*’ and ‘State<APMROS2Drone>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/bits/locale_facets.h:48,
+                 from /usr/include/c++/13/bits/basic_ios.h:37,
+                 from /usr/include/c++/13/ios:46,
+                 from /usr/include/c++/13/istream:40,
+                 from /usr/include/c++/13/sstream:40,
+                 from /opt/ros/jazzy/include/rcl_interfaces/rcl_interfaces/srv/detail/list_parameters__traits.hpp:13,
+                 from /opt/ros/jazzy/include/rcl_interfaces/rcl_interfaces/srv/list_parameters.hpp:9,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/copy_all_parameter_values.hpp:21:
+/usr/include/c++/13/bits/streambuf_iterator.h:234:5: note: candidate: ‘template<class _CharT, class _Traits> bool std::operator==(const istreambuf_iterator<_CharT, _Traits>&, const istreambuf_iterator<_CharT, _Traits>&)’
+  234 |     operator==(const istreambuf_iterator<_CharT, _Traits>& __a,
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/streambuf_iterator.h:234:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::istreambuf_iterator<_CharT, _Traits>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/unordered_set:41,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/context.hpp:26,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/utilities.hpp:24,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/logging.hpp:25,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/copy_all_parameter_values.hpp:27:
+/usr/include/c++/13/bits/unordered_set.h:1813:5: note: candidate: ‘template<class _Value1, class _Hash1, class _Pred1, class _Alloc1> bool std::operator==(const unordered_set<_Value1, _Hash1, _Pred1, _Alloc1>&, const unordered_set<_Value1, _Hash1, _Pred1, _Alloc1>&)’
+ 1813 |     operator==(const unordered_set<_Value, _Hash, _Pred, _Alloc>& __x,
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/unordered_set.h:1813:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::unordered_set<_Value1, _Hash1, _Pred1, _Alloc1>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/unordered_set.h:1827:5: note: candidate: ‘template<class _Value1, class _Hash1, class _Pred1, class _Alloc1> bool std::operator==(const unordered_multiset<_Value1, _Hash1, _Pred1, _Alloc1>&, const unordered_multiset<_Value1, _Hash1, _Pred1, _Alloc1>&)’
+ 1827 |     operator==(const unordered_multiset<_Value, _Hash, _Pred, _Alloc>& __x,
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/unordered_set.h:1827:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::unordered_multiset<_Value1, _Hash1, _Pred1, _Alloc1>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/set:63,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/executors/multi_threaded_executor.hpp:21,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/executors.hpp:21,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/rclcpp.hpp:172:
+/usr/include/c++/13/bits/stl_set.h:987:5: note: candidate: ‘template<class _Key, class _Compare, class _Alloc> bool std::operator==(const set<_Key, _Compare, _Allocator>&, const set<_Key, _Compare, _Allocator>&)’
+  987 |     operator==(const set<_Key, _Compare, _Alloc>& __x,
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/stl_set.h:987:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::set<_Key, _Compare, _Allocator>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/set:64:
+/usr/include/c++/13/bits/stl_multiset.h:973:5: note: candidate: ‘template<class _Key, class _Compare, class _Alloc> bool std::operator==(const multiset<_Key, _Compare, _Allocator>&, const multiset<_Key, _Compare, _Allocator>&)’
+  973 |     operator==(const multiset<_Key, _Compare, _Alloc>& __x,
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/stl_multiset.h:973:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::multiset<_Key, _Compare, _Allocator>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/list:65,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/executor.hpp:23,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/executors/multi_threaded_executor.hpp:25:
+/usr/include/c++/13/bits/stl_list.h:2123:5: note: candidate: ‘template<class _Tp, class _Alloc> bool std::operator==(const __cxx11::list<_Tp, _Alloc>&, const __cxx11::list<_Tp, _Alloc>&)’
+ 2123 |     operator==(const list<_Tp, _Alloc>& __x, const list<_Tp, _Alloc>& __y)
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/stl_list.h:2123:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::__cxx11::list<_Tp, _Alloc>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /opt/ros/jazzy/include/rclcpp/rclcpp/client.hpp:23,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/callback_group.hpp:24,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/any_executable.hpp:20,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/memory_strategy.hpp:25,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/memory_strategies.hpp:18,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/executor_options.hpp:22,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/executor.hpp:38:
+/usr/include/c++/13/optional:1236:5: note: candidate: ‘template<class _Tp, class _Up> constexpr std::__optional_eq_t<_Tp, _Up> std::operator==(const optional<_Tp>&, const optional<_Up>&)’
+ 1236 |     operator==(const optional<_Tp>& __lhs, const optional<_Up>& __rhs)
+      |     ^~~~~~~~
+/usr/include/c++/13/optional:1236:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::optional<_Tp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/optional:1296:5: note: candidate: ‘template<class _Tp> constexpr bool std::operator==(const optional<_Tp>&, nullopt_t)’
+ 1296 |     operator==(const optional<_Tp>& __lhs, nullopt_t) noexcept
+      |     ^~~~~~~~
+/usr/include/c++/13/optional:1296:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::optional<_Tp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/optional:1307:5: note: candidate: ‘template<class _Tp> constexpr bool std::operator==(nullopt_t, const optional<_Tp>&)’
+ 1307 |     operator==(nullopt_t, const optional<_Tp>& __rhs) noexcept
+      |     ^~~~~~~~
+/usr/include/c++/13/optional:1307:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const StopState’ is not derived from ‘const std::optional<_Tp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/optional:1364:5: note: candidate: ‘template<class _Tp, class _Up> constexpr std::__optional_eq_t<_Tp, _Up> std::operator==(const optional<_Tp>&, const _Up&)’
+ 1364 |     operator==(const optional<_Tp>& __lhs, const _Up& __rhs)
+      |     ^~~~~~~~
+/usr/include/c++/13/optional:1364:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::optional<_Tp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/optional:1370:5: note: candidate: ‘template<class _Tp, class _Up> constexpr std::__optional_eq_t<_Up, _Tp> std::operator==(const _Up&, const optional<_Tp>&)’
+ 1370 |     operator==(const _Up& __lhs, const optional<_Tp>& __rhs)
+      |     ^~~~~~~~
+/usr/include/c++/13/optional:1370:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const StopState’ is not derived from ‘const std::optional<_Tp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /opt/ros/jazzy/include/rclcpp/rclcpp/client.hpp:29:
+/usr/include/c++/13/variant:1266:3: note: candidate: ‘template<class ... _Types> constexpr bool std::operator==(const variant<_Types ...>&, const variant<_Types ...>&)’
+ 1266 |   _VARIANT_RELATION_FUNCTION_TEMPLATE(==, equal)
+      |   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/13/variant:1266:3: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::variant<_Types ...>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/deque:66,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/executors/executor_entities_collection.hpp:18,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/executor.hpp:39:
+/usr/include/c++/13/bits/stl_deque.h:2290:5: note: candidate: ‘template<class _Tp, class _Alloc> bool std::operator==(const deque<_Tp, _Alloc>&, const deque<_Tp, _Alloc>&)’
+ 2290 |     operator==(const deque<_Tp, _Alloc>& __x, const deque<_Tp, _Alloc>& __y)
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/stl_deque.h:2290:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::deque<_Tp, _Alloc>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/queue:66,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/experimental/executors/events_executor/events_queue.hpp:18,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/experimental/executors/events_executor/events_executor.hpp:27,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/executors.hpp:24:
+/usr/include/c++/13/bits/stl_queue.h:380:5: note: candidate: ‘template<class _Tp, class _Seq> bool std::operator==(const queue<_Tp, _Seq>&, const queue<_Tp, _Seq>&)’
+  380 |     operator==(const queue<_Tp, _Seq>& __x, const queue<_Tp, _Seq>& __y)
+      |     ^~~~~~~~
+/usr/include/c++/13/bits/stl_queue.h:380:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::queue<_Tp, _Seq>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/valarray:605,
+                 from /usr/include/yaml-cpp/node/convert.h:18,
+                 from /usr/include/yaml-cpp/yaml.h:18,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../../utils/Readyaml.h:4,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../APMROS2Drone.h:9:
+/usr/include/c++/13/bits/valarray_after.h:417:5: note: candidate: ‘template<class _Dom1, class _Dom2> std::_Expr<std::__detail::_BinClos<std::__equal_to, std::_Expr, std::_Expr, _Dom1, _Dom2>, typename std::__fun<std::__equal_to, typename _Dom1::value_type>::result_type> std::operator==(const _Expr<_Dom1, typename _Dom1::value_type>&, const _Expr<_Dom2, typename _Dom2::value_type>&)’
+  417 |     _DEFINE_EXPR_BINARY_OPERATOR(==, struct std::__equal_to)
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/13/bits/valarray_after.h:417:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::_Expr<_Dom1, typename _Dom1::value_type>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/valarray_after.h:417:5: note: candidate: ‘template<class _Dom> std::_Expr<std::__detail::_BinClos<std::__equal_to, std::_Expr, std::_Constant, _Dom, typename _Dom::value_type>, typename std::__fun<std::__equal_to, typename _Dom1::value_type>::result_type> std::operator==(const _Expr<_Dom1, typename _Dom1::value_type>&, const typename _Dom::value_type&)’
+  417 |     _DEFINE_EXPR_BINARY_OPERATOR(==, struct std::__equal_to)
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/13/bits/valarray_after.h:417:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::_Expr<_Dom1, typename _Dom1::value_type>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/valarray_after.h:417:5: note: candidate: ‘template<class _Dom> std::_Expr<std::__detail::_BinClos<std::__equal_to, std::_Constant, std::_Expr, typename _Dom::value_type, _Dom>, typename std::__fun<std::__equal_to, typename _Dom1::value_type>::result_type> std::operator==(const typename _Dom::value_type&, const _Expr<_Dom1, typename _Dom1::value_type>&)’
+  417 |     _DEFINE_EXPR_BINARY_OPERATOR(==, struct std::__equal_to)
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/13/bits/valarray_after.h:417:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const StopState’ is not derived from ‘const std::_Expr<_Dom1, typename _Dom1::value_type>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/valarray_after.h:417:5: note: candidate: ‘template<class _Dom> std::_Expr<std::__detail::_BinClos<std::__equal_to, std::_Expr, std::_ValArray, _Dom, typename _Dom::value_type>, typename std::__fun<std::__equal_to, typename _Dom1::value_type>::result_type> std::operator==(const _Expr<_Dom1, typename _Dom1::value_type>&, const valarray<typename _Dom::value_type>&)’
+  417 |     _DEFINE_EXPR_BINARY_OPERATOR(==, struct std::__equal_to)
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/13/bits/valarray_after.h:417:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::_Expr<_Dom1, typename _Dom1::value_type>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/bits/valarray_after.h:417:5: note: candidate: ‘template<class _Dom> std::_Expr<std::__detail::_BinClos<std::__equal_to, std::_ValArray, std::_Expr, typename _Dom::value_type, _Dom>, typename std::__fun<std::__equal_to, typename _Dom1::value_type>::result_type> std::operator==(const valarray<typename _Dom::value_type>&, const _Expr<_Dom1, typename _Dom1::value_type>&)’
+  417 |     _DEFINE_EXPR_BINARY_OPERATOR(==, struct std::__equal_to)
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/13/bits/valarray_after.h:417:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const StopState’ is not derived from ‘const std::_Expr<_Dom1, typename _Dom1::value_type>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/valarray:1208:1: note: candidate: ‘template<class _Tp> std::_Expr<std::__detail::_BinClos<std::__equal_to, std::_ValArray, std::_ValArray, _Tp, _Tp>, typename std::__fun<std::__equal_to, _Tp>::result_type> std::operator==(const valarray<_Tp>&, const valarray<_Tp>&)’
+ 1208 | _DEFINE_BINARY_OPERATOR(==, __equal_to)
+      | ^~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/13/valarray:1208:1: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::valarray<_Tp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/valarray:1208:1: note: candidate: ‘template<class _Tp> std::_Expr<std::__detail::_BinClos<std::__equal_to, std::_ValArray, std::_Constant, _Tp, _Tp>, typename std::__fun<std::__equal_to, _Tp>::result_type> std::operator==(const valarray<_Tp>&, const typename valarray<_Tp>::value_type&)’
+ 1208 | _DEFINE_BINARY_OPERATOR(==, __equal_to)
+      | ^~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/13/valarray:1208:1: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::valarray<_Tp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/valarray:1208:1: note: candidate: ‘template<class _Tp> std::_Expr<std::__detail::_BinClos<std::__equal_to, std::_Constant, std::_ValArray, _Tp, _Tp>, typename std::__fun<std::__equal_to, _Tp>::result_type> std::operator==(const typename valarray<_Tp>::value_type&, const valarray<_Tp>&)’
+ 1208 | _DEFINE_BINARY_OPERATOR(==, __equal_to)
+      | ^~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/13/valarray:1208:1: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const StopState’ is not derived from ‘const std::valarray<_Tp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/eigen3/Eigen/Core:50,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../../utils/math.h:4,
+                 from /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/../APMROS2Drone.h:10:
+/usr/include/c++/13/complex:467:5: note: candidate: ‘template<class _Tp> constexpr bool std::operator==(const complex<_Tp>&, const complex<_Tp>&)’
+  467 |     operator==(const complex<_Tp>& __x, const complex<_Tp>& __y)
+      |     ^~~~~~~~
+/usr/include/c++/13/complex:467:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::complex<_Tp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/complex:472:5: note: candidate: ‘template<class _Tp> constexpr bool std::operator==(const complex<_Tp>&, const _Tp&)’
+  472 |     operator==(const complex<_Tp>& __x, const _Tp& __y)
+      |     ^~~~~~~~
+/usr/include/c++/13/complex:472:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const State<APMROS2Drone>’ is not derived from ‘const std::complex<_Tp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+/usr/include/c++/13/complex:478:5: note: candidate: ‘template<class _Tp> constexpr bool std::operator==(const _Tp&, const complex<_Tp>&)’
+  478 |     operator==(const _Tp& __x, const complex<_Tp>& __y)
+      |     ^~~~~~~~
+/usr/include/c++/13/complex:478:5: note:   template argument deduction/substitution failed:
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:8:66: note:   ‘const StopState’ is not derived from ‘const std::complex<_Tp>’
+    8 |     if (stateMachine.getCurrentState() == StopState::getInstance()) {
+      |                                                                  ^
+In file included from /usr/include/c++/13/bits/ios_base.h:46,
+                 from /usr/include/c++/13/ios:44:
+/usr/include/c++/13/system_error:449:3: note: candidate: ‘bool std::operator==(const error_code&, const error_code&)’
+  449 |   operator==(const error_code& __lhs, const error_code& __rhs) noexcept
+      |   ^~~~~~~~
+/usr/include/c++/13/system_error:449:32: note:   no known conversion for argument 1 from ‘const State<APMROS2Drone>’ to ‘const std::error_code&’
+  449 |   operator==(const error_code& __lhs, const error_code& __rhs) noexcept
+      |              ~~~~~~~~~~~~~~~~~~^~~~~
+/usr/include/c++/13/system_error:465:3: note: candidate: ‘bool std::operator==(const error_code&, const error_condition&)’
+  465 |   operator==(const error_code& __lhs, const error_condition& __rhs) noexcept
+      |   ^~~~~~~~
+/usr/include/c++/13/system_error:465:32: note:   no known conversion for argument 1 from ‘const State<APMROS2Drone>’ to ‘const std::error_code&’
+  465 |   operator==(const error_code& __lhs, const error_condition& __rhs) noexcept
+      |              ~~~~~~~~~~~~~~~~~~^~~~~
+/usr/include/c++/13/system_error:480:3: note: candidate: ‘bool std::operator==(const error_condition&, const error_condition&)’
+  480 |   operator==(const error_condition& __lhs,
+      |   ^~~~~~~~
+/usr/include/c++/13/system_error:480:37: note:   no known conversion for argument 1 from ‘const State<APMROS2Drone>’ to ‘const std::error_condition&’
+  480 |   operator==(const error_condition& __lhs,
+      |              ~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+/usr/include/c++/13/system_error:517:3: note: candidate: ‘bool std::operator==(const error_condition&, const error_code&)’
+  517 |   operator==(const error_condition& __lhs, const error_code& __rhs) noexcept
+      |   ^~~~~~~~
+/usr/include/c++/13/system_error:517:37: note:   no known conversion for argument 1 from ‘const State<APMROS2Drone>’ to ‘const std::error_condition&’
+  517 |   operator==(const error_condition& __lhs, const error_code& __rhs) noexcept
+      |              ~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+In file included from /usr/include/c++/13/future:51,
+                 from /opt/ros/jazzy/include/rclcpp/rclcpp/executors.hpp:18:
+/usr/include/c++/13/bits/std_thread.h:324:3: note: candidate: ‘bool std::operator==(thread::id, thread::id)’
+  324 |   operator==(thread::id __x, thread::id __y) noexcept
+      |   ^~~~~~~~
+/usr/include/c++/13/bits/std_thread.h:324:25: note:   no known conversion for argument 1 from ‘const State<APMROS2Drone>’ to ‘std::thread::id’
+  324 |   operator==(thread::id __x, thread::id __y) noexcept
+      |              ~~~~~~~~~~~^~~
+/usr/include/c++/13/variant:1273:18: note: candidate: ‘constexpr bool std::operator==(monostate, monostate)’
+ 1273 |   constexpr bool operator==(monostate, monostate) noexcept { return true; }
+      |                  ^~~~~~~~
+/usr/include/c++/13/variant:1273:29: note:   no known conversion for argument 1 from ‘const State<APMROS2Drone>’ to ‘std::monostate’
+ 1273 |   constexpr bool operator==(monostate, monostate) noexcept { return true; }
+      |                             ^~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:9:26: error: ‘owner_’ was not declared in this scope
+    9 |         RCLCPP_INFO_ONCE(owner_->get_node()->get_logger(), "停止状态");
+      |                          ^~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:9:9: error: template argument 1 is invalid
+    9 |         RCLCPP_INFO_ONCE(owner_->get_node()->get_logger(), "停止状态");
+      |         ^~~~~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:9:9: error: template argument 1 is invalid
+    9 |         RCLCPP_INFO_ONCE(owner_->get_node()->get_logger(), "停止状态");
+      |         ^~~~~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:9:9: error: template argument 1 is invalid
+    9 |         RCLCPP_INFO_ONCE(owner_->get_node()->get_logger(), "停止状态");
+      |         ^~~~~~~~~~~~~~~~
+/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/src/offboard_control/APMROS2drone/state/StopState.cpp:11:9: error: ‘owner_’ was not declared in this scope
+   11 |         owner_->send_velocity_command(0.0, 0.0, 0.0, 0.0);
+      |         ^~~~~~
+gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:244: CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/StopState.cpp.o] Error 1

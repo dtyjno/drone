@@ -1,0 +1,105 @@
+-- The C compiler identification is GNU 13.3.0
+-- The CXX compiler identification is GNU 13.3.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/lib/ccache/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/lib/ccache/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found ament_cmake: 2.5.4 (/opt/ros/jazzy/share/ament_cmake/cmake)
+-- Found Python3: /home/linhao/miniconda3/bin/python3 (found version "3.13.5") found components: Interpreter 
+-- Found builtin_interfaces: 2.0.2 (/opt/ros/jazzy/share/builtin_interfaces/cmake)
+-- Found rosidl_generator_c: 4.6.5 (/opt/ros/jazzy/share/rosidl_generator_c/cmake)
+-- Found rosidl_generator_cpp: 4.6.5 (/opt/ros/jazzy/share/rosidl_generator_cpp/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found eigen3_cmake_module: 0.3.0 (/opt/ros/jazzy/share/eigen3_cmake_module/cmake)
+-- Found Eigen3: TRUE (found version "3.4.0") 
+-- Found geometry_msgs: 5.3.6 (/opt/ros/jazzy/share/geometry_msgs/cmake)
+-- Found nav_msgs: 5.3.6 (/opt/ros/jazzy/share/nav_msgs/cmake)
+-- Found geographic_msgs: 1.0.6 (/opt/ros/jazzy/share/geographic_msgs/cmake)
+-- Found mavros_msgs: 2.10.1 (/opt/ros/jazzy/share/mavros_msgs/cmake)
+-- Found rclcpp: 28.1.10 (/opt/ros/jazzy/share/rclcpp/cmake)
+-- Found rmw_implementation_cmake: 7.3.2 (/opt/ros/jazzy/share/rmw_implementation_cmake/cmake)
+-- Found rmw_fastrtps_cpp: 8.4.2 (/opt/ros/jazzy/share/rmw_fastrtps_cpp/cmake)
+-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.13")  
+-- Found FastRTPS: /opt/ros/jazzy/include (Required is at least version "2.13") 
+-- Using RMW implementation 'rmw_fastrtps_cpp' as default
+-- Found rclpy: 7.1.4 (/opt/ros/jazzy/share/rclpy/cmake)
+-- Found tf2_ros: 0.36.12 (/opt/ros/jazzy/share/tf2_ros/cmake)
+-- Found trajectory_msgs: 5.3.6 (/opt/ros/jazzy/share/trajectory_msgs/cmake)
+-- Found vision_msgs: 4.1.1 (/opt/ros/jazzy/share/vision_msgs/cmake)
+-- Found visualization_msgs: 5.3.6 (/opt/ros/jazzy/share/visualization_msgs/cmake)
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Found CUDA: /usr/local/cuda-12.9 (found suitable exact version "12.9") 
+-- Found OpenCV: /usr/local (found version "4.13.0") 
+-- Found cv_bridge: 4.1.0 (/opt/ros/jazzy/share/cv_bridge/cmake)
+-- Found Curses: /usr/lib/x86_64-linux-gnu/libcurses.so  
+-- PAL Statistics support enabled
+-- Found ament_cmake_gtest: 2.5.4 (/opt/ros/jazzy/share/ament_cmake_gtest/cmake)
+-- Found gtest sources under '/opt/ros/jazzy/src/gtest_vendor': C++ tests using 'Google Test' will be built
+-- Configuring done (1.5s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com
+[  3%] Building CXX object gtest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o
+[  3%] Building CXX object gtest/CMakeFiles/gtest.dir/src/gtest-all.cc.o
+[  7%] Building CXX object CMakeFiles/frame_transforms.dir/src/lib/frame_transforms.cpp.o
+[  7%] Building CXX object CMakeFiles/pose_subscriber.dir/src/listeners/pose_subscriber.cpp.o
+[ 11%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/APMROS2Drone.cpp.o
+[ 11%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/APMROS2PosController.cpp.o
+[ 13%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/APMROS2PosSubscriber.cpp.o
+[ 15%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/APMROS2PosPublisher.cpp.o
+[ 19%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/DolandState.cpp.o
+[ 19%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/APMROS2StatusController.cpp.o
+[ 21%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/DoshotState.cpp.o
+[ 23%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/EndState.cpp.o
+[ 26%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/GotoScoutPointState.cpp.o
+[ 26%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/GotoShotPointState.cpp.o
+[ 28%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/ReflushConfigState.cpp.o
+[ 32%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/SurroundSeeState.cpp.o
+[ 32%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/StopState.cpp.o
+[ 34%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/TakeoffState.cpp.o
+[ 36%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/InitState.cpp.o
+[ 38%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/TerminalControlState.cpp.o
+[ 40%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp.o
+[ 42%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/task/DoLandTask.cpp.o
+[ 44%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/task/DoShotTask.cpp.o
+[ 48%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/ROS2drone/ROS2Drone.cpp.o
+[ 48%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/algorithm/clustering.cpp.o
+[ 53%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/algorithm/pid/FuzzyPID.cpp.o
+[ 53%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/algorithm/pid/PID.cpp.o
+[ 53%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/algorithm/pid/AutoTune.cpp.o
+[ 57%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/PosController.cpp.o
+[ 57%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/state/InitState.cpp.o
+[ 61%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/state/State.cpp.o
+[ 61%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/AbstractDrone.cpp.o
+[ 63%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/PrintInfoTask.cpp.o
+[ 65%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/RTLLandTask.cpp.o
+[ 67%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/SetPointTask.cpp.o
+[ 69%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/WayPointTask.cpp.o
+[ 71%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/main.cpp.o
+[ 73%] Linking CXX static library libgtest_main.a
+[ 75%] Linking CXX static library libgtest.a
+[ 76%] Linking CXX shared library libframe_transforms.so
+[ 78%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/module/YOLODetector.cpp.o
+[ 80%] Linking CXX executable pose_subscriber
+[ 82%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/stateMachine/State.cpp.o
+[ 84%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/stateMachine/StateMachine.cpp.o
+[ 86%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/task/BlankTask.cpp.o
+[ 88%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/task/Task.cpp.o
+[ 90%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/utils/math.cpp.o
+[ 92%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/waypoint/SCurve.cpp.o
+[ 94%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/waypoint/TrajectoryGenerator.cpp.o
+[ 94%] Built target gtest_main
+[ 94%] Built target gtest
+[ 94%] Built target frame_transforms
+[ 96%] Building CXX object CMakeFiles/px4_ros_com_tutorial_test.dir/test/tutorial_test.cpp.o
+[ 98%] Linking CXX executable px4_ros_com_tutorial_test
+[ 98%] Built target pose_subscriber
+[ 98%] Built target px4_ros_com_tutorial_test

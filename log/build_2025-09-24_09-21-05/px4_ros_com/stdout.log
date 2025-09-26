@@ -1,0 +1,29 @@
+[  7%] Built target gtest
+[  7%] Built target gtest_main
+[ 11%] Built target frame_transforms
+[ 15%] Built target pose_subscriber
+[ 19%] Built target px4_ros_com_tutorial_test
+[ 23%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/DolandState.cpp.o
+[ 23%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/APMROS2Drone.cpp.o
+[ 25%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/DoshotState.cpp.o
+[ 26%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/EndState.cpp.o
+[ 28%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/GotoScoutPointState.cpp.o
+[ 30%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/GotoShotPointState.cpp.o
+[ 32%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/InitState.cpp.o
+[ 34%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/ReflushConfigState.cpp.o
+[ 36%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/StopState.cpp.o
+[ 38%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/SurroundSeeState.cpp.o
+[ 40%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/TakeoffState.cpp.o
+[ 42%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/TerminalControlState.cpp.o
+[ 44%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp.o
+[ 46%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/task/DoLandTask.cpp.o
+[ 48%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/task/DoShotTask.cpp.o
+[ 50%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/state/InitState.cpp.o
+[ 51%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/state/State.cpp.o
+[ 53%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/RTLLandTask.cpp.o
+[ 55%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/PrintInfoTask.cpp.o
+[ 59%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/WayPointTask.cpp.o
+[ 59%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/SetPointTask.cpp.o
+[ 63%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/stateMachine/State.cpp.o
+[ 63%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/main.cpp.o
+[ 65%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/task/Task.cpp.o

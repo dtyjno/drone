@@ -1,0 +1,63 @@
+[0.015s] Invoking command in '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy CONDA_PROMPT_MODIFIER=(base) DEBUGINFOD_URLS=https://debuginfod.ubuntu.com /usr/bin/cmake --build /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com -- -j32 -l32
+[0.110s] [  3%] Built target gtest
+[0.111s] [  7%] Built target gtest_main
+[0.115s] [ 11%] Built target frame_transforms
+[0.120s] [ 15%] Built target pose_subscriber
+[0.129s] [ 19%] Built target px4_ros_com_tutorial_test
+[0.297s] [ 21%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/APMROS2Drone.cpp.o
+[0.298s] [ 23%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/DolandState.cpp.o
+[0.300s] [ 25%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/DoshotState.cpp.o
+[0.300s] [ 26%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/EndState.cpp.o
+[0.300s] [ 28%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/GotoScoutPointState.cpp.o
+[0.301s] [ 30%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/GotoShotPointState.cpp.o
+[0.302s] [ 32%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/InitState.cpp.o
+[0.303s] [ 34%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/ReflushConfigState.cpp.o
+[0.305s] [ 36%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/StopState.cpp.o
+[0.305s] [ 38%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/SurroundSeeState.cpp.o
+[0.307s] [ 40%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/TakeoffState.cpp.o
+[0.309s] [ 42%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/TerminalControlState.cpp.o
+[0.310s] [ 44%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp.o
+[0.311s] [ 46%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/task/DoLandTask.cpp.o
+[0.312s] [ 48%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/task/DoShotTask.cpp.o
+[0.315s] [ 50%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/state/InitState.cpp.o
+[0.316s] [ 51%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/state/State.cpp.o
+[0.318s] [ 53%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/PrintInfoTask.cpp.o
+[0.322s] [ 57%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/RTLLandTask.cpp.o
+[0.322s] [ 57%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/SetPointTask.cpp.o
+[0.325s] [ 59%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/WayPointTask.cpp.o
+[0.325s] [ 61%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/main.cpp.o
+[0.327s] [ 63%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/module/YOLODetector.cpp.o
+[0.328s] [ 65%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/stateMachine/State.cpp.o
+[0.330s] [ 67%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/stateMachine/StateMachine.cpp.o
+[0.332s] [ 69%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/task/Task.cpp.o
+[0.332s] [ 71%] Building CXX object CMakeFiles/offboard_control.dir/src/offboard_control/task/BlankTask.cpp.o
+[0.671s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:160: CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/DoshotState.cpp.o] Interrupt
+[0.671s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:174: CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/EndState.cpp.o] Interrupt
+[0.671s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:188: CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/GotoScoutPointState.cpp.o] Interrupt
+[0.671s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:216: CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/InitState.cpp.o] Interrupt
+[0.671s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:230: CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/ReflushConfigState.cpp.o] Interrupt
+[0.671s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:244: CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/StopState.cpp.o] Interrupt
+[0.671s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:258: CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/SurroundSeeState.cpp.o] Interrupt
+[0.671s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:286: CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/TerminalControlState.cpp.o] Interrupt
+[0.671s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:300: CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/task/AppochTargetTask.cpp.o] Interrupt
+[0.671s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:328: CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/task/DoShotTask.cpp.o] Interrupt
+[0.671s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:454: CMakeFiles/offboard_control.dir/src/offboard_control/drone/state/State.cpp.o] Interrupt
+[0.671s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:496: CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/SetPointTask.cpp.o] Interrupt
+[0.671s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:510: CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/WayPointTask.cpp.o] Interrupt
+[0.672s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:524: CMakeFiles/offboard_control.dir/src/offboard_control/main.cpp.o] Interrupt
+[0.672s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:552: CMakeFiles/offboard_control.dir/src/offboard_control/stateMachine/State.cpp.o] Interrupt
+[0.672s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:566: CMakeFiles/offboard_control.dir/src/offboard_control/stateMachine/StateMachine.cpp.o] Interrupt
+[0.672s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:594: CMakeFiles/offboard_control.dir/src/offboard_control/task/Task.cpp.o] Interrupt
+[0.672s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:146: CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/DolandState.cpp.o] Interrupt
+[0.673s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:202: CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/GotoShotPointState.cpp.o] Interrupt
+[0.673s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:314: CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/task/DoLandTask.cpp.o] Interrupt
+[0.673s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:440: CMakeFiles/offboard_control.dir/src/offboard_control/drone/state/InitState.cpp.o] Interrupt
+[0.673s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:482: CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/RTLLandTask.cpp.o] Interrupt
+[0.673s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:468: CMakeFiles/offboard_control.dir/src/offboard_control/drone/task/PrintInfoTask.cpp.o] Interrupt
+[0.673s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:580: CMakeFiles/offboard_control.dir/src/offboard_control/task/BlankTask.cpp.o] Interrupt
+[0.673s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:76: CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/APMROS2Drone.cpp.o] Interrupt
+[0.673s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:272: CMakeFiles/offboard_control.dir/src/offboard_control/APMROS2drone/state/TakeoffState.cpp.o] Interrupt
+[0.673s] gmake[2]: *** [CMakeFiles/offboard_control.dir/build.make:538: CMakeFiles/offboard_control.dir/src/offboard_control/module/YOLODetector.cpp.o] Interrupt
+[0.675s] gmake[1]: *** [CMakeFiles/Makefile2:213: CMakeFiles/offboard_control.dir/all] Interrupt
+[0.675s] gmake: *** [Makefile:146: all] Interrupt
+[0.677s] Invoked command in '/home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com' returned '-2': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/jazzy CONDA_PROMPT_MODIFIER=(base) DEBUGINFOD_URLS=https://debuginfod.ubuntu.com /usr/bin/cmake --build /home/linhao/code/ros2/dxy_apm_ws/src/px4_ros_com/build/px4_ros_com -- -j32 -l32
