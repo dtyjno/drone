@@ -46,6 +46,8 @@ bool DoShotTask::init(DeviceType device) {
         task_params.dynamic_target_image_callback = parameters.dynamic_target_image_callback;         // 获取动态图像目标坐标的回调函数 x,y,z,r
         task_params.target_height = parameters.target_height;                             // 目标的高度，默认为地面高度0.0m
         task_params.target_yaw = parameters.target_yaw;                                 // 目标偏航角
+        task_params.task_type = parameters.task_type;                                   // 任务类型
+        // task_params.task_type = AppochTargetTask::Type::PID;                                  // 任务类型
         task->setParameters(task_params);
         task->reset();
         find_duration = 0.0f;               // 重置查找持续时间
@@ -63,6 +65,7 @@ bool DoShotTask::run(DeviceType device) {
         device->log_error(get_string(), ": init can only be used with APMROS2Drone");
         return false;
     } else {
+        device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": run, index = ", parameters.device_index, "s");
         // 未投弹且无目标
         // if (!shot_flag && !device->get_yolo_detector()->is_get_target(YOLO_TARGET_TYPE::CIRCLE))
         // {
@@ -99,7 +102,7 @@ bool DoShotTask::run(DeviceType device) {
                 device->log_info_throttle(std::chrono::milliseconds(100), "(T 0.1s) Doshot: Approach, Doshot, time = ", find_duration,"s, type = ", task->getCurrentTypeString());
 
                 if(!shot_flag && find_duration >= shot_duration){ 
-                    device->log_info("Doshot: Approach, 投弹, time > %fs", shot_duration);
+                    device->log_info("Doshot: Approach, 投弹, time > ", shot_duration, "s");
                     shot_flag = true; // 设置投弹标志
                     device->get_servo_controller()->set_servo(11 + parameters.device_index, device->get_servo_controller()->get_servo_open_position()); // 设置舵机位置，投弹
                 } 
@@ -118,7 +121,7 @@ bool DoShotTask::run(DeviceType device) {
             else if (!shot_flag && task->getCurrentType() == AppochTargetTask::Type::NONE)   // task未执行操作，执行waypoint_task接近目标任务
             {
                 if (waypoint_task != nullptr) {
-                    device->log_info_throttle(std::chrono::milliseconds(100), "%s: (T 0.1s) Doshot: Searching for target, time = %fs", get_string(), find_duration);
+                    device->log_info_throttle(std::chrono::milliseconds(100), get_string(), ": (T 0.1s) Doshot: Searching for target, time = ", find_duration, "s");
                     waypoint_task->visit(device);
                     if (waypoint_task->is_execute_finished()){
                         waypoint_task->reset();    // 重置任务以循环使用

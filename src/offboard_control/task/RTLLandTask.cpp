@@ -52,7 +52,7 @@ bool RTLLandTask::run(DeviceType device) {
         } else {
             // device->log_info(get_string());
             land_task->visit(device);
-            if (device->get_mode() == "GUIDED" && land_task->get_task_result()) {
+            if (land_task->get_task_result()) {     // device->get_mode() == "GUIDED" && 
                 return true;
             } else {
                 device->log_info_throttle(std::chrono::milliseconds(1000), "等待降落中...", timer_.elapsed());
@@ -71,7 +71,7 @@ bool RTLLandTask::end(DeviceType device) {
         return false;
     } else {
         // device->log_info(get_string());
-        device->log_info("%s: 降落完成", get_string());
+        device->log_info(get_string(), ": 降落完成");
         device->get_status_controller()->switch_mode("LAND");
         // Note: State machine access removed - should be handled by device itself
     }

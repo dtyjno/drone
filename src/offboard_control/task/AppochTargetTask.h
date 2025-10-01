@@ -41,12 +41,16 @@ public:
     void setTaskType(Type type) {
         parameters.task_type = type;
     }
+    void set_device_index(size_t index) {
+        parameters.device_index = index;
+    }
+    
     struct Parameters{
         std::string config_file_name = "shot_config.yaml";                      // 配置文件名
         std::string config_device_name_prefix = "shot_target";                  // 配置文件中目标前缀
         std::vector<std::string> config_device_name_suffix = {"_r", "_l"};      // 配置文件中目标后缀，决定了支持的目标数量
         YOLO_TARGET_TYPE target_type;                                  // 目标类型
-        size_t device_index = 1;                                                // 当前接近的设备索引
+        size_t device_index = 0;                                                // 当前接近的设备索引,从0开始
         float fx = 1.0f;                                        // 相机焦距，像素单位
         std::function<Vector4f()> dynamic_target_position_callback;         // 获取动态准确目标坐标的回调函数 x,y,z,r
         std::function<Vector2f()> dynamic_target_image_callback;         // 获取动态图像目标坐标的回调函数 x,y

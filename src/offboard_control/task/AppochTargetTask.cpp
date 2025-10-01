@@ -118,18 +118,18 @@ bool AppochTargetTask::run(DeviceType device) {
                 getCurrentPositionTargets().z(), ") with accuracy ", 
                 getCurrentPositionTargets().w());
             float target_z = getCurrentPositionTargets().z() > 2 ? getCurrentPositionTargets().z() :
-                             getCurrentPositionTargets().z() < 1.8 && device->get_z_pos() > 2 ? 1.8 :
-                             getCurrentPositionTargets().z() < 1.5 && device->get_z_pos() > 1.7 ? 1.5 :
-                             getCurrentPositionTargets().z() < 1.2 && device->get_z_pos() > 1.3 ? 1.2 :
+                             getCurrentPositionTargets().z() < 1.8 && device->get_z_pos() > 2 ? 1.6 :
+                             getCurrentPositionTargets().z() < 1.5 && device->get_z_pos() > 1.7 ? 1.3 :
+                             getCurrentPositionTargets().z() < 1.2 && device->get_z_pos() > 1.3 ? 1.1 :
                              getCurrentPositionTargets().z();
-            std::cout << "target_z: " << target_z << ", device_z: " << device->get_z_pos() << std::endl;
+            device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": target_z: ", target_z, ", device_z: ", device->get_z_pos(), ", target: ", getCurrentPositionTargets().transpose());
             if (is_equal(target_z, device->get_z_pos(), 0.10f)) {
                 target_z = getCurrentPositionTargets().z();
             }
             device->send_world_setpoint_command(getCurrentPositionTargets().x(), getCurrentPositionTargets().y(), target_z, getCurrentPositionTargets().w()); // 发送世界坐标系下的航点指令
-            if (is_equal(getCurrentPositionTargets().x(), device->get_x_pos(), 0.10f)
-                && is_equal(getCurrentPositionTargets().y(), device->get_y_pos(), 0.10f)
-                && is_equal(getCurrentPositionTargets().z(), device->get_z_pos(), 0.40f)) {
+            if (is_equal(getCurrentPositionTargets().x(), device->get_x_pos(), radius)
+                && is_equal(getCurrentPositionTargets().y(), device->get_y_pos(), radius)
+                && is_equal(getCurrentPositionTargets().z(), device->get_z_pos(), radius)) {
                 // device->log_info("Arrive, Doshot");
                 task_result = true;
             } else {
@@ -141,7 +141,7 @@ bool AppochTargetTask::run(DeviceType device) {
         // PID
         if (!getCurrentImageTargets().isZero() && (parameters.task_type == Type::PID || parameters.task_type == Type::AUTO)) {
             current_type = Type::PID;
-            device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": Approaching image target at (",
+            device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": Approaching image target ", parameters.device_index, " at (",
                 getCurrentImageTargets().x(), ", ",
                 getCurrentImageTargets().y(), ")");
             // pid_defaults = PID::readPIDParameters(parameters.config_file_name, "pid");

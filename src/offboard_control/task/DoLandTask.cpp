@@ -74,6 +74,18 @@ bool DoLandTask::run(DeviceType device) {
         // return true;
         if (timer_.elapsed() > 19 || surround_land > 3 || device->get_z_pos() < target_z + 0.1) // 降落时间超过39秒，或者降落高度小于目标高度
         {
+            if (device->get_z_pos() < target_z + 0.1)
+            {
+                device->log_info("Doland: 高度低于目标高度", target_z + 0.1,"，准备降落");
+            }
+            else if (timer_.elapsed() > 19)
+            {
+                device->log_info("Doland: 降落时间超过", timer_.elapsed(), "秒，准备降落");
+            }
+            else
+            {
+                device->log_info("Doland: 降落点周围搜索完成，准备降落");
+            }
             task_result = true;
             return true;
         }
@@ -123,6 +135,7 @@ bool DoLandTask::end(DeviceType device) {
         device->send_velocity_command_with_time(0, 0, -0.2, 0, 1);
         device->log_info("Doland: 降落");
         surround_land = 0;
+        task_result = true;
         timer_.set_timepoint();
         return true;
     }

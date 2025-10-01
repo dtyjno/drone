@@ -8,9 +8,9 @@ shot_halt: 4.5
 shot_halt_surround: 3.0
 shot_halt_low: 1.8
 see_halt: 3.5
-drone_to_camera_x: -0.050 # 2
-drone_to_camera_y: 0.230   # 2
-drone_to_camera_z: 0.20   # 2
+drone_to_camera_x: -0.050 # 2  
+drone_to_camera_y: 0.230   # 2  6.2
+drone_to_camera_z: 0.20   # 2    14.1
 
 # drone_to_camera_x: -0.045 # 1
 # drone_to_camera_y: 0.276   # 1

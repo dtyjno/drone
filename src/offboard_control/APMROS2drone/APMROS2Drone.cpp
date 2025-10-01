@@ -305,18 +305,19 @@ void APMROS2Drone::timer_callback(void)
 
 	auto do_shot_task = DoShotTask::createTask("Do_shot");
 	DoShotTask::Parameters doshot_params;
-	doshot_params.dynamic_target_position_callback = [this, do_shot_waypoint_task]() -> Vector4f {
+	doshot_params.dynamic_target_position_callback = [this]() -> Vector4f {
 		Vector2d drone_to_shot_rotated; // 中间变量
 		rotate_local2world(0.0, 0.10, drone_to_shot_rotated.x(), drone_to_shot_rotated.y());
 		if (!cal_center.empty()) {
-			return Vector4f(cal_center[do_shot_waypoint_task->get_counter()].point.x() + drone_to_shot_rotated.x(),
-							cal_center[do_shot_waypoint_task->get_counter()].point.y() + drone_to_shot_rotated.y(),
+			return Vector4f(cal_center[this->shot_counter].point.x() + drone_to_shot_rotated.x(),
+							cal_center[this->shot_counter].point.y() + drone_to_shot_rotated.y(),
 							shot_halt_low, 0.0f);
 		} else {
 			return Vector4f::Zero(); // 如果没有目标，返回一个默认值
 		}
         // return Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
 	};
+	
 	doshot_params.dynamic_target_image_callback = [this, do_shot_task]() -> Vector2f {
 		static int circle_counter = 0;
 		if (get_yolo_detector()->is_get_target(YOLO_TARGET_TYPE::CIRCLE) && 
@@ -373,8 +374,6 @@ void APMROS2Drone::timer_callback(void)
 		}
 	);
 
-	static int shot_counter = 0;
-
 	// static state current_state = shot;
 	switch (current_state) {
 		case init:
@@ -411,12 +410,11 @@ void APMROS2Drone::timer_callback(void)
 			// 投放阶段的逻辑
 			shot_counter++;
 			do_shot_waypoint_task->get_timer().reset();
+			do_shot_task->set_device_index(shot_counter);
 			if (shot_counter >= 2) {
 				// 处理达到最大投弹次数的逻辑
 				current_state = scout;    // 完成投放，进入等待阶段
 			} else {
-				doshot_params.device_index = shot_counter;
-				do_shot_task->setParameters(doshot_params);
 				do_shot_task->reset();    // 重置投弹任务
 				current_state = shot;     // 继续投放下一个
 			}

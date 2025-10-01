@@ -98,6 +98,12 @@ public:
 			default: return -1; // Invalid state
 		}
 	}
+
+	// shot
+	int shot_counter = 0;
+
+
+
     // // 日志接口
     //  int save_log(bool finish = false) = 0;
 
