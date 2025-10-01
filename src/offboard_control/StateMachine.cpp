@@ -222,7 +222,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 					pre_time = owner_->waypoint_timer_.elapsed(); // 记录上一次的时间
 					// owner_->reset_wp_limits(); // 恢复默认速度限制
 					owner_->waypoint_goto_next(
-						owner_->dx_shot, owner_->dy_shot, owner_->shot_length - 3.5, owner_->shot_width, 
+						owner_->dx_shot, owner_->dy_shot, owner_->shot_length - 3.5, owner_->shot_width,         // 向左/右（8 - 3.5）/2 = 2.25m 向前 5.0 
 						owner_->shot_halt_surround, owner_->surround_shot_points, 5, &counter, "投弹区"); // 进入投弹区,距离左右边界各1.5m
 				} else if (owner_->Doshot(shot_counter, shot_flag)) { // 如果到达投弹点
 					// RCLCPP_INFO(owner_->get_logger(), "寻找完毕，投弹!!投弹!!");
@@ -324,7 +324,7 @@ void StateMachine::handle_state<FlyState::Surround_see>() {
 	if (current_state_ == FlyState::Surround_see) {
 		static int counter = 0; // 航点计数器
 		if (owner_->waypoint_goto_next(
-			owner_->dx_see, owner_->dy_see, owner_->see_length - 2.0, owner_->see_width - 0.2, 
+			owner_->dx_see, owner_->dy_see, owner_->see_length - 2.0, owner_->see_width - 0.2,     // 向左/右（8.0-2.0）/2 = 3.0m 向前 5.0 - 0.2 = 4.8m  
 			owner_->see_halt, owner_->surround_see_points, 3.5, &counter, "侦查区"))
 		{
 			RCLCPP_INFO_ONCE(owner_->get_logger(), "侦查完毕");
