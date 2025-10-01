@@ -27,14 +27,14 @@ std::shared_ptr<WaitTask> WaitTask::getTask(const std::string& task_name) {
 
 template<typename DeviceType>
 bool WaitTask::init(DeviceType device) {
-    device->log_info(get_string().c_str());
+    device->log_info(get_string());
     timer_.reset();
     return true;
 }
 
 template<typename DeviceType>
 bool WaitTask::run(DeviceType device) {
-    // device->log_info(get_string().c_str());
+    // device->log_info(get_string());
     device->log_info_throttle(std::chrono::milliseconds(1000), "等待中...已等待%.2f秒，目标等待%.2f秒", timer_.elapsed(), wait_time);
     if (timer_.elapsed() >= wait_time) {
         task_result = true;
@@ -46,7 +46,7 @@ bool WaitTask::run(DeviceType device) {
 
 template<typename DeviceType>
 bool WaitTask::end(DeviceType device) {
-    device->log_info(get_string().c_str());
+    device->log_info(get_string());
     return true;
 }
 

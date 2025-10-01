@@ -13,6 +13,7 @@ limits:
   accel_max_z: 0.1
 #
 radius: 0.00005 # 到达目标范围内的精度 单位：米
+accuracy: 1.0   # 使用像素半径作为目标范围的百分比 单位：1
 #
 land_target_x: 0.0
 land_target_y: 0.0

@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(px4_ros_com VERSION 1.0)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -91,9 +93,20 @@ file(GLOB STATE_MACHINE_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${STATE_MACHINE_SOURCES})
 
-add_executable(offboard_control ${SOURCES})
+# add_executable(offboard_control ${SOURCES})
+# ament_target_dependencies(offboard_control rclcpp mavros_msgs geometry_msgs nav_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs visualization_msgs sensor_msgs OpenCV cv_bridge ament_index_cpp ${PAL_STATISTICS_DEPS})
+# target_link_libraries(offboard_control yaml-cpp)  
+# install(TARGETS offboard_control DESTINATION lib/${PROJECT_NAME})
+
+# 新增：封装为静态库
+add_library(offboard_control_lib STATIC ${SOURCES})
+ament_target_dependencies(offboard_control_lib rclcpp mavros_msgs geometry_msgs nav_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs visualization_msgs sensor_msgs OpenCV cv_bridge ament_index_cpp ${PAL_STATISTICS_DEPS})
+target_link_libraries(offboard_control_lib yaml-cpp)
+
+# 可执行文件只负责 main
+add_executable(offboard_control src/offboard_control/main.cpp)
+target_link_libraries(offboard_control offboard_control_lib)
 ament_target_dependencies(offboard_control rclcpp mavros_msgs geometry_msgs nav_msgs geographic_msgs trajectory_msgs Eigen3 vision_msgs visualization_msgs sensor_msgs OpenCV cv_bridge ament_index_cpp ${PAL_STATISTICS_DEPS})
-target_link_libraries(offboard_control yaml-cpp)  
 install(TARGETS offboard_control DESTINATION lib/${PROJECT_NAME})
 
 ############
@@ -151,12 +164,16 @@ install(DIRECTORY test DESTINATION share/${PROJECT_NAME}/)
 # endif()
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
-  ament_add_gtest(${PROJECT_NAME}_tutorial_test test/tutorial_test.cpp)
+  ament_add_gtest(${PROJECT_NAME}_tutorial_test 
+    test/tutorial_test.cpp
+    test/task_test.cpp
+  )
   target_include_directories(${PROJECT_NAME}_tutorial_test PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
   )
-#   target_link_libraries(${PROJECT_NAME}_tutorial_test name_of_local_library)
+  target_link_libraries(${PROJECT_NAME}_tutorial_test offboard_control_lib)
+#   ament_target_dependencies(${PROJECT_NAME}_tutorial_test ament_index_cpp)
 endif()
 
 # ###########

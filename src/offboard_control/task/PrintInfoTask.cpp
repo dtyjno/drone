@@ -1,8 +1,4 @@
 #include "PrintInfoTask.h"
-#include "../AbstractDrone.h"
-#include "../../ROS2drone/ROS2Drone.h"
-#include "../../APMROS2drone/APMROS2Drone.h"
-
 // 定义静态成员
 std::map<std::string, std::shared_ptr<PrintInfoTask>> PrintInfoTask::TASKS;
 
@@ -34,7 +30,7 @@ bool PrintInfoTask::init(DeviceType device) {
         return false;
     } else {
         if (device) {
-            device->log_info(get_string().c_str());
+            device->log_info(get_string());
         } else {
             std::cout << "No device associated with this task." << std::endl;
             return false;
@@ -47,7 +43,7 @@ bool PrintInfoTask::init(DeviceType device) {
 
 template<typename DeviceType>
 bool PrintInfoTask::run(DeviceType device) {
-    // RCLCPP_INFO(device->get_node()->get_logger(), get_string().c_str());
+    // RCLCPP_INFO(device->get_node()->get_logger(), get_string());
     if constexpr (!std::is_base_of_v<AbstractDrone, typename DeviceType::element_type>) {
         static_assert(std::is_base_of_v<AbstractDrone, typename DeviceType::element_type>, 
                      "PrintInfoTask can only be used with devices derived from AbstractDrone");
@@ -77,7 +73,7 @@ bool PrintInfoTask::run(DeviceType device) {
                     ss << "x_home_pos:     " << device->get_x_home_pos() << ", y_home_pos: " << device->get_y_home_pos() << ", z_home_pos: " << device->get_z_home_pos() << std::endl;
                     ss << "running_time: " << device->get_cur_time() << std::endl;
                     // RCLCPP_INFO_STREAM(device->get_node()->get_logger(), ss.str());
-                    device->log_info(ss.str().c_str());
+                    device->log_info(ss.str());
                     ss.str(""); // 清空字符串流
                     ss.clear(); // 清除状态标志
                     // std::cout << "device Position: x=" << device->get_x_pos()
@@ -105,7 +101,7 @@ bool PrintInfoTask::end(DeviceType device) {
                      "PrintInfoTask can only be used with devices derived from AbstractDrone");
         return false;
     } else {
-        device->log_info(get_string().c_str());
+        device->log_info(get_string());
     }
     return true;
 }

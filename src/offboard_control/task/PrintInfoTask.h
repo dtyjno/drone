@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../task/Task.h"
+#include "Task.h"
 
 class PrintInfoTask : public Task<PrintInfoTask>
 {

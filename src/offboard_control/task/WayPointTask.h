@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../task/Task.h"
-#include "../../waypoint/WayPoints.h"
-#include "../../utils/utils.h"
+#include "Task.h"
+#include "../waypoint/WayPoints.h"
+#include "../utils/utils.h"
 #include <vector>
 
 class WayPointTask : public Task<WayPointTask>
@@ -26,15 +26,14 @@ public:
     void reset() {
         Task<WayPointTask>::reset();
         point_count = 0;
-        reset_timer();
     }     
 
     class Parameters {
     public:
         float center_x = 0.0f;      // 中心点X
         float center_y = 0.0f;      // 中心点Y
-        float scope_length = 1.0f;  // 范围长度
-        float scope_width = 1.0f;   // 范围宽度
+        // float scope_length = 1.0f;  // 范围长度
+        // float scope_width = 1.0f;   // 范围宽度
         // float halt_height = 2.0f;   // 悬停高度
         float point_time = 10.0f;   // 每个点的时间
         float accuracy = 0.2f;     // 位置精度
@@ -66,10 +65,6 @@ public:
 
     int get_counter() const {
         return point_count;
-    }
-
-    void reset_timer() {
-        timer_.set_start_time_to_default();
     }
 
 

@@ -1,5 +1,4 @@
 #include <rclcpp/rclcpp.hpp>
-// #include "module/ServoController.h"
 #include "APMROS2drone/APMROS2Drone.h"
 
 int main(int argc, char *argv[])

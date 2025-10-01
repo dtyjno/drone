@@ -22,15 +22,15 @@ public:
 	void init_ROS2_topics() override;
 
     // 重写基类的虚函数
-    void publish_setpoint_raw(Vector4f p, Vector4f v) override;
-    void publish_setpoint_raw_global(double latitude, double longitude, double altitude, double yaw) override;
-    void send_local_setpoint_command(double x, double y, double z, double yaw) override;
-    bool local_setpoint_command(Vector4f now, Vector4f target, double accuracy) override;
-    // void send_velocity_command_world(double linear_x, double linear_y, double linear_z, double angular_z) override;
-    // void send_velocity_command_world(Vector4f v) override;
-    void send_velocity_command(Vector4f v) override;
-    bool send_velocity_command_with_time(Vector4f v, double time) override;
-    void send_accel_command(Vector4f v) override;
+    void publish_setpoint_raw(Vector4f p, Vector4f v);
+    void publish_setpoint_raw_global(double latitude, double longitude, double altitude, double yaw);
+    void send_local_setpoint_command(double x, double y, double z, double yaw);
+    bool local_setpoint_command(Vector4f now, Vector4f target, double accuracy);
+    // void send_velocity_command_world(double linear_x, double linear_y, double linear_z, double angular_z);
+    // void send_velocity_command_world(Vector4f v);
+    void send_velocity_command(Vector4f v);
+    bool send_velocity_command_with_time(Vector4f v, double time);
+    void send_accel_command(Vector4f v);
     
 private:
 	rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_stamped_publisher_;

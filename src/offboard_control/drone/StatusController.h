@@ -4,17 +4,15 @@
 
 class StatusController {
 public:
-    virtual ~StatusController() = default;
-    
-    // 添加 Motors 中使用的虚函数
-    virtual bool takeoff(float current_z, float target_altitude, float yaw) = 0;
-    virtual void switch_mode(const std::string& mode) = 0;
-    virtual void arm_motors(bool arm) = 0;
-    virtual void command_takeoff_or_land(std::string mode, float altitude, float yaw) = 0;
+    ~StatusController() = default;
 
-    virtual void set_home_position(float lat, float lon, float alt, float yaw) = 0;
-    virtual void set_home_position(float yaw = 0.0f) = 0;
-    virtual void set_param(const std::string& param_name, double value) = 0;
+    bool takeoff(float current_z, float target_altitude, float yaw) {(void)current_z; (void)target_altitude; (void)yaw; return true; }
+    void switch_mode(const std::string& mode) {std::cout << "Switching mode to: " << mode << std::endl;}
+    void arm_motors(bool arm) {armed = arm;}
+    void command_takeoff_or_land(std::string mode, float altitude, float yaw) {std::cout << "Commanding " << mode << " to altitude: " << altitude << " with yaw: " << yaw << std::endl;}
+    void set_home_position(float lat, float lon, float alt, float yaw) {(void)lat; (void)lon; (void)alt; (void)yaw;}
+    void set_home_position(float yaw = 0.0f) {(void)yaw;}
+    void set_param(const std::string& param_name, double value) {(void)param_name; (void)value;}
 
 	std::string get_mode() const {
 		return mode;
@@ -57,12 +55,12 @@ public:
     bool armed = false;
     bool connected = false;
     bool guided = false;
-    std::string mode;
-    uint8_t system_status;
+    std::string mode = "UNKNOWN";
+    uint8_t system_status = -1;
     // Home位置接口
-	Vector3f home_position;
-	Vector3f home_position_global;
-	Quaternionf home_quaternion;  // 四元数
+	Vector3f home_position = Vector3f::Zero();
+	Vector3f home_position_global = Vector3f::Zero();
+	Quaternionf home_quaternion = Quaternionf::Identity();  // 四元数
 
 	// 命令字段
 	bool takeoff_command = false;  // 起飞命令

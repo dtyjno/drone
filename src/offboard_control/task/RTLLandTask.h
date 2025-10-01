@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../../task/Task.h"
-#include "../../task/BlankTask.h"
+#include "Task.h"
 
 class RTLLandTask : public Task<RTLLandTask>
 {
@@ -17,11 +16,15 @@ public:
         return std::static_pointer_cast<RTLLandTask>(shared_from_this());
     }
 
+    std::shared_ptr<TaskBase> getLandTask() const {
+        return land_task;
+    }
+
 private:
     RTLLandTask(std::string name) : 
         Task<RTLLandTask>(name) {}
 
-    std::shared_ptr<TaskBase> land_task = BlankTask::createTask("Blank");
+    std::shared_ptr<TaskBase> land_task;  // 降落任务
 
 public:
     // CRTP 需要的方法 - 由基类的 impl() 调用

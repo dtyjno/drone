@@ -1,7 +1,4 @@
 #include "SetPointTask.h"
-#include "../AbstractDrone.h"
-#include "../../ROS2drone/ROS2Drone.h"
-#include "../../APMROS2drone/APMROS2Drone.h"
 
 // 定义静态成员
 std::map<std::string, std::shared_ptr<SetPointTask>> SetPointTask::TASKS;
@@ -32,58 +29,44 @@ bool SetPointTask::init(DeviceType device) {
                      "SetPointTask can only be used with devices derived from AbstractDrone");
         return false;
     } else {
-        device->log_info(get_string().c_str());
+        device->log_info(get_string());
         // 重置计数器和计时器
         set_counter(0);
-        reset_timer();
+        reset();
+        // 更新目标点坐标
+        float x_temp = parameters_.target_x;
+        float y_temp = parameters_.target_y;
+        float z_temp = parameters_.target_z;
+        float yaw_temp = parameters_.target_yaw;
+        device->log_info(get_string(), ": 点位", get_counter(), " x: ", x_temp, " y: ", y_temp, " z: ", z_temp, " timeout=", (is_equal(device->get_x_pos(), x_temp, parameters_.accuracy) && is_equal(device->get_y_pos(), y_temp, parameters_.accuracy))? "true" : "false"
+        );
+        if (parameters_.frame == Parameters::Frame::START) {
+            device->send_start_setpoint_command(x_temp, y_temp, z_temp, yaw_temp); // 发送本地坐标系下的航点指令
+        } else if (parameters_.frame == Parameters::Frame::LOCAL) {
+            device->send_local_setpoint_command(x_temp, y_temp, z_temp, yaw_temp); // 发送局部坐标系下的航点指令
+        } else {
+            device->log_error(get_string(), ": 未知的坐标系参数");
+        }
     }
     return true;
 }
 
 template<typename DeviceType>
 bool SetPointTask::run(DeviceType device) {
-
     if constexpr (!std::is_base_of_v<AbstractDrone, typename DeviceType::element_type>) {
         static_assert(std::is_base_of_v<AbstractDrone, typename DeviceType::element_type>, 
                      "SetPointTask can only be used with devices derived from AbstractDrone");
         return false;
     } else {
         // RCLCPP_INFO_THROTTLE(device->node->get_logger(), (*device->node)->get_clock(), 1000, "(T 1s) w_g_n,counter: %d, time=%lf", parameters_.point_count, timer_.elapsed());
-        device->log_info_throttle(std::chrono::milliseconds(500), "%s: time=%s", get_string().c_str(), timer_.elapsed() == std::numeric_limits<double>::max() ? "max" : std::to_string(timer_.elapsed()).c_str());
+        std::string time_str = timer_.elapsed() == std::numeric_limits<double>::max() ? "max" : std::to_string(timer_.elapsed());
+        device->log_info_throttle(std::chrono::milliseconds(500), get_string(), ": time=", time_str);
         // 判断是否到达目标点点或超时
         if (timer_.elapsed() > parameters_.point_time ||
-                (is_equal(device->get_x_pos(), parameters_.target_x, parameters_.accuracy) && 
-                is_equal(device->get_y_pos(), parameters_.target_y, parameters_.accuracy))
-            ) 
-        {
-            if (get_counter() == 0)
-            {
-                // 更新目标点坐标
-                float x_temp = parameters_.target_x;
-                float y_temp = parameters_.target_y;
-                float z_temp = parameters_.target_z;
-                float yaw_temp = parameters_.target_yaw;
-                device->log_info("%s: 点位%d x: %lf y: %lf z: %lf timeout=%s",
-                    get_string().c_str(),
-                    get_counter(),
-                    x_temp,
-                    y_temp,
-                    z_temp,
-                    (is_equal(device->get_x_pos(), x_temp, parameters_.accuracy) && is_equal(device->get_y_pos(), y_temp, parameters_.accuracy))? "true" : "false"
-                );
-                if (parameters_.frame == Parameters::Frame::START) {
-                    device->send_start_setpoint_command(x_temp, y_temp, z_temp, yaw_temp); // 发送本地坐标系下的航点指令
-                } else if (parameters_.frame == Parameters::Frame::LOCAL) {
-                    device->send_local_setpoint_command(x_temp, y_temp, z_temp, yaw_temp); // 发送局部坐标系下的航点指令
-                } else {
-                    device->log_error("%s: 未知的坐标系参数", get_string().c_str());
-                }
-                // RCLCPP_INFO(device->node->get_logger(), "前往下一点");
-                set_counter(get_counter() + 1);  // 航点自增
-                timer_.reset();
-            } else {
-                return true;  // 任务完成
-            }
+            (parameters_.frame == Parameters::Frame::START && device->is_equal_start_target_xy(parameters_.target_x, parameters_.target_y, parameters_.accuracy)) ||
+            (parameters_.frame == Parameters::Frame::LOCAL && device->is_equal_local_target_xy(parameters_.target_x, parameters_.target_y, parameters_.accuracy))
+        ) {
+            return true;  // 任务完成
         }
     }
 	return false;
@@ -97,8 +80,8 @@ bool SetPointTask::end(DeviceType device) {
         return false;
     } else {
         set_counter(0);
-        reset_timer();
-        device->log_info(get_string().c_str());
+        task_result = true;
+        device->log_info(get_string());
     }
     return true;
 }

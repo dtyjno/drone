@@ -4,8 +4,8 @@
 #include <vector>
 
 #include "../drone/PosController.h"
-#include "../drone/PosPublisher.h"
-#include "../drone/PosSubscriber.h"
+#include "../drone/PosPublisherInterface.h"
+#include "../drone/PosSubscriberInterface.h"
 
 #ifdef PAL_STATISTIC_VISIBILITY
 #include <pal_statistics_msgs/msg/statistics.hpp>
@@ -16,7 +16,7 @@
  
 class ROS2PosController : public PosController {
 public:
-    ROS2PosController(std::shared_ptr<PosSubscriber> pos_subscriber, std::shared_ptr<PosPublisher> pos_publisher) :
+    ROS2PosController(std::shared_ptr<PosSubscriberInterface> pos_subscriber, std::shared_ptr<PosPublisherInterface> pos_publisher) :
 		PosController(pos_subscriber, pos_publisher)  // 调用基类构造函数
 	{
 		RCLCPP_INFO(rclcpp::get_logger("ROS2PosController"), "ROS2PosController: Starting Pos Controller example");

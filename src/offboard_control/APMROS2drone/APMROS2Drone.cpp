@@ -1,39 +1,31 @@
 #include "APMROS2Drone.h"
 
-#include "task/Task.h"
-#include "task/TaskManager.h"
+#include <rclcpp/rclcpp.hpp>
+#include "../task/Task.h"
+#include "../task/TaskManager.h"
 // #include "../stateMachine/StateMachine.h"
-#include "../drone/task/WayPointTask.h"
-#include "../drone/task/PrintInfoTask.h"
-#include "../drone/task/SetPointTask.h"
-#include "../drone/task/RTLLandTask.h"
-#include "task/DoShotTask.h"
-#include "task/DoLandTask.h"
+#include "../task/WayPointTask.h"
+#include "../task/PrintInfoTask.h"
+#include "../task/SetPointTask.h"
+#include "../task/RTLLandTask.h"
+#include "../task/DoShotTask.h"
+#include "../task/DoLandTask.h"
 #include "../task/WaitTask.h"
 // #include "state/states.h"
 
 // Constructor implementation
-APMROS2Drone::APMROS2Drone(const std::string& ardupilot_namespace) :
-    ROS2Drone(ardupilot_namespace)
+APMROS2Drone::APMROS2Drone(const std::string& ardupilot_namespace,
+	std::shared_ptr<StatusController> sta_ctl,
+	std::shared_ptr<PosController> pos_ctl,
+	std::shared_ptr<rclcpp::Node> node) :
+    ROS2Drone(ardupilot_namespace, sta_ctl, pos_ctl, node)
     // state_machine_(StateMachine<APMROS2Drone>::getInstance())
 {
-	RCLCPP_INFO(node->get_logger(), "APMROS2Drone: Starting Offboard Control example");
+	RCLCPP_INFO(node->get_logger(), "APMROS2Drone: Starting Offboard Control example");	
 
-    // Create PosSubscriber and PosPublisher
-	std::shared_ptr<APMROS2PosPublisher> pos_publisher = std::make_shared<APMROS2PosPublisher>();
-	std::shared_ptr<APMROS2PosSubscriber> pos_subscriber = std::make_shared<APMROS2PosSubscriber>();
-	
-	// Create the controllers
-	sta_ctl = std::make_shared<APMROS2StatusController>();
-	pos_publisher->CreateROS2Topics(node, topic_namespace);
-	pos_subscriber->CreateROS2Topics(node, topic_namespace);
-	
-	pos_ctl = std::make_shared<APMROS2PosController>(pos_subscriber, pos_publisher);
-	pos_ctl->CreateROS2Topics(node, topic_namespace);
-	sta_ctl->CreateROS2Topics(node, topic_namespace);
 
 	// Initialize controllers
-	initialize_controllers(sta_ctl, pos_ctl);
+	// initialize_controllers(sta_ctl, pos_ctl);
     RCLCPP_INFO(node->get_logger(), "开始使用APM服务的离线控制 OffboardControl");
     RCLCPP_INFO(node->get_logger(), "初始化 OffboardControl， ardupilot_namespace: %s", topic_namespace.c_str());
     
@@ -41,23 +33,26 @@ APMROS2Drone::APMROS2Drone(const std::string& ardupilot_namespace) :
     //     state_machine_.transition_to(FlyState::Print_Info);
     // }
 
+    // Initialize shared components that need shared_from_this()
+    _servo_controller = std::make_shared<ROS2ServoController>(topic_namespace, node->shared_from_this());
+    _camera_gimbal = std::make_shared<ROS2CameraGimbal>(topic_namespace, node->shared_from_this());
+	yolo_detector = std::make_shared<ROS2YOLODetector>(node->shared_from_this());
+
     // 发布当前状态 
     state_publisher_ = node->create_publisher<std_msgs::msg::Int32>("current_state", 10);
-
-    mypid.readPIDParameters("pos_config.yaml","mypid");
-    read_configs("OffboardControl.yaml");
-
-    timestamp_init = get_cur_time();
-    
-    // Initialize shared components that need shared_from_this()
-    _servo_controller = std::make_shared<ServoController>(topic_namespace, node->shared_from_this());
-    _camera_gimbal = std::make_shared<CameraGimbal>(topic_namespace, node->shared_from_this());
-	yolo_detector = std::make_shared<YOLODetector>(node->shared_from_this());
-
     #ifdef PAL_STATISTIC_VISIBILITY
     stats_publisher_ = node->create_publisher<pal_statistics_msgs::msg::Statistics>("/statistics", 10);
     // stats_timer_ = node->create_wall_timer(wait_time, std::bind(&OffboardControl::publish_statistics, this));
     #endif
+
+    mypid.readPIDParameters("pos_config.yaml","mypid");
+
+	// timer_ = node->create_wall_timer(
+	// 	wait_time,
+	// 	std::bind(&ROS2Drone::timer_callback, this)
+	// );
+
+	// timestamp_init = get_cur_time();
 }
 // void APMROS2Drone::initializeStateMachine() {
 //     try {
@@ -139,6 +134,7 @@ APMROS2Drone::APMROS2Drone(const std::string& ardupilot_namespace) :
 
 void APMROS2Drone::timer_callback(void)
 {
+	timer_callback_update();
 	// accept(
 	// 	SetPointTask::createTask("setpoint0")->set_config(
 	// 		SetPointTask::Parameters{
@@ -208,48 +204,22 @@ void APMROS2Drone::timer_callback(void)
 	// 		  << get_yolo_detector()->get_x(YOLO_TARGET_TYPE::H) << ","
 	// 		  << get_yolo_detector()->get_y(YOLO_TARGET_TYPE::H) << std::endl;
 
-	// 检查位置数据的有效性，防止段错误
-	if (!debug_mode_ && !print_info_) {
-		if (sta_ctl->get_system_status() == StatusController::State__system_status::MAV_STATE_UNINIT) {
-			RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "MAVROS待启动，等待MAVROS创建ROS节点...");
-			return;
-		} else if (sta_ctl->get_system_status() == StatusController::State__system_status::MAV_STATE_BOOT) {
-			RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "飞控正在启动，等待...");
-			return;
-		} else if (sta_ctl->get_system_status() == StatusController::State__system_status::MAV_STATE_CALIBRATING) {
-			RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "飞控正在校准，尚未准备好飞行，等待...");
-			return;
-		} else if (sta_ctl->get_system_status() != StatusController::State__system_status::MAV_STATE_STANDBY &&
-					sta_ctl->get_system_status() != StatusController::State__system_status::MAV_STATE_ACTIVE) {
-			RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "当前飞机状态 %d %s",
-			sta_ctl->get_system_status_uint8_t(), sta_ctl->get_state_name().c_str());
-		}
-		if (!isfinite(get_x_pos()) || !isfinite(get_y_pos()) || !isfinite(get_z_pos())) {
-			RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "位置数据无效，等待有效GPS信号(EKF3 IMU0/1 is using GPS)...");
-			return;
-		}
-	}
+	// if (debug_mode_) { // 调试模式下，强制设置飞机位置
+	// 	get_position_controller()->pos_data->set_position(Vector3f(0.0, 0.0, 1.2)); // 设置飞机初始位置为(0,0,1.2)
+	// }
 
-	if (debug_mode_) { // 调试模式下，强制设置飞机位置
-		pos_ctl->pos_data->set_position(Vector3f(0.0, 0.0, 1.2)); // 设置飞机初始位置为(0,0,1.2)
-	}
-	
-	Vector2d drone_to_camera_rotated;
-	rotate_world2local(drone_to_camera.x(), drone_to_camera.y(), drone_to_camera_rotated.x(), drone_to_camera_rotated.y());
-	_camera_gimbal->camera_relative_position = Vector3d(drone_to_camera_rotated.x(), drone_to_camera_rotated.y(), drone_to_camera[2]);
-	_camera_gimbal->parent_position = Vector3d(get_x_pos(), get_y_pos(), get_z_pos());
-	// 相机坐标系：相对于飞机机体坐标系，向前旋转90度后垂直向下
-	// 飞机偏航角 + 相机相对偏航角(90度) + 俯仰角(-90度向下)
-	float roll, pitch, yaw;
-	get_euler(roll, pitch, yaw);
+	// // 相机坐标系：相对于飞机机体坐标系，向前旋转90度后垂直向下
+	// // 飞机偏航角 + 相机相对偏航角(90度) + 俯仰角(-90度向下)
+	// float roll, pitch, yaw;
+	// get_euler(roll, pitch, yaw);
+	// if (debug_mode_ && get_status_controller()->get_system_status() == StatusController::State__system_status::MAV_STATE_UNINIT) {
+	// 	roll = 0.0f;
+	// 	pitch = 0.0f;
+	// }
 
-	if (debug_mode_ && sta_ctl->get_system_status() == StatusController::State__system_status::MAV_STATE_UNINIT) {
-		roll = 0.0f;
-		pitch = 0.0f;
-	}
-
-	_camera_gimbal->camera_relative_rotation = Vector3d(0, 0, 0); // 相机相对飞机的旋转，roll=0, pitch=0 (垂直向下), yaw=0
-	_camera_gimbal->parent_rotation = Vector3d(roll, pitch, get_world_yaw()); 
+	// _camera_gimbal->set_parent_position(Vector3d(get_x_pos(), get_y_pos(), get_z_pos()));
+	// _camera_gimbal->set_camera_relative_rotation(Vector3d(0, 0, 0)); // 相机相对飞机的旋转，roll=0, pitch=0 (垂直向下), yaw=0
+	// _camera_gimbal->set_parent_rotation(Vector3d(roll, pitch, get_world_yaw()));
 
 	// 测试目标可视化
 	// if (debug_mode_) {
@@ -264,6 +234,28 @@ void APMROS2Drone::timer_callback(void)
 	// std::cout << "相机内参: fx=" << _camera_gimbal->fx << " fy=" << _camera_gimbal->fy << " cx=" << _camera_gimbal->cx << " cy=" << _camera_gimbal->cy << std::endl;
 
 	calculate_target_position();
+
+	// 检查位置数据的有效性，防止段错误
+	if (!debug_mode_ && !print_info_) {
+		if (get_status_controller()->get_system_status() == StatusController::State__system_status::MAV_STATE_UNINIT) {
+			RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "MAVROS待启动，等待MAVROS创建ROS节点...");
+			return;
+		} else if (get_status_controller()->get_system_status() == StatusController::State__system_status::MAV_STATE_BOOT) {
+			RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "飞控正在启动，等待...");
+			return;
+		} else if (get_status_controller()->get_system_status() == StatusController::State__system_status::MAV_STATE_CALIBRATING) {
+			RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "飞控正在校准，尚未准备好飞行，等待...");
+			return;
+		} else if (get_status_controller()->get_system_status() != StatusController::State__system_status::MAV_STATE_STANDBY &&
+					get_status_controller()->get_system_status() != StatusController::State__system_status::MAV_STATE_ACTIVE) {
+			RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "当前飞机状态 %d %s",
+			get_status_controller()->get_system_status_uint8_t(), get_status_controller()->get_state_name().c_str());
+		}
+		if (!isfinite(get_x_pos()) || !isfinite(get_y_pos()) || !isfinite(get_z_pos())) {
+			RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 1000, "位置数据无效，等待有效GPS信号(EKF3 IMU0/1 is using GPS)...");
+			return;
+		}
+	}
 
 	// state_machine_.executeAllStates();
 
@@ -286,17 +278,17 @@ void APMROS2Drone::timer_callback(void)
 	WayPoints do_shot_waypoint = WayPoints(
 		"投弹区",
 		std::vector<Vector4f>{
-			Vector4f(0.33333f, 0.9f, shot_halt_surround, 0.0f),
-			Vector4f(0.0f, 0.9f, shot_halt_surround, 0.0f),
-			Vector4f(0.16667f, 0.66667f, shot_halt_surround, 0.0f),
-			Vector4f(-0.33333f, 0.1f, shot_halt_surround, 0.0f),
-			Vector4f(0.16667f, 0.33333f, shot_halt_surround, 0.0f),
-			Vector4f(-0.16667f, 0.66667f, shot_halt_surround, 0.0f),
-			Vector4f(-0.16667f, 0.33333f, shot_halt_surround, 0.0f),
-			Vector4f(0.0f, 0.0f, shot_halt_surround, 0.0f),
-			Vector4f(0.0f, 1.0f, shot_halt_surround, 0.0f),
-			Vector4f(-0.33333f, 0.9f, shot_halt_surround, 0.0f),
-			Vector4f(0.33333f, 0.1f, shot_halt_surround, 0.0f)
+			Vector4f( 1.5f , 4.5f, shot_halt_surround, 0.0f),
+			Vector4f( 0.0f , 4.5f, shot_halt_surround, 0.0f),
+			Vector4f( 0.75f, 3.4f, shot_halt_surround, 0.0f),
+			Vector4f(-1.5f , 0.5f, shot_halt_surround, 0.0f),
+			Vector4f( 0.75f, 1.7f, shot_halt_surround, 0.0f),
+			Vector4f(-0.75f, 3.4f, shot_halt_surround, 0.0f),
+			Vector4f(-0.75f, 1.7f, shot_halt_surround, 0.0f),
+			Vector4f( 0.0f , 0.0f, shot_halt_surround, 0.0f),
+			Vector4f( 0.0f , 1.0f, shot_halt_surround, 0.0f),
+			Vector4f(-1.5f , 0.9f, shot_halt_surround, 0.0f),
+			Vector4f( 1.5f , 0.5f, shot_halt_surround, 0.0f)
 		}
 	);
 	do_shot_waypoint_task->set_config(
@@ -304,8 +296,8 @@ void APMROS2Drone::timer_callback(void)
 		WayPointTask::Parameters{
 			dx_shot,    // center_x
 			dy_shot,    // center_y
-			shot_length - 3.5f,    // scope_length
-			shot_width,    // scope_width
+			// shot_length - 3.5f,    // scope_length
+			// shot_width,    // scope_width
 			5.0f,    // point_time (每个航点停留时间)
 			0.3f     // accuracy (航点到达精度)
 		}
@@ -362,11 +354,11 @@ void APMROS2Drone::timer_callback(void)
 	WayPoints do_scout_waypoint = WayPoints(
 		"侦察区",
 		std::vector<Vector4f>{
-			Vector4f(0.0f, 1.0f, see_halt, 0.0f),
-			Vector4f(-0.5f, 1.0f, see_halt, 0.0f),
-			Vector4f(-0.5f, 1.0f, see_halt, 0.0f),
-			Vector4f(0.5f, 0.0f, see_halt, 0.0f),
-			Vector4f(0.5f, 1.0f, see_halt, 0.0f)
+			Vector4f(0.0f, 4.8f, see_halt, 0.0f),
+			Vector4f(-3.0f, 4.8f, see_halt, 0.0f),
+			Vector4f(-3.0f, 0.2f, see_halt, 0.0f),
+			Vector4f(3.0f, 4.8f, see_halt, 0.0f),
+			Vector4f(3.0f, 0.2f, see_halt, 0.0f)
 		}
 	);
 	do_scout_waypoint_task->set_config(
@@ -374,8 +366,8 @@ void APMROS2Drone::timer_callback(void)
 		WayPointTask::Parameters{
 			dx_see,    // center_x
 			dy_see,    // center_y
-			see_length - 2.0f,    // scope_length
-			see_width - 0.2f,    // scope_width
+			// see_length - 2.0f,    // scope_length
+			// see_width - 0.2f,    // scope_width
 			3.5f,    // point_time (每个航点最大停留时间)
 			0.05f     // accuracy (航点到达精度)
 		}
@@ -390,7 +382,7 @@ void APMROS2Drone::timer_callback(void)
 			current_state = takeoff;
 			break;
 		case takeoff:
-			if (sta_ctl->takeoff(get_z_pos(), 2.0, get_yaw())) {
+			if (get_status_controller()->takeoff(get_z_pos(), 2.0, get_yaw())) {
 				current_state = gotoshot;
 			}
 			break;
@@ -452,7 +444,7 @@ void APMROS2Drone::timer_callback(void)
 	}
 
 	
-	if (sta_ctl->mode == "LAND" &&
+	if (get_status_controller()->mode == "LAND" &&
 		// state_machine_.getCurrentState().getName() != "InitState" &&
 		// state_machine_.getCurrentState().getName() != "TakeoffState" &&
 		// state_machine_.getCurrentState().getName() != "EndState" &&
@@ -539,13 +531,13 @@ void APMROS2Drone::FlyState_init()
 	// start_global = {get_lat(), get_lon(), get_alt()};		
 	
 	RCLCPP_INFO(node->get_logger(), "初始旋转角: %f", get_yaw());
-	pos_ctl->set_dt(get_wait_time()); // 设置执行周期（用于PID）
+	get_position_controller()->set_dt(get_wait_time()); // 设置执行周期（用于PID）
 
 	// 重新设置家地址
-	if (sta_ctl->get_system_status() != StatusController::State__system_status::MAV_STATE_ACTIVE && get_z_pos() < 0.5) {
-		sta_ctl->set_home_position(get_yaw());
+	if (get_status_controller()->get_system_status() != StatusController::State__system_status::MAV_STATE_ACTIVE && get_z_pos() < 0.5) {
+		get_status_controller()->set_home_position(get_yaw());
 	}
-	sta_ctl->switch_mode("GUIDED");
+	get_status_controller()->switch_mode("GUIDED");
 
 	// if (!debug_mode_)
 	reset_wp_limits();
@@ -554,17 +546,27 @@ void APMROS2Drone::FlyState_init()
 #ifdef PAL_STATISTIC_VISIBILITY
 void APMROS2Drone::publish_statistics(){
 	if (!stats_publisher_) {
-		RCLCPP_ERROR(node->get_logger(), "stats_publisher_ is not initialized.");
-		return;
+        std::cerr << "[ERROR] stats_publisher_ is null in publish_statistics()" << std::endl;
+        return;
 	}
+    if (!node) {
+        RCLCPP_ERROR(rclcpp::get_logger("APMROS2Drone"), "ROS2 node is null!");
+        return;
+    }
 	std::vector<pal_statistics_msgs::msg::Statistic> statistics;
 	auto msg = pal_statistics_msgs::msg::Statistics();
 	msg.header.stamp = node->get_clock()->now();
 	msg.header.frame_id = "base_link";
-	pos_ctl->publish_statistic(statistics);
+	if (get_position_controller()) {
+		static_pointer_cast<APMROS2PosController>(get_position_controller())->publish_statistic(statistics);
+	}
 	this->publish_statistic(statistics);
 	msg.statistics = statistics;
-	this->stats_publisher_->publish(msg);
+	try {
+		this->stats_publisher_->publish(msg);
+	} catch (const std::exception &e) {
+		RCLCPP_ERROR(rclcpp::get_logger("APMROS2Drone"), "Failed to publish statistics: %s", e.what());
+	}
 }
 
 void APMROS2Drone::publish_statistic(std::vector<pal_statistics_msgs::msg::Statistic> &statistics){
@@ -706,7 +708,7 @@ void APMROS2Drone::accept(std::shared_ptr<TaskBase> visitor) {
 // 	// RCLCPP_INFO(node->get_logger(), "catch_target: accuracy: %f, max_frame: %f", accuracy, max_frame);
 
 // 	// bool trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target, PID::Defaults defaults, double accuracy, double yaw_accuracy, bool calculate_or_get_vel, float vel_x = DEFAULT_VELOCITY, float vel_y = DEFAULT_VELOCITY);
-// 	pos_ctl->trajectory_setpoint_world(
+// 	get_position_controller()->trajectory_setpoint_world(
 // 		Vector4f{tar_x / max_frame, tar_y / max_frame, get_z_pos(), get_yaw()}, // 当前坐标        get_world_yaw()  // 当前坐标
 // 		Vector4f{now_x / max_frame, now_y / max_frame, tar_z, tar_yaw + default_yaw}, // 目标坐标  tar_yaw
 // 		defaults,
@@ -756,12 +758,12 @@ void APMROS2Drone::accept(std::shared_ptr<TaskBase> visitor) {
 // 		{
 // 		case CatchState::init:
 // 		{
-// 			pos_ctl->reset_pid(); // 重置PID参数与配置
+// 			get_position_controller()->reset_pid(); // 重置PID参数与配置
 // 			RCLCPP_INFO(node->get_logger(), "Doshot: Init");
 // 			PID::Defaults defaults;
 // 			defaults = PID::readPIDParameters("can_config.yaml", "pid");
-// 			PosController::Limits_t limits = pos_ctl->readLimits("can_config.yaml", "limits");
-// 			pos_ctl->set_limits(limits);
+// 			PosController::Limits_t limits = get_position_controller()->readLimits("can_config.yaml", "limits");
+// 			get_position_controller()->set_limits(limits);
 // 			// 读取距离目标一定范围内退出的距离
 // 			YAML::Node config = Readyaml::readYAML("can_config.yaml");
 // 			radius = config["radius"].as<float>();
@@ -1027,7 +1029,7 @@ void APMROS2Drone::accept(std::shared_ptr<TaskBase> visitor) {
 // 			RCLCPP_INFO(node->get_logger(), "Doshot: end");
 // 			// 重置所有静态变量
 // 			catch_state_ = CatchState::init;
-// 			pos_ctl->reset_limits();
+// 			get_position_controller()->reset_limits();
 // 			// time_find_start = 0;
 // 			result = true;
 // 			break;
@@ -1058,11 +1060,11 @@ void APMROS2Drone::accept(std::shared_ptr<TaskBase> visitor) {
 // 		switch (land_state_)
 // 		{
 // 		case LandState::init:{
-// 			pos_ctl->reset_pid(); // 重置PID参数与配置
+// 			get_position_controller()->reset_pid(); // 重置PID参数与配置
 // 			// 读取PID参数
 // 			defaults = PID::readPIDParameters("land_config.yaml", "pid");
-// 			PosController::Limits_t limits = pos_ctl->readLimits("land_config.yaml", "limits");
-// 			pos_ctl->set_limits(limits);
+// 			PosController::Limits_t limits = get_position_controller()->readLimits("land_config.yaml", "limits");
+// 			get_position_controller()->set_limits(limits);
 // 			YAML::Node config = Readyaml::readYAML("land_config.yaml");
 // 			scout_halt = config["scout_halt"].as<double>();
 // 			scout_x = config["scout_x"].as<double>();
@@ -1219,8 +1221,8 @@ void APMROS2Drone::accept(std::shared_ptr<TaskBase> visitor) {
 // 	{
 // 		// 读取PID参数
 // 		PID::Defaults defaults = PID::readPIDParameters("can_config.yaml", "pid_bucket");
-// 		PosController::Limits_t limits = pos_ctl->readLimits("can_config.yaml", "limits");
-// 		pos_ctl->set_limits(limits);
+// 		PosController::Limits_t limits = get_position_controller()->readLimits("can_config.yaml", "limits");
+// 		get_position_controller()->set_limits(limits);
 // 		// 读取距离目标一定范围内退出的距离
 // 		YAML::Node config = Readyaml::readYAML("can_config.yaml");
 // 		accuracy = config["accuracy"].as<float>();
@@ -1236,7 +1238,7 @@ void APMROS2Drone::accept(std::shared_ptr<TaskBase> visitor) {
 // 		tar_z = 1.5;							 // 设置目标高度（m）
 // 		tar_yaw = 0;		 // 设置目标偏航角（rad）
 // 		dt = 0.25;							 // 设置执行周期（s）
-// 		pos_ctl->set_dt(dt); // 设置执行周期（用于PID）
+// 		get_position_controller()->set_dt(dt); // 设置执行周期（用于PID）
 
 // 		RCLCPP_INFO(node->get_logger(), "Doshot: Init2");
 // 		RCLCPP_INFO(node->get_logger(), "--------------------\n\n读取pid_bucket: p: %f, i: %f, d: %f, ff: %f, dff: %f, imax: %f", defaults.p, defaults.i, defaults.d, defaults.ff, defaults.dff, defaults.imax);
@@ -1268,7 +1270,7 @@ void APMROS2Drone::accept(std::shared_ptr<TaskBase> visitor) {
 // 		static float _t_time = get_cur_time();
 
 // 		(void)accuracy;
-// 		if (!pos_ctl->auto_tune 
+// 		if (!get_position_controller()->auto_tune 
 // 				(
 // 						Vector4f{now_x / get_yolo_detector()->get_cap_frame_width(), now_y / get_yolo_detector()->get_cap_frame_height(), get_z_pos(), get_yaw()},
 // 						Vector4f{(tar_x) / get_yolo_detector()->get_cap_frame_width(), (tar_y) / get_yolo_detector()->get_cap_frame_height(), tar_z, tar_yaw},
@@ -1308,7 +1310,7 @@ void APMROS2Drone::accept(std::shared_ptr<TaskBase> visitor) {
 // 		return true;
 // 	}
 // 		RCLCPP_INFO(node->get_logger(), "error:%lf,time:%lf", data_point.error, data_point.time);
-// 		pos_ctl->reset_limits();
+// 		get_position_controller()->reset_limits();
 // 		RCLCPP_INFO(node->get_logger(), "Arrive, 投弹");
 
 // 	// 重置所有静态变量
@@ -1352,7 +1354,7 @@ void APMROS2Drone::terminal_control()  {
         char key = _getch(); // 获取按键输入
         // auto& stateMachine = StateMachine<APMROS2Drone>::getInstance();
         // 特殊状态处理（起飞解锁前）
-        auto apm_sta_ctl = std::dynamic_pointer_cast<APMROS2StatusController>(sta_ctl);
+        auto apm_sta_ctl = std::static_pointer_cast<APMROS2StatusController>(get_status_controller());
         if (apm_sta_ctl && apm_sta_ctl->state_ == APMROS2StatusController::TakeoffState::wait_for_takeoff_command){
             if (key == '\n') // 检查是否按下回车键
             {
@@ -1411,30 +1413,33 @@ void APMROS2Drone::terminal_control()  {
 
 void APMROS2Drone::calculate_target_position()
 {
-
+// detection2d_array_sub_ = node->create_subscription<vision_msgs::msg::Detection2DArray>(
+//             "detection2d_array", 10,
+//             std::bind(&ROS2YOLODetector::detection2d_array_callback, this, std::placeholders::_1)
+//         );
 	// // 调试输出：像素坐标和相机位置
-	// std::cout << "相机当前位置: (" << _camera_gimbal->get_position().x() << ", " << _camera_gimbal->get_position().y() << ", " << _camera_gimbal->get_position().z() << ")" << std::endl;
-	// std::cout << "相机旋转角度: roll=" << _camera_gimbal->camera_relative_rotation.x() << " pitch=" << _camera_gimbal->camera_relative_rotation.y() << " yaw=" << _camera_gimbal->camera_relative_rotation.z() << std::endl;
-	// std::cout << "相机内参: fx=" << _camera_gimbal->fx << " fy=" << _camera_gimbal->fy << " cx=" << _camera_gimbal->cx << " cy=" << _camera_gimbal->cy << std::endl;
+	// std::cout << "相机当前位置: (" << get_camera()->get_position().x() << ", " << get_camera()->get_position().y() << ", " << get_camera()->get_position().z() << ")" << std::endl;
+	// std::cout << "相机旋转角度: roll=" << get_camera()->get_camera_relative_rotation().x() << " pitch=" << get_camera()->get_camera_relative_rotation().y() << " yaw=" << get_camera()->get_camera_relative_rotation().z() << std::endl;
+	// std::cout << "相机内参: fx=" << get_camera()->get_fx() << " fy=" << get_camera()->get_fy() << " cx=" << get_camera()->get_cx() << " cy=" << get_camera()->get_cy() << std::endl;
 
 	std::vector<vision_msgs::msg::BoundingBox2D> raw_circles = get_yolo_detector()->get_raw_targets(YOLO_TARGET_TYPE::CIRCLE);
 	for (const auto& circle : raw_circles) 
 	{
 		// std::cout << "检测到的像素坐标: (" << circle.center.position.x << ", " << circle.center.position.y << ")" << std::endl;
 		
-		this->target1 = _camera_gimbal->pixelToWorldPosition(
+		this->target1 = get_camera()->pixelToWorldPosition(
 			Vector2d(circle.center.position.x, circle.center.position.y), 
 			bucket_height // 桶顶高度
 		);
 		double avg_size = (circle.size_x + circle.size_y) / 2.0;
-		double distance_to_bucket = _camera_gimbal->get_position().z() - bucket_height;
+		double distance_to_bucket = get_camera()->get_position().z() - bucket_height;
 		double diameter = 0.0;
 		if (distance_to_bucket > 0.01) { // 防止除零
-			diameter = _camera_gimbal->calculateRealDiameter(avg_size, distance_to_bucket);
+			diameter = get_camera()->calculateRealDiameter(avg_size, distance_to_bucket);
 		}
 		if (target1.has_value()) {
-			// RCLCPP_INFO_THROTTLE(get_node()->get_logger(), *get_node()->get_clock(), 1000, "(T 1s) Example 1 - Target position: %f, %f, %f. Diameter: %f",
-			// 	target1->x(), target1->y(), target1->z(), diameter);
+			RCLCPP_INFO_THROTTLE(get_node()->get_logger(), *get_node()->get_clock(), 1000, "(T 1s) Example 1 - Target position: %f, %f, %f. Diameter: %f",
+				target1->x(), target1->y(), target1->z(), diameter);
 			Target_Samples.push_back({*target1, 0, static_cast<size_t>(0), diameter});
 		}
 		else {

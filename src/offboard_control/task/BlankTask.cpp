@@ -1,7 +1,4 @@
 #include "BlankTask.h"
-#include "../drone/AbstractDrone.h"
-#include "../ROS2drone/ROS2Drone.h"
-#include "../APMROS2drone/APMROS2Drone.h"
 
 // 定义静态成员
 std::map<std::string, std::shared_ptr<BlankTask>> BlankTask::TASKS;
@@ -27,19 +24,20 @@ std::shared_ptr<BlankTask> BlankTask::getTask(const std::string& task_name) {
 
 template<typename DeviceType>
 bool BlankTask::init(DeviceType device) {
-    device->log_info(get_string().c_str());
+    device->log_info(get_string());
     return true;
 }
 
 template<typename DeviceType>
 bool BlankTask::run(DeviceType device) {
-    device->log_info(get_string().c_str());
+    device->log_info(get_string());
     return true;
 }
 
 template<typename DeviceType>
 bool BlankTask::end(DeviceType device) {
-    device->log_info(get_string().c_str());
+    device->log_info(get_string());
+    task_result = true;
     return true;
 }
 

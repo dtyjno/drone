@@ -1,16 +1,10 @@
 #pragma once
 
 #include <vector>
-#include "../../task/Task.h"
-#include "../../utils/utils.h"
-#include "../../algorithm/pid/PID.h"
+#include "Task.h"
+#include "../utils/utils.h"
+#include "../algorithm/pid/PID.h"
 #include "AppochTargetTask.h"
-// 前向声明
-class AbstractDrone;
-class ROS2Drone;
-class APMROS2Drone;
-class ROS2Drone;
-class APMROS2Drone;
 
 class DoLandTask : public Task<DoLandTask>
 {
@@ -21,6 +15,25 @@ public:
     static std::shared_ptr<DoLandTask> createTask(const std::string& task_name = "DoLand");
     static std::shared_ptr<DoLandTask> getTask(const std::string& task_name = "DoLand");
     
+    // 设置动态目标坐标回调函数
+    void setDynamicPositionTargetCallback(std::function<Vector4f()> callback) {
+        parameters.dynamic_target_position_callback = callback;   // 防止重置后init重置为参数更改
+        task->setDynamicPositionTargetCallback(callback);
+    }
+    
+    // 设置动态目标坐标回调函数
+    void setDynamicImageTargetCallback(std::function<Vector2f()> callback) {
+        parameters.dynamic_target_image_callback = callback;
+        task->setDynamicImageTargetCallback(callback);
+    }
+
+    std::shared_ptr<AppochTargetTask> get_appochtarget_task(){
+        if (!task) {
+            task = AppochTargetTask::createTask(get_name().append("_approach"));
+        }
+        return task;
+    }
+    
     struct Parameters{
         std::string config_file_name = "land_config.yaml";                      // 配置文件名
         std::string config_device_name_prefix = "land_target";                  // 配置文件中目标前缀
@@ -28,10 +41,22 @@ public:
         size_t device_index = 1;                                                // 当前接近的设备索引
         float fx = 1.0f;                                        // 相机焦距，像素单位
         std::function<Vector4f()> dynamic_target_position_callback;         // 获取动态准确目标坐标的回调函数 x,y,z,r
-        std::function<Vector2f()> dynamic_target_image_callback;         // 获取动态图像目标坐标的回调函数 x,y,z,r
+        std::function<Vector2f()> dynamic_target_image_callback = []{return Vector2f::Zero();};         // 获取动态图像目标坐标的回调函数 x,y,z,r
         float target_height = 0.0f;                             // 目标的高度，默认为地面高度0.0m
         float target_yaw = 0.0f;                                // 目标偏航角
     };
+
+    std::shared_ptr<DoLandTask> setParameters(Parameters &parameters) {
+        this->parameters = parameters;
+        return std::static_pointer_cast<DoLandTask>(this->shared_from_this());
+    }
+
+    void reset() override {
+        Task<DoLandTask>::reset();
+        if (task) {
+            task->reset();
+        }
+    }
 private:
     DoLandTask(std::string name) : 
         Task<DoLandTask>(name) {}

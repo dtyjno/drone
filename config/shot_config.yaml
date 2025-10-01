@@ -12,6 +12,8 @@ limits:
   accel_max_xy: 0.5
   accel_max_z: 0.1
 
+shot_duration: 2.0   # 投弹持续时间 单位：s
+shot_wait: 0.5       # 投弹后等待时间 单位：s
 accuracy: 0.80   # 使用像素半径作为目标范围的百分比 单位：1
 radius: 0.080      # 到达目标范围内的精度 单位：m
 
@@ -20,7 +22,7 @@ tar_y_l: 450.0     # 左侧舵机 目标y坐标，单位：px  0使用默认值
 tar_z_l: 1.2         # 目标z坐标 单位：m
 tar_x_r: 620.0     # 右侧舵机 目标x坐标，单位：px  0使用默认值
 tar_y_r: 450.0     # 右侧舵机 目标y坐标，单位：px  0使用默认值
-tar_z: 1.2         # 目标y坐标 单位：m
+tar_z_r: 1.2         # 目标y坐标 单位：m
 shot_target_x_l: -0.070  # 2 0.045 #0.130   # 0.045 # 左侧舵机 相对于飞机坐标 投弹点x坐标，单位：m
 shot_target_y_l: 0.001   # 2 左侧舵机 投弹点y坐标，单位：m
 shot_target_z_l: 0.10    # 2 左侧舵机 投弹点z坐标，单位：m

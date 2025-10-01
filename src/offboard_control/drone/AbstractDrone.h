@@ -15,20 +15,40 @@ class ROS2PosController;
 #include "../utils/utils.h"
 #include "StatusController.h"
 #include "PosController.h"
+#include "PosSubscriber.h"
+#include "PosPublisher.h"
+// module
+#include "CameraGimbal.h"
+#include "ServoController.h"
+#include "YOLODetector.h"
 
 class AbstractDrone {
 public:
     // 默认构造函数
     AbstractDrone()
 	{
-        std::cout << "AbstractDrone: Starting Drone example" << std::endl;
+		debug_mode_ = true;
+		if (!debug_mode_)
+	        std::cout << "AbstractDrone: Starting Drone example" << std::endl;
         read_default_yaw_configs("Drone.yaml");
+		auto pos_subscriber = std::make_shared<PosSubscriber>();
+		auto pos_publisher = std::make_shared<PosPublisher>(pos_subscriber, get_wait_time());
+		if (!debug_mode_)
+			std::cout << "AbstractDrone: Setting up controllers" << std::endl;
+		sta_ctl_ = std::make_shared<StatusController>();
+		pos_ctl_ = std::make_shared<PosController>(pos_subscriber, pos_publisher);
+		pos_ctl_->set_dt(get_wait_time()); // 设置控制器的时间间隔
+		set_camera_gimbal(std::make_shared<CameraGimbal>());
+		set_servo_controller(std::make_shared<ServoController>());
+		set_yolo_detector(std::make_shared<YOLODetector>());
+		pos_subscriber->set_position(Vector3f{0.0, 0.0, 2.0}); // 初始位置设为(0,0,2)
     }
 
     AbstractDrone(std::shared_ptr<StatusController> sta_ctl, std::shared_ptr<PosController> pos_ctl)
         : sta_ctl_(sta_ctl),
           pos_ctl_(pos_ctl)
 	{
+		pos_ctl_->set_dt(get_wait_time()); // 设置控制器的时间间隔
         std::cout << "AbstractDrone: Starting Drone example and setting up controllers" << std::endl;
         read_default_yaw_configs("Drone.yaml");
     }
@@ -36,16 +56,68 @@ public:
     // 初始化方法，用于在构造后设置控制器
     void initialize_controllers(std::shared_ptr<StatusController> sta_ctl, std::shared_ptr<PosController> pos_ctl) {
         std::cout << "AbstractDrone: Setting up controllers" << std::endl;
+		pos_ctl_->set_dt(get_wait_time()); // 设置控制器的时间间隔
         sta_ctl_ = sta_ctl;
         pos_ctl_ = pos_ctl;
     }
     
-    virtual ~AbstractDrone() = default;
+    ~AbstractDrone() = default;
 
     // 位置稳定后设置初始位置
     void init_startposition() {
         start = {get_x_pos(), get_y_pos(), get_z_pos(), get_yaw()}; 
     }
+
+	void timer_callback_update() {
+		// 更新相机位置和方向
+		if (debug_mode_ && get_position_controller() && get_position_controller()->pos_data) { // 调试模式下，强制设置飞机位置
+			get_position_controller()->pos_data->set_position(Vector3f(0.0, 0.0, 1.2)); // 设置飞机初始位置为(0,0,1.2)
+		}
+		float roll, pitch, yaw;
+		get_euler(roll, pitch, yaw);
+		if (debug_mode_ && get_status_controller() && get_status_controller()->get_system_status() == StatusController::State__system_status::MAV_STATE_UNINIT) {
+			roll = 0.0f;
+			pitch = 0.0f;
+		}
+		_camera_gimbal->set_parent_position(Vector3d(get_x_pos(), get_y_pos(), get_z_pos()));
+		_camera_gimbal->set_camera_relative_rotation(Vector3d(0, 0, 0)); // 相机相对飞机的旋转，roll=0, pitch=0 (垂直向下), yaw=0
+		_camera_gimbal->set_parent_rotation(Vector3d(roll, pitch, get_world_yaw()));
+	}
+
+	// 获取YOLO检测器
+	std::shared_ptr<YOLODetectorInterface> get_yolo_detector() {
+		return yolo_detector;
+	}
+	void set_yolo_detector(std::shared_ptr<YOLODetectorInterface> yolo_detector)
+	{
+		this->yolo_detector = yolo_detector;
+	}
+	// 获取舵机控制器
+	std::shared_ptr<ServoControllerInterface> get_servo_controller() {
+		return _servo_controller;
+	}
+	void set_servo_controller(std::shared_ptr<ServoControllerInterface> servo_controller)
+	{
+		this->_servo_controller = servo_controller;
+	}
+	// 获取云台控制器
+	std::shared_ptr<CameraInterface> get_camera() {
+		return _camera_gimbal;
+	}
+	void set_camera(std::shared_ptr<CameraInterface> camera_gimbal)
+	{
+		this->_camera_gimbal = camera_gimbal;
+	}
+	std::shared_ptr<CameraGimbalInterface> get_camera_gimbal() {
+		auto camera_gimbal = dynamic_pointer_cast<CameraGimbalInterface>(_camera_gimbal);
+		if (!camera_gimbal) {
+			throw std::runtime_error("CameraGimbalInterface is not set or invalid.");
+		}
+		return camera_gimbal;
+	}
+	void set_camera_gimbal(std::shared_ptr<CameraGimbalInterface> camera_gimbal) {
+		this->_camera_gimbal = std::dynamic_pointer_cast<CameraInterface>(camera_gimbal);
+	}
 
 	std::shared_ptr<StatusController> get_status_controller() {
 		return sta_ctl_;
@@ -181,7 +253,6 @@ public:
 	float get_rangefinder_distance(){
         return pos_ctl_->pos_data->get_rangefinder_height();
     }
-    // virtual float get_rangefinder_distance() = 0;
 
     // 状态相关接口
 	bool get_armed(void){
@@ -266,11 +337,12 @@ public:
 	}
 
     // // 日志接口
-    // virtual int save_log(bool finish = false) = 0;
 
 
     // 计时器相关接口
-	virtual double get_cur_time() = 0;
+	double get_cur_time() {
+		return 0.0;  // 返回当前时间戳
+	};
 	double get_start_time() {
 		return start_time;  // 返回开始时间
 	}
@@ -282,7 +354,9 @@ public:
 		return wait_time.count() / 1000.0; // 返回秒数
 	}
     // 运动控制接口
-    void send_start_setpoint_command(float x, float y, float z, float yaw);
+	bool is_equal_start_target_xy(float x, float y, double accuracy = 0.5);
+	bool is_equal_local_target_xy(float x, float y, double accuracy = 0.5);
+    virtual void send_start_setpoint_command(float x, float y, float z, float yaw);
 	void send_local_setpoint_command(float x, float y, float z, float yaw);
     void send_world_setpoint_command(float x, float y, float z, float yaw);
     bool local_setpoint_command(float x, float y, float z, float yaw, double accuracy);
@@ -298,36 +372,69 @@ public:
                                                   const std::vector<std::array<double, 3>> &data, 
                                                   int data_length, Vector3f max_speed_xy, 
                                                   Vector3f max_accel_xy, float tar_yaw = 0.0);
-    // 使用输出方法
-    void log_info(const std::string& format, ...);
-    void log_warn(const std::string& format, ...);
-    void log_error(const std::string& format, ...);
-    void log_debug(const std::string& format, ...);
-	void log_debug_throttle(const std::chrono::milliseconds& wait_time, const std::string& format, ...);
-	void log_info_throttle(const std::chrono::milliseconds& wait_time, const std::string& format, ...);
-	void log_warn_throttle(const std::chrono::milliseconds& wait_time, const std::string& format, ...);
-	void log_error_throttle(const std::chrono::milliseconds& wait_time, const std::string& format, ...);
-
+		// 使用输出方法
+    template<typename ... Args>
+    void log_info(const Args&... args) {
+        std::ostringstream oss;
+        (oss << ... << args);
+        std::cout << "[INFO] " << oss.str() << std::endl;
+    }
+    template<typename ... Args>
+    void log_warn(const Args&... args) {
+        std::ostringstream oss;
+        (oss << ... << args);
+        std::cout << "[WARN] " << oss.str() << std::endl;
+    }
+    template<typename ... Args>
+    void log_error(const Args&... args) {
+        std::ostringstream oss;
+        (oss << ... << args);
+        std::cerr << "[ERROR] " << oss.str() << std::endl;
+    }
+    template<typename ... Args>
+    void log_debug(const Args&... args) {
+        std::ostringstream oss;
+        (oss << ... << args);
+        std::cout << "[DEBUG] " << oss.str() << std::endl;
+    }
+    template<typename ... Args>
+    void log_debug_throttle(const std::chrono::milliseconds& wait_time, const Args&... args) {
+        std::ostringstream oss;
+        (oss << ... << args);
+        std::cout << "[DEBUG_THROTTLE] " << oss.str() << " (interval: " << wait_time.count() << "ms)" << std::endl;
+    }
+    template<typename ... Args>
+    void log_info_throttle(const std::chrono::milliseconds& wait_time, const Args&... args) {
+        std::ostringstream oss;
+        (oss << ... << args);
+        std::cout << "[INFO_THROTTLE] " << oss.str() << " (interval: " << wait_time.count() << "ms)" << std::endl;
+    }
+    template<typename ... Args>
+    void log_warn_throttle(const std::chrono::milliseconds& wait_time, const Args&... args) {
+        std::ostringstream oss;
+        (oss << ... << args);
+        std::cout << "[WARN_THROTTLE] " << oss.str() << " (interval: " << wait_time.count() << "ms)" << std::endl;
+    }
+    template<typename ... Args>
+    void log_error_throttle(const std::chrono::milliseconds& wait_time, const Args&... args) {
+        std::ostringstream oss;
+        (oss << ... << args);
+        std::cerr << "[ERROR_THROTTLE] " << oss.str() << " (interval: " << wait_time.count() << "ms)" << std::endl;
+    }
 	std::chrono::milliseconds wait_time{50}; // 定时器间隔
 
-	virtual void accept(std::shared_ptr<TaskBase> visitor);
+	void accept(std::shared_ptr<TaskBase> visitor);
 
-protected:
-    // headingangle_compass为罗盘读数 角度制
-	float headingangle_compass; // 默认罗盘读数，待读取
-	float headingangle_real;
-
-    float default_yaw = 0.0; // 默认偏转角 = 450 - headingangle_compass 角度
-    
-    static Vector4f start;
-
-	double timestamp_init = 0; // 初始化时间戳
-	double start_time = 0; // 任务开始时间
-
+	// 参数接口
+	bool sim_mode_ = false; // 是否为仿真模式
+	bool debug_mode_ = false; // 是否验证状态
+	bool print_info_ = false; // 是否打印信息
+	bool fast_mode_ = false; // 是否快速模式
 	// 配置读取接口
 	void read_default_yaw_configs(const std::string &filename)
 	{
-		std::cout << "读取配置文件: " << filename << std::endl;
+		if (!debug_mode_)
+			std::cout << "读取配置文件: " << filename << std::endl;
 		 // 读取配置文件
 		YAML::Node config = Readyaml::readYAML(filename);
 		try {
@@ -336,7 +443,8 @@ protected:
 			// 1. 航向角转换：指南针角度 → 数学标准角度（东为0°，逆时针）
 			// default_yaw = fmod(90.0 - headingangle_compass + 720.0, 360.0); // 确保角度在0到360度之间
 			default_yaw = fmod(headingangle_compass + 360.0, 360.0); // 确保角度在0到360度之间
-            std::cout << "读取默认偏航角: " << default_yaw << "，默认旋转角：" << default_yaw << "，实际方向角：" << headingangle_real << std::endl;
+			if (!debug_mode_)
+				std::cout << "读取默认偏航角: " << default_yaw << "，默认旋转角：" << default_yaw << "，实际方向角：" << headingangle_real << std::endl;
 			headingangle_compass = headingangle_compass * M_PI / 180.0; // 弧度制
 			default_yaw = M_PI/2 - default_yaw * M_PI / 180.0; // 弧度制
 			headingangle_real = headingangle_real * M_PI / 180.0; // 弧度制
@@ -350,7 +458,26 @@ protected:
 		// tx_see = dx_see;
 		// ty_see = dy_see;
 	}
+protected:
+    // headingangle_compass为罗盘读数 角度制
+	float headingangle_compass; // 默认罗盘读数，待读取
+	float headingangle_real;
+
+    float default_yaw = 0.0; // 默认偏转角 = 450 - headingangle_compass 角度
+    
+    static Vector4f start;
+
+	double timestamp_init = 0; // 初始化时间戳
+	double start_time = 0; // 任务开始时间
+
+
+
 	std::shared_ptr<StatusController> sta_ctl_;
     std::shared_ptr<PosController> pos_ctl_;
+
+	// module
+	std::shared_ptr<CameraInterface> _camera_gimbal = nullptr;
+	std::shared_ptr<ServoControllerInterface> _servo_controller = nullptr;
+	std::shared_ptr<YOLODetectorInterface> yolo_detector = nullptr;
 
 };

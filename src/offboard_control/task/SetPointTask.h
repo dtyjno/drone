@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../task/Task.h"
-#include "../../waypoint/WayPoints.h"
-#include "../../utils/utils.h"
+#include "../task/Task.h"
+#include "../waypoint/WayPoints.h"
+#include "../utils/utils.h"
 #include <vector>
 
 class SetPointTask : public Task<SetPointTask>
@@ -17,7 +17,6 @@ public:
     void reset() {
         Task<SetPointTask>::reset();
         point_count = 0;
-        reset_timer();
     }     
 
     class Parameters {
@@ -56,17 +55,11 @@ public:
     int get_counter() const {
         return point_count;
     }
-    
-    void reset_timer() {
-        timer_.set_start_time_to_default();
-    }
-
 
 private:
     SetPointTask(std::string name) : 
         Task<SetPointTask>(name) {}
 
-    Timer timer_;         // 航点计时器
     Parameters parameters_;
     int point_count = 0;        // 当前点计数器
 

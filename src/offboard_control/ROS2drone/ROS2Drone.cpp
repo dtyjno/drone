@@ -21,74 +21,58 @@ void ROS2Drone::accept(std::shared_ptr<TaskBase> visitor) {
 	// visitor->final_task()->visit(std::shared_ptr<ROS2Drone>(this, [](ROS2Drone*){}));
 }
 
-void ROS2Drone::log_info(const std::string& format, ...) {
-	char buffer[512];
-	va_list args;
-	va_start(args, format);
-	vsnprintf(buffer, sizeof(buffer), format.c_str(), args);
-	va_end(args);
-	RCLCPP_INFO(node->get_logger(), "%s", buffer);
-}
+// template<typename ... Args>
+// void ROS2Drone::log_info(const Args&... args) {
+// 	std::ostringstream oss;
+// 	(oss << ... << args);  // C++17 折叠表达式
+// 	RCLCPP_INFO_STREAM(node->get_logger(), oss.str());
+// }
 
-void ROS2Drone::log_warn(const std::string& format, ...) {
-	char buffer[256];
-	va_list args;
-	va_start(args, format);
-	vsnprintf(buffer, sizeof(buffer), format.c_str(), args);
-	va_end(args);
-	RCLCPP_WARN(node->get_logger(), "%s", buffer);
-}
+// template<typename ... Args>
+// void ROS2Drone::log_warn(const Args&... args) {
+// 	std::ostringstream oss;
+// 	(oss << ... << args);  // C++17 折叠表达式
+// 	RCLCPP_WARN_STREAM(node->get_logger(), oss.str());
+// }
 
-void ROS2Drone::log_debug(const std::string& format, ...) {
-	char buffer[256];
-	va_list args;
-	va_start(args, format);
-	vsnprintf(buffer, sizeof(buffer), format.c_str(), args);
-	va_end(args);
-	RCLCPP_DEBUG(node->get_logger(), "%s", buffer);
-}
+// template<typename ... Args>
+// void ROS2Drone::log_debug(const Args&... args) {
+// 	std::ostringstream oss;
+// 	(oss << ... << args);  // C++17 折叠表达式
+// 	RCLCPP_DEBUG_STREAM(node->get_logger(), oss.str());
+// }
 
-void ROS2Drone::log_error(const std::string& format, ...) {
-	char buffer[256];
-	va_list args;
-	va_start(args, format);
-	vsnprintf(buffer, sizeof(buffer), format.c_str(), args);
-	va_end(args);
-	RCLCPP_ERROR(node->get_logger(), "%s", buffer);
-}
+// template<typename ... Args>
+// void ROS2Drone::log_error(const Args&... args) {
+// 	std::ostringstream oss;
+// 	(oss << ... << args);  // C++17 折叠表达式
+// 	RCLCPP_ERROR_STREAM(node->get_logger(), oss.str());
+// }
 
-void ROS2Drone::log_debug_throttle(const std::chrono::milliseconds& wait_time, const std::string& format, ...) {
-	char buffer[256];
-	va_list args;
-	va_start(args, format);
-	vsnprintf(buffer, sizeof(buffer), format.c_str(), args);
-	va_end(args);
-	RCLCPP_DEBUG_THROTTLE(node->get_logger(), *node->get_clock(), wait_time.count(), "%s", buffer);
-}
+// template<typename ... Args>
+// void ROS2Drone::log_debug_throttle(const std::chrono::milliseconds& wait_time, const Args&... args) {
+// 	std::ostringstream oss;
+// 	(oss << ... << args);  // C++17 折叠表达式
+// 	RCLCPP_DEBUG_THROTTLE(node->get_logger(), *node->get_clock(), wait_time.count(), "%s", oss.str().c_str());
+// }
 
-void ROS2Drone::log_info_throttle(const std::chrono::milliseconds& wait_time, const std::string& format, ...) {
-	char buffer[256];
-	va_list args;
-	va_start(args, format);
-	vsnprintf(buffer, sizeof(buffer), format.c_str(), args);
-	va_end(args);
-	RCLCPP_INFO_THROTTLE(node->get_logger(), *node->get_clock(), wait_time.count(), "%s", buffer);
-}
+// template<typename ... Args>
+// void ROS2Drone::log_info_throttle(const std::chrono::milliseconds& wait_time, const Args&... args) {
+// 	std::ostringstream oss;
+// 	(oss << ... << args);  // C++17 折叠表达式
+// 	RCLCPP_INFO_THROTTLE(node->get_logger(), *node->get_clock(), wait_time.count(), "%s", oss.str().c_str());
+// }
 
-void ROS2Drone::log_warn_throttle(const std::chrono::milliseconds& wait_time, const std::string& format, ...) {
-	char buffer[256];
-	va_list args;
-	va_start(args, format);
-	vsnprintf(buffer, sizeof(buffer), format.c_str(), args);
-	va_end(args);
-	RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), wait_time.count(), "%s", buffer);
-}
+// template<typename ... Args>
+// void ROS2Drone::log_warn_throttle(const std::chrono::milliseconds& wait_time, const Args&... args) {
+// 	std::ostringstream oss;
+// 	(oss << ... << args);  // C++17 折叠表达式
+// 	RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), wait_time.count(), "%s", oss.str().c_str());
+// }
 
-void ROS2Drone::log_error_throttle(const std::chrono::milliseconds& wait_time, const std::string& format, ...) {
-	char buffer[256];
-	va_list args;
-	va_start(args, format);
-	vsnprintf(buffer, sizeof(buffer), format.c_str(), args);
-	va_end(args);
-	RCLCPP_ERROR_THROTTLE(node->get_logger(), *node->get_clock(), wait_time.count(), "%s", buffer);
-}
+// template<typename ... Args>
+// void ROS2Drone::log_error_throttle(const std::chrono::milliseconds& wait_time, const Args&... args) {
+// 	std::ostringstream oss;
+// 	(oss << ... << args);  // C++17 折叠表达式
+// 	RCLCPP_ERROR_THROTTLE(node->get_logger(), *node->get_clock(), wait_time.count(), "%s", oss.str().c_str());
+// }

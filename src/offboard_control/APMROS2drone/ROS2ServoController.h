@@ -1,14 +1,10 @@
-#ifndef SERVOCONTROLLER_H
-#define SERVOCONTROLLER_H
+#pragma once
 
 #include <mavros_msgs/srv/command_long.hpp>
 #include <mavros_msgs/msg/command_code.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <chrono> // 添加 chrono 头文件
-#include <iomanip> 
 
-using namespace std::chrono_literals; // 使用 chrono 字面量
-
+#include "../drone/ServoController.h"
 // ros2 service call /mavros/cmd/command mavros_msgs/srv/CommandLong "request:
 //   broadcast: false
 //   command: 183  # DO_SET_SERVO
@@ -21,10 +17,10 @@ using namespace std::chrono_literals; // 使用 chrono 字面量
 //   param6: 0.0
 //   param7: 0.0"
 
-class ServoController {
+class ROS2ServoController : public ServoController {
 public:
-    ServoController(const std::string ardupilot_namespace, rclcpp::Node::SharedPtr node) 
-        : node(node) 
+    ROS2ServoController(const std::string ardupilot_namespace, rclcpp::Node::SharedPtr node) 
+        : ServoController(), node(node) 
     {
         this->ardupilot_namespace = ardupilot_namespace;
         client_ = node->create_client<mavros_msgs::srv::CommandLong>(ardupilot_namespace + "cmd/command");
@@ -35,7 +31,6 @@ public:
         //     }
         //     RCLCPP_INFO(node->get_logger(), "Service not available, waiting again...");
         // }
-        read_configs("OffboardControl.yaml");
     }
 
     void set_servo(int servo_number, float position) {
@@ -75,50 +70,10 @@ public:
             });
     }
 
-    void read_configs(const std::string &filename) {
-        YAML::Node config = Readyaml::readYAML(filename);
-		try {
-			servo_open_position = config["servo_open_position"].as<float>();
-			servo_close_position = config["servo_close_position"].as<float>();
-
-			RCLCPP_INFO(node->get_logger(), "读取servo_open_positiont: %f", servo_open_position);
-			RCLCPP_INFO(node->get_logger(), "读取servo_close_position: %f", servo_close_position);
-		} catch (const YAML::Exception &e) {
-			RCLCPP_ERROR(node->get_logger(), "读取配置文件时发生错误: %s", e.what());
-			return;
-		}
-
-    }
-    float set_servo_open(int index = 1) {
-        set_servo(index, servo_open_position);
-        return servo_open_position;
-    }
-
-    float set_servo_close(int index = 1) {
-        set_servo(index, servo_close_position);
-        return servo_close_position;
-    }
-    void set_servo_open_position(float position) {
-        servo_open_position = position;
-    }
-    void set_servo_close_position(float position) {
-        servo_close_position = position;
-    }
-    float get_servo_open_position() const {
-        return servo_open_position;
-    }
-
-    float get_servo_close_position() const {
-        return servo_close_position;
-    }
-
 private:
     rclcpp::Node::SharedPtr node;
     std::string ardupilot_namespace;
-    float servo_open_position;
-    float servo_close_position;
-
+    
     rclcpp::Client<mavros_msgs::srv::CommandLong>::SharedPtr client_;
 };
 
-#endif  // SERVOCONTROLLER_H

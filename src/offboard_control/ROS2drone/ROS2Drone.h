@@ -27,10 +27,11 @@ class TaskBase;
 class ROS2Drone : public AbstractDrone {
 public:
     // Private constructor
-    ROS2Drone(const std::string ardupilot_namespace) :
+    ROS2Drone(const std::string ardupilot_namespace, std::shared_ptr<StatusController> sta_ctl, std::shared_ptr<PosController> pos_ctl, std::shared_ptr<rclcpp::Node> node) :
+        AbstractDrone(sta_ctl, pos_ctl),
         topic_namespace{ardupilot_namespace}
     {
-        node = rclcpp::Node::make_shared("offboard_control_node");
+        this->node = node;
 		RCLCPP_INFO(node->get_logger(), "ROS2Drone: Starting Offboard Control example");
 
 
@@ -96,27 +97,58 @@ public:
 		return now.seconds() - timestamp_init;  // 直接计算时间差并转为秒
 	}
 
-	// 参数接口
-	bool sim_mode_ = false; // 是否为仿真模式
-	bool debug_mode_ = false; // 是否验证状态
-	bool print_info_ = false; // 是否打印信息
-	bool fast_mode_ = false; // 是否快速模式
-
-	std::shared_ptr<ROS2StatusController> sta_ctl;
-	std::shared_ptr<ROS2PosController> pos_ctl;
-
     // 使用输出方法
-    void log_info(const std::string& format, ...);
-    void log_warn(const std::string& format, ...);
-    void log_error(const std::string& format, ...);
-    void log_debug(const std::string& format, ...);
-	void log_debug_throttle(const std::chrono::milliseconds& wait_time, const std::string& format, ...);
-	void log_info_throttle(const std::chrono::milliseconds& wait_time, const std::string& format, ...);
-	void log_warn_throttle(const std::chrono::milliseconds& wait_time, const std::string& format, ...);
-	void log_error_throttle(const std::chrono::milliseconds& wait_time, const std::string& format, ...);
+    template<typename ... Args>
+    void log_info(const Args&... args) {
+        std::ostringstream oss;
+        (oss << ... << args);
+        RCLCPP_INFO_STREAM(node->get_logger(), oss.str());
+    }
+    template<typename ... Args>
+    void log_warn(const Args&... args) {
+        std::ostringstream oss;
+        (oss << ... << args);
+        RCLCPP_WARN_STREAM(node->get_logger(), oss.str());
+    }
+    template<typename ... Args>
+    void log_error(const Args&... args) {
+        std::ostringstream oss;
+        (oss << ... << args);
+        RCLCPP_ERROR_STREAM(node->get_logger(), oss.str());
+    }
+    template<typename ... Args>
+    void log_debug(const Args&... args) {
+        std::ostringstream oss;
+        (oss << ... << args);
+        RCLCPP_DEBUG_STREAM(node->get_logger(), oss.str());
+    }
+    template<typename ... Args>
+    void log_debug_throttle(const std::chrono::milliseconds& wait_time, const Args&... args) {
+        std::ostringstream oss;
+        (oss << ... << args);
+        RCLCPP_DEBUG_THROTTLE(node->get_logger(), *node->get_clock(), wait_time.count(), "%s", oss.str().c_str());
+    }
+    template<typename ... Args>
+    void log_info_throttle(const std::chrono::milliseconds& wait_time, const Args&... args) {
+        std::ostringstream oss;
+        (oss << ... << args);
+        RCLCPP_INFO_THROTTLE(node->get_logger(), *node->get_clock(), wait_time.count(), "%s", oss.str().c_str());
+    }
+    template<typename ... Args>
+    void log_warn_throttle(const std::chrono::milliseconds& wait_time, const Args&... args) {
+        std::ostringstream oss;
+        (oss << ... << args);
+        RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), wait_time.count(), "%s", oss.str().c_str());
+    }
+    template<typename ... Args>
+    void log_error_throttle(const std::chrono::milliseconds& wait_time, const Args&... args) {
+        std::ostringstream oss;
+        (oss << ... << args);
+        RCLCPP_ERROR_THROTTLE(node->get_logger(), *node->get_clock(), wait_time.count(), "%s", oss.str().c_str());
+    }
 
     // 访问接口
-    void accept(std::shared_ptr<TaskBase> visitor) override;
+    void accept(std::shared_ptr<TaskBase> visitor);
 
 protected:
 	rclcpp::Node::SharedPtr node;

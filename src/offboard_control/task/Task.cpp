@@ -6,13 +6,13 @@
 // Include the specific task classes for template instantiation
 #include "BlankTask.h"
 #include "WaitTask.h"
-#include "../drone/task/PrintInfoTask.h"
-#include "../drone/task/WayPointTask.h"
-#include "../drone/task/SetPointTask.h"
-#include "../drone/task/RTLLandTask.h"
-#include "../APMROS2drone/task/AppochTargetTask.h"
-#include "../APMROS2drone/task/DoShotTask.h"
-#include "../APMROS2drone/task/DoLandTask.h"
+#include "PrintInfoTask.h"
+#include "WayPointTask.h"
+#include "SetPointTask.h"
+#include "RTLLandTask.h"
+#include "AppochTargetTask.h"
+#include "DoShotTask.h"
+#include "DoLandTask.h"
 
 void reset_all_tasks() {
     for (auto& pair : BlankTask::TASKS) {

@@ -60,25 +60,25 @@ public:
 	void home_position_callback(const mavros_msgs::msg::HomePosition::SharedPtr msg);
 
 	// "GUIDED"/"RTL"
-	void switch_mode(const std::string& mode) override;
+	void switch_mode(const std::string& mode);
 	// void switch_to_guided_mode();
 	// void switch_to_flip_mode();
 	// void switch_to_rtl_mode();
 	
-	void arm_motors(bool arm) override;
+	void arm_motors(bool arm);
 
 	//"TAKEOFF" or "LAND"
-	void command_takeoff_or_land(std::string mode, float altitude = 5.0f, float yaw = 0.0f) override;
+	void command_takeoff_or_land(std::string mode, float altitude = 5.0f, float yaw = 0.0f);
 
-	void set_home_position(float lat, float lon, float alt, float yaw = 0.0f) override;
-	void set_home_position(float yaw = 0.0f) override; // 使用当前位置
+	void set_home_position(float lat, float lon, float alt, float yaw = 0.0f);
+	void set_home_position(float yaw = 0.0f); // 使用当前位置
 
 	auto get_set_home_client() {
 		return set_home_client_;
 	}
 
-	bool takeoff(float local_frame_z ,float takeoff_altitude = 5.0f, float yaw = 0.0f) override;
-	void set_param(const std::string& param_id, double value) override;
+	bool takeoff(float local_frame_z ,float takeoff_altitude = 5.0f, float yaw = 0.0f);
+	void set_param(const std::string& param_id, double value);
 
 	enum class TakeoffState{
 		init,

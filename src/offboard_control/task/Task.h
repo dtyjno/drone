@@ -8,15 +8,15 @@
 #include <iostream>
 #include <type_traits>
 #include "TaskBase.h"
-#include "../utils/utils.h"
+#include "../utils/Timer.h"
 
+#include "../drone/AbstractDrone.h"
+#include "../ROS2drone/ROS2Drone.h"
+#include "../APMROS2drone/APMROS2Drone.h"
 // Forward declarations to avoid circular dependencies
 // class AbstractDrone;
 // class ROS2Drone;
 // class APMROS2Drone;
-#include "../drone/AbstractDrone.h"
-#include "../ROS2drone/ROS2Drone.h"
-#include "../APMROS2drone/APMROS2Drone.h"
 
 // Helper template for static_assert in if constexpr
 template<typename> struct always_false : std::false_type {};
@@ -48,7 +48,7 @@ public:
         return index_alive_;
     }
 
-    Timer get_timer() const {
+    Timer& get_timer() {
         return timer_;
     }
 

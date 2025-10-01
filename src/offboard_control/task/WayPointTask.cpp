@@ -1,7 +1,5 @@
 #include "WayPointTask.h"
-#include "../AbstractDrone.h"
-#include "../../ROS2drone/ROS2Drone.h"
-#include "../../APMROS2drone/APMROS2Drone.h"
+#include "../drone/AbstractDrone.h"
 
 // 定义静态成员
 std::map<std::string, std::shared_ptr<WayPointTask>> WayPointTask::TASKS;
@@ -32,10 +30,10 @@ bool WayPointTask::init(DeviceType device) {
                      "WayPointTask can only be used with devices derived from AbstractDrone");
         return false;
     } else {
-        device->log_info(get_string().c_str());
+        device->log_info(get_string());
         // 重置计数器和计时器
         set_counter(0);
-        reset_timer();
+        reset();
     }
     return true;
 }
@@ -48,37 +46,36 @@ bool WayPointTask::run(DeviceType device) {
         return false;
     } else {
         // RCLCPP_INFO_THROTTLE(device->node->get_logger(), (*device->node)->get_clock(), 1000, "(T 1s) w_g_n,counter: %d, time=%lf", parameters_.point_count, timer_.elapsed());
-        device->log_info_throttle(std::chrono::milliseconds(500), "w_g_n,counter: %d, time=%s", get_counter(), timer_.elapsed() == std::numeric_limits<double>::max() ? "max" : std::to_string(timer_.elapsed()).c_str());
+        device->log_info_throttle(std::chrono::milliseconds(500), "w_g_n,counter: ", get_counter(),", time=", timer_.elapsed() == std::numeric_limits<double>::max() ? "max" : std::to_string(timer_.elapsed()));
+        // 更新目标点坐标
+        float x_temp = parameters_.center_x + way_point_[get_counter()].x();
+        float y_temp = parameters_.center_y + way_point_[get_counter()].y();
+        float z_temp = way_point_[get_counter()].z();
+        float yaw_temp = way_point_[get_counter()].w();
         // 判断是否到达当前航点或超时
-        if (timer_.elapsed() > parameters_.point_time ||
-                (is_equal(device->get_x_pos(), parameters_.center_x + (parameters_.scope_length * way_point_[get_counter()].x()), parameters_.accuracy) && 
-                is_equal(device->get_y_pos(), parameters_.center_y + (parameters_.scope_width * way_point_[get_counter()].y()), parameters_.accuracy))
-            ) 
+        if (point_count == 0 ||     // 发布首个航点
+            timer_.elapsed() > parameters_.point_time ||
+            (parameters_.frame == Parameters::Frame::START && device->is_equal_start_target_xy(x_temp, y_temp, parameters_.accuracy)) ||
+            (parameters_.frame == Parameters::Frame::LOCAL && device->is_equal_local_target_xy(x_temp, y_temp, parameters_.accuracy))
+        )
         {
             if (static_cast<size_t>(get_counter()) >= way_point_.size())
             {
                 return true;  // 任务完成
             } else {
-                // 更新目标点坐标
-                float x_temp = parameters_.center_x + (parameters_.scope_length * way_point_[get_counter()].x());
-                float y_temp = parameters_.center_y + (parameters_.scope_width * way_point_[get_counter()].y());
-                float z_temp = way_point_[get_counter()].z();
-                float yaw_temp = way_point_[get_counter()].w();
-                device->log_info("%s, %s点位%d x: %lf y: %lf z: %lf timeout=%s",
-                    get_string().c_str(),
-                    way_point_.get_name().c_str(),
-                    get_counter(),
-                    x_temp,
-                    y_temp,
-                    z_temp,
-                    (is_equal(device->get_x_pos(), x_temp, parameters_.accuracy) && is_equal(device->get_y_pos(), y_temp, parameters_.accuracy))? "true" : "false"
+                device->log_info(get_string(), ", ", get_string(), "点位", way_point_.get_name(),
+                    " x: ", x_temp,
+                    " y: ", y_temp,
+                    " z: ", z_temp,
+                    " yaw: ", yaw_temp,
+                    " timeout: ", timer_.elapsed() > parameters_.point_time ? "true" : "false"
                 );
                 if (parameters_.frame == Parameters::Frame::START) {
                     device->send_start_setpoint_command(x_temp, y_temp, z_temp, yaw_temp); // 发送本地坐标系下的航点指令
                 } else if (parameters_.frame == Parameters::Frame::LOCAL) {
                     device->send_local_setpoint_command(x_temp, y_temp, z_temp, yaw_temp); // 发送局部坐标系下的航点指令
                 } else {
-                    device->log_error("%s: 未知的坐标系参数", get_string().c_str());
+                    device->log_error("%s: 未知的坐标系参数", get_string());
                 }
                 // RCLCPP_INFO(device->node->get_logger(), "前往下一点");
                 set_counter(get_counter() + 1);  // 航点自增
@@ -96,10 +93,10 @@ bool WayPointTask::end(DeviceType device) {
                      "WayPointTask can only be used with devices derived from AbstractDrone");
         return false;
     } else {
-        device->log_info(get_string().c_str());
-        device->log_info("w_g_n, %s已经全部遍历", way_point_.get_name().c_str());
+        device->log_info(get_string());
+        device->log_info("w_g_n, %s已经全部遍历", way_point_.get_name());
         set_counter(0);
-        reset_timer();
+        task_result = true;
     }
     return true;
 }

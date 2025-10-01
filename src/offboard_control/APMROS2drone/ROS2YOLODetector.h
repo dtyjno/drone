@@ -1,5 +1,5 @@
-#ifndef OFFBOARD_CONTROL__MODULE__YOLODETECTOR_H
-#define OFFBOARD_CONTROL__MODULE__YOLODETECTOR_H
+#ifndef OFFBOARD_CONTROL__MODULE__ROS2YOLODETECTOR_H
+#define OFFBOARD_CONTROL__MODULE__ROS2YOLODETECTOR_H
 
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
@@ -7,24 +7,12 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <vision_msgs/msg/detection2_d_array.hpp>
 
-#include <chrono>
-#include <memory>
-#include <algorithm>
+#include "../drone/YOLODetector.h"
 
-//#include <opencv2/opencv.hpp>
-//#include "cv_bridge/cv_bridge.h"
-
-// using namespace cv;
-// using namespace cv::dnn;
-
-#include "../algorithm/KalmanFilter2D.h"
-#include "../utils/Readyaml.h"
-#include "../ROS2drone/ROS2Drone.h"
-#include "YOLOTargetType.h"
-class YOLODetector
+class ROS2YOLODetector : public YOLODetector
 {
 public:
-    YOLODetector(rclcpp::Node::SharedPtr node)
+    ROS2YOLODetector(rclcpp::Node::SharedPtr node)
         : node(node)
     {
         visualization_circles_publisher_ = node->create_publisher<visualization_msgs::msg::MarkerArray>(
@@ -32,139 +20,10 @@ public:
         // 新增Detection2DArray订阅者
         detection2d_array_sub_ = node->create_subscription<vision_msgs::msg::Detection2DArray>(
             "detection2d_array", 10,
-            std::bind(&YOLODetector::detection2d_array_callback, this, std::placeholders::_1)
+            std::bind(&ROS2YOLODetector::detection2d_array_callback, this, std::placeholders::_1)
         );
-        read_configs("camera.yaml");
-        // 初始化卡尔曼滤波器
-        circle_filter = std::make_unique<KalmanFilter2D>(process_noise, measurement_noise);  // 圆形目标滤波器
-        h_filter = std::make_unique<KalmanFilter2D>(process_noise, measurement_noise);       // H型目标滤波器
-        last_update_time = std::chrono::steady_clock::time_point{};   // 初始化时间
     }
 
-    const static std::unordered_map<YOLO_TARGET_TYPE, std::string> target_type_strings;
-    static std::string enumToString(YOLO_TARGET_TYPE t);
-
-    bool is_get_target(enum YOLO_TARGET_TYPE type){
-        return fabs(get_raw_x(type)) > 0.0001 && fabs(get_raw_y(type)) > 0.0001;
-        return false;
-    }
-    
-    std::vector<vision_msgs::msg::BoundingBox2D> get_raw_targets(enum YOLO_TARGET_TYPE type){
-        if(type == CIRCLE){
-            return circle_raw;
-        }
-        else if(type == H){
-            return h_raw;
-        }
-        else if(type == STUFFED){
-            return stuffed_raw;
-        }
-        return {};
-    }
-    // 获取原始未滤波的坐标
-    float get_raw_x(enum YOLO_TARGET_TYPE type){
-        if (type == CIRCLE){
-            return circle_raw.size() > 0 ? circle_raw[0].center.position.x : 0.0f;
-        }
-        else if(type == H){
-            return h_raw.size() > 0 ? h_raw[0].center.position.x : 0.0f;
-        }
-        else if (type == STUFFED){
-            return stuffed_raw.size() > 0 ? stuffed_raw[0].center.position.x : 0.0f;
-        } 
-        return 0;
-    }
-    float get_raw_y(enum YOLO_TARGET_TYPE type){
-        if (type == CIRCLE){
-            return circle_raw.size() > 0 ? circle_raw[0].center.position.y : 0.0f;
-        }
-        else if(type == H){
-            return h_raw.size() > 0 ? h_raw[0].center.position.y : 0.0f;
-        }
-        else if (type == STUFFED){
-            return stuffed_raw.size() > 0 ? stuffed_raw[0].center.position.y : 0.0f;
-        } 
-        return 0;
-    }
-    
-    float get_x(enum YOLO_TARGET_TYPE type){
-        if(type == CIRCLE){
-            return circle_filter->isInitialized() ? circle_filter->getX() : get_raw_x(CIRCLE);
-        }
-        else if(type == H){
-            return h_filter->isInitialized() ? h_filter->getX() : get_raw_x(H);
-        }
-        return 0;
-    }
-    float get_y(enum YOLO_TARGET_TYPE type){
-        if(type == CIRCLE){
-            return circle_filter->isInitialized() ? circle_filter->getY() : get_raw_y(CIRCLE);
-        }
-        else if(type == H){
-            return h_filter->isInitialized() ? h_filter->getY() : get_raw_y(H);
-        }
-        return 0;
-    }
-    float get_width(enum YOLO_TARGET_TYPE type){
-        (void)type;
-        return 0;
-    }
-    float get_height(enum YOLO_TARGET_TYPE type){
-        (void)type;
-        return 0;
-    }
-    // 获取滤波器的速度信息
-    float get_velocity_x(enum YOLO_TARGET_TYPE type){
-        if(type == CIRCLE && circle_filter->isInitialized()){
-            return circle_filter->getVX();
-        }
-        else if(type == H && h_filter->isInitialized()){
-            return h_filter->getVX();
-        }
-        return 0;
-    }
-    float get_velocity_y(enum YOLO_TARGET_TYPE type){
-        if(type == CIRCLE && circle_filter->isInitialized()){
-            return circle_filter->getVY();
-        }
-        else if(type == H && h_filter->isInitialized()){
-            return h_filter->getVY();
-        }
-        return 0;
-    }
-    void read_configs(const std::string &filename)
-    {
-        YAML::Node config = Readyaml::readYAML(filename);
-        cap_frame_width = config["width"].as<float>();
-        cap_frame_height = config["height"].as<float>();  
-        process_noise = config["process_noise"].as<double>(0.01);
-        measurement_noise = config["measurement_noise"].as<double>(0.5);  
-
-    }
-    
-    
-    int get_cap_frame_width()
-    {
-        return cap_frame_width;
-    }
-    int get_cap_frame_height()
-    {
-        return cap_frame_height;
-    }
-    void append_target(const TargetData &target)
-    {
-        targets.push_back(target);
-    }
-    void append_targets(const std::vector<TargetData> &new_targets)
-    {
-        for (const auto &target : new_targets) {
-            targets.push_back(target);
-        }
-    }
-    void clear_targets()
-    {
-        targets.clear();
-    }
     void publish_visualization_target(void)
     {
         visualization_msgs::msg::MarkerArray marker_array;
@@ -204,23 +63,6 @@ public:
 protected:
     rclcpp::Node::SharedPtr node;
 private:
-    int cap_frame_width = 1920; // 待覆盖默认值 图像宽度
-    int cap_frame_height = 1080; // 同上
-    double process_noise = 0.01; // 过程噪声
-    double measurement_noise = 0.5; // 测量噪声
-    
-    // 原始坐标数据
-    std::vector<vision_msgs::msg::BoundingBox2D> circle_raw;
-    std::vector<vision_msgs::msg::BoundingBox2D> h_raw;
-    std::vector<vision_msgs::msg::BoundingBox2D> stuffed_raw;
-
-    std::vector<TargetData> targets; // 目标点集合
-
-    // 卡尔曼滤波器
-    std::unique_ptr<KalmanFilter2D> circle_filter;
-    std::unique_ptr<KalmanFilter2D> h_filter;
-    std::chrono::steady_clock::time_point last_update_time;
-    
     // rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr visualization_circles_publisher_;
     // rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr circle_center_publisher_;

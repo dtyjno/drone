@@ -16,9 +16,9 @@
 #include "APMROS2PosPublisher.h"
 
 // #include "../stateMachine/StateMachine.h"
-#include "../module/ServoController.h"
-#include "../module/CameraGimbal.h"
-#include "../module/YOLODetector.h"
+#include "ROS2ServoController.h"
+#include "ROS2CameraGimbal.h"
+#include "ROS2YOLODetector.h"
 // #include "../Yolo.h"
 #include "../algorithm/clustering.h"
 #include "../algorithm/pid/MYPID.h"
@@ -35,14 +35,33 @@ class StateMachine;
 class APMROS2Drone : public ROS2Drone, public std::enable_shared_from_this<APMROS2Drone> {
 	// friend class StateMachine;
 public:
-	static std::shared_ptr<APMROS2Drone> create(const std::string ardupilot_namespace) {
-		auto instance = std::make_shared<APMROS2Drone>(ardupilot_namespace);
+	static std::shared_ptr<APMROS2Drone> create(const std::string topic_namespace) {
+		// Create PosSubscriber and PosPublisher
+		auto node = rclcpp::Node::make_shared("offboard_control_node");
+		std::shared_ptr<APMROS2PosPublisher> pos_publisher = std::make_shared<APMROS2PosPublisher>();
+		std::shared_ptr<APMROS2PosSubscriber> pos_subscriber = std::make_shared<APMROS2PosSubscriber>();
+		pos_publisher->CreateROS2Topics(node, topic_namespace);
+		pos_subscriber->CreateROS2Topics(node, topic_namespace);
+		auto sta_ctl = std::make_shared<APMROS2StatusController>();
+		auto pos_ctl = std::make_shared<APMROS2PosController>(pos_subscriber, pos_publisher);
+		pos_ctl->CreateROS2Topics(node, topic_namespace);
+		sta_ctl->CreateROS2Topics(node, topic_namespace);
+		auto instance = std::make_shared<APMROS2Drone>(topic_namespace, sta_ctl, pos_ctl, node);
 		// 延迟初始化状态机，确保 shared_ptr 已经完全建立
 		// instance->initializeStateMachine();
+		instance->set_yolo_detector(std::make_shared<ROS2YOLODetector>(node));
+		instance->set_servo_controller(std::make_shared<ROS2ServoController>(topic_namespace, node));
+		instance->set_camera_gimbal(std::make_shared<ROS2CameraGimbal>(topic_namespace, node));
+
+		instance->read_configs("OffboardControl.yaml");
+		
 		return instance;
 	}
 	
-    APMROS2Drone(const std::string& ardupilot_namespace);
+    APMROS2Drone(const std::string& ardupilot_namespace,
+                std::shared_ptr<StatusController> sta_ctl,
+                std::shared_ptr<PosController> pos_ctl,
+				std::shared_ptr<rclcpp::Node> node);
 
      ~APMROS2Drone() = default;
     
@@ -50,21 +69,16 @@ public:
         return node;
     }
 
+	std::shared_ptr<APMROS2StatusController> get_status_controller() {
+		return std::static_pointer_cast<APMROS2StatusController>(sta_ctl_);;
+	}
+	std::shared_ptr<APMROS2PosController> get_position_controller() {
+		return std::static_pointer_cast<APMROS2PosController>(pos_ctl_);
+	}
+
     // 重写 StateMachine 初始化
     // void initializeStateMachine();
 
-	// 获取YOLO检测器
-	std::shared_ptr<YOLODetector> get_yolo_detector() {
-		return yolo_detector;
-	}
-	// 获取舵机控制器
-	std::shared_ptr<ServoController> get_servo_controller() {
-		return _servo_controller;
-	}
-	// 获取云台控制器
-	std::shared_ptr<CameraGimbal> get_camera_gimbal() {
-		return _camera_gimbal;
-	}
 	// 运行接口
 	virtual void timer_callback(void);
 
@@ -95,15 +109,15 @@ public:
 	void set_wp_limits(PosController::Limits_t limits)
 	{
 		// pos_ctl->set_limits(limits);
-		sta_ctl->set_param("WPNAV_SPEED", limits.speed_max_xy * 100);
-		sta_ctl->set_param("WPNAV_SPEED_DN", limits.speed_max_z * 100);
+		get_status_controller()->set_param("WPNAV_SPEED", limits.speed_max_xy * 100);
+		get_status_controller()->set_param("WPNAV_SPEED_DN", limits.speed_max_z * 100);
 	}
 
 	void reset_wp_limits()
 	{
 		// pos_ctl->reset_limits();
-		sta_ctl->set_param("WPNAV_SPEED", pos_ctl->limit_defaults.speed_max_xy * 100);
-		sta_ctl->set_param("WPNAV_SPEED_DN", pos_ctl->limit_defaults.speed_max_z * 100);
+		get_status_controller()->set_param("WPNAV_SPEED", get_position_controller()->limit_defaults.speed_max_xy * 100);
+		get_status_controller()->set_param("WPNAV_SPEED_DN", get_position_controller()->limit_defaults.speed_max_z * 100);
 		// RCLCPP_INFO(node->get_logger(), "Limits reset to defaults");
 	}
 
@@ -181,7 +195,6 @@ public:
 	float ty_see;
 
 	float bucket_height = 0.3; // 桶高度
-	Vector3d drone_to_camera;
 
 	float servo_open_position;
 	float servo_close_position;
@@ -261,9 +274,13 @@ public:
 			shot_halt_surround = config["shot_halt_surround"].as<float>();
 			shot_halt_low = config["shot_halt_low"].as<float>();
 			see_halt = config["see_halt"].as<float>();
+			Vector3d drone_to_camera;
 			drone_to_camera[0] = config["drone_to_camera_x"].as<float>();
 			drone_to_camera[1] = config["drone_to_camera_y"].as<float>();
 			drone_to_camera[2] = config["drone_to_camera_z"].as<float>();
+			double rotated_x, rotated_y;
+			rotate_world2local(drone_to_camera.x(), drone_to_camera.y(), rotated_x, rotated_y);
+			_camera_gimbal->set_drone_to_camera(Vector3d(rotated_x, rotated_y, drone_to_camera[2]));
 
 			shot_big_target = config["shot_big_target"].as<bool>(true);
 
@@ -280,16 +297,16 @@ public:
 	}
 
     // 访问接口
-    void accept(std::shared_ptr<TaskBase> visitor) override;
+    void accept(std::shared_ptr<TaskBase> visitor);
 
 protected:
 	// StateMachine<APMROS2Drone>& state_machine_;
-private:
-	std::shared_ptr<YOLODetector> yolo_detector;
-	std::shared_ptr<ServoController> _servo_controller;
-	// std::shared_ptr<Motors> sta_ctl.
-	// std::shared_ptr<InertialNav> pos_ctl;
-	// std::shared_ptr<PosControl> pos_ctl;
-	std::shared_ptr<CameraGimbal> _camera_gimbal;
+// private:
+// 	std::shared_ptr<YOLODetector> yolo_detector;
+// 	std::shared_ptr<ServoController> _servo_controller;
+// 	// std::shared_ptr<Motors> sta_ctl.
+// 	// std::shared_ptr<InertialNav> pos_ctl;
+// 	// std::shared_ptr<PosControl> pos_ctl;
+// 	std::shared_ptr<CameraGimbal> _camera_gimbal;
 
 };

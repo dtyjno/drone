@@ -17,8 +17,9 @@ using namespace Eigen;
 // #include "Yolo.h"  // 为了使用YOLO::Target结构体
 
 // ros2 topic pub /mavros/mount_control/command mavros_msgs/msg/MountControl "{mode: 2, pitch: -90.0, roll: 0.0, yaw: 0.0}"
+#include "CameraInterface.h"
 
-class Camera {
+class Camera : public CameraInterface {
 public:
     Vector3d camera_relative_position; // 相机相对于飞机的位置 (tx, ty, tz)
     Vector3d camera_relative_rotation; // 相机在世界坐标系中的旋转 (roll, pitch, yaw)
@@ -51,13 +52,6 @@ public:
 
     const Matrix3d ENU2ESD = ESD2ENU.transpose();
 
-    Vector3d get_position() const {
-        return camera_relative_position + parent_position;
-    }
-    // Vector3d get_rotation() const {
-    //     return camera_relative_rotation;
-    // }
-
     Camera()
         : camera_relative_position(Vector3d::Zero()),
           camera_relative_rotation(Vector3d::Zero()),
@@ -74,8 +68,32 @@ public:
           fx(fx), fy(fy), cx(cx), cy(cy), width(width), height(height) {
     }
     
-    void read_configs(const std::string &filename)
-    {
+    // CameraInterface 实现
+    Vector3d get_drone_to_camera() const override { return camera_relative_position; }
+    void set_drone_to_camera(const Vector3d& pos) override { camera_relative_position = pos; }
+
+    Vector3d get_camera_relative_rotation() const override { return camera_relative_rotation; }
+    void set_camera_relative_rotation(const Vector3d& rot) override { camera_relative_rotation = rot; }
+
+    Vector3d get_parent_position() const override { return parent_position; }
+    void set_parent_position(const Vector3d& pos) override { parent_position = pos; }
+
+    Vector3d get_parent_rotation() const override { return parent_rotation; }
+    void set_parent_rotation(const Vector3d& rot) override { parent_rotation = rot; }
+
+    double get_fx() const override { return fx; }
+    double get_fy() const override { return fy; }
+    double get_cx() const override { return cx; }
+    double get_cy() const override { return cy; }
+    double get_k1() const override { return k1; }
+    double get_k2() const override { return k2; }
+    double get_p1() const override { return p1; }
+    double get_p2() const override { return p2; }
+    double get_k3() const override { return k3; }
+    double get_width() const override { return width; }
+    double get_height() const override { return height; }
+
+    void read_configs(const std::string& filename) override {
         YAML::Node config = Readyaml::readYAML(filename);
         fx = config["fx"].as<double>(fx);
         fy = config["fy"].as<double>(fy);
@@ -89,6 +107,9 @@ public:
         width = config["width"].as<double>(width);
         height = config["height"].as<double>(height);
     }
+
+    Vector3d get_position() const override { return camera_relative_position + parent_position; }
+
     // 像素坐标转换为归一化坐标（带畸变校正）
     Vector2d pixelToNormalized(const Vector2d& pixel) const {
         // 更新相机矩阵和畸变系数矩阵
@@ -194,18 +215,22 @@ public:
         return R_total;
     }
 
+ 
     // 世界坐标转换为像素坐标
     std::optional<Vector2d> worldToPixel(const Vector3d& world_point) const {
         // 1. 世界坐标转换为相机坐标
         Vector3d relative_pos = world_point - get_position();
-        // std::cout << "相机相对位置: " << relative_pos.transpose() << std::endl;
+        // std::cout << "worldToPixel： 目标相对于相机的位置: " << relative_pos.transpose() << std::endl;
         
         // 2. 应用相机旋转矩阵的逆变换 (世界坐标 -> 相机坐标)
         Matrix3d R = eulerAnglesToRotationMatrixWorldToCamera();
         // std::cout << "相机旋转矩阵:\n" << R << "\n";
+        // std::cout << "NED relative_pos: " << ENU2NED * relative_pos << std::endl;
+        // std::cout << std::fixed << std::setprecision(6);
+        // std::cout << "eulerAnglesToRotationMatrixWorldToCamera: " << R << std::endl;
         Vector3d cam_point = NED2ESD * R * ENU2NED * relative_pos;
 
-        // std::cout << "变换后的相机坐标: " << cam_point.transpose() << std::endl;
+        // std::cout << "worldToPixel： 相机坐标系(ESD)下相对位置: " << cam_point.transpose() << std::endl;
 
         // 3. 检查点是否在相机前方
         if (cam_point.z() <= 0) {
@@ -236,7 +261,7 @@ public:
             return std::nullopt;
         }
     }
-    
+
     // 计算目标在图像中的像素半径
     double calculatePixelRadius(const Vector3d& world_center, double world_radius) const {
         Vector3d relative_pos = world_center - get_position();
@@ -277,10 +302,6 @@ public:
             std::cerr << "Error in distortion correction: " << e.what() << std::endl;
             return std::nullopt;
         }
-        
-        // 添加调试输出
-        // std::cout << "像素坐标: (" << pixel_point.x() << ", " << pixel_point.y() << ")" << std::endl;
-        // std::cout << "归一化坐标: (" << norm_point.x() << ", " << norm_point.y() << ")" << std::endl;
         
         // 2. 处理垂直向下特殊情况(俯仰角≈-90度)
         // if (abs(camera.rotation[1] + M_PI/2) < 1e-4) {
@@ -400,67 +421,67 @@ public:
         return target_world;
     }
     
-    // 垂直向下相机的简化世界坐标转像素坐标（用于高效计算）
-    std::optional<Vector2d> worldToPixelVerticalDown(const Vector3d& world_point) const {
-        // 检查是否为垂直向下的相机 (pitch ≈ -90°)
-        // if (abs(rotation[1] + M_PI/2) > 0.1) {
-        //     // 不是垂直向下相机，使用通用方法
-        //     return worldToPixel(world_point);
-        // }
+    // // 垂直向下相机的简化世界坐标转像素坐标（用于高效计算）
+    // std::optional<Vector2d> worldToPixelVerticalDown(const Vector3d& world_point) const {
+    //     // 检查是否为垂直向下的相机 (pitch ≈ -90°)
+    //     // if (abs(rotation[1] + M_PI/2) > 0.1) {
+    //     //     // 不是垂直向下相机，使用通用方法
+    //     //     return worldToPixel(world_point);
+    //     // }
         
-        // 简化计算：垂直向下相机
-        double height_diff = get_position().z() - world_point.z();
-        if (height_diff <= 0) {
-            return std::nullopt; // 目标在相机上方或同一水平面
-        }
+    //     // 简化计算：垂直向下相机
+    //     double height_diff = get_position().z() - world_point.z();
+    //     if (height_diff <= 0) {
+    //         return std::nullopt; // 目标在相机上方或同一水平面
+    //     }
         
-        // 计算相对位置
-        double dx = world_point.x() - get_position().x();
-        double dy = world_point.y() - get_position().y();
+    //     // 计算相对位置
+    //     double dx = world_point.x() - get_position().x();
+    //     double dy = world_point.y() - get_position().y();
         
-        // 应用偏航角旋转（逆向旋转到相机坐标系）
-        double cos_yaw = cos(-(camera_relative_rotation[2] + parent_rotation[2])); // 注意负号
-        double sin_yaw = sin(-(camera_relative_rotation[2] + parent_rotation[2]));
+    //     // 应用偏航角旋转（逆向旋转到相机坐标系）
+    //     double cos_yaw = cos(-(camera_relative_rotation[2] + parent_rotation[2])); // 注意负号
+    //     double sin_yaw = sin(-(camera_relative_rotation[2] + parent_rotation[2]));
 
-        double cam_x = cos_yaw * dx - sin_yaw * dy;
-        double cam_y = sin_yaw * dx + cos_yaw * dy;
+    //     double cam_x = cos_yaw * dx - sin_yaw * dy;
+    //     double cam_y = sin_yaw * dx + cos_yaw * dy;
         
-        // 归一化坐标
-        Vector2d norm_point(cam_x / height_diff, cam_y / height_diff);
+    //     // 归一化坐标
+    //     Vector2d norm_point(cam_x / height_diff, cam_y / height_diff);
         
-        // 应用畸变
-        Vector2d distorted_point = applyDistortion(norm_point);
+    //     // 应用畸变
+    //     Vector2d distorted_point = applyDistortion(norm_point);
         
-        // 转换为像素坐标
-        Vector2d pixel_point;
-        pixel_point.x() = fx * distorted_point.x() + cx;
-        pixel_point.y() = fy * distorted_point.y() + cy;
+    //     // 转换为像素坐标
+    //     Vector2d pixel_point;
+    //     pixel_point.x() = fx * distorted_point.x() + cx;
+    //     pixel_point.y() = fy * distorted_point.y() + cy;
         
-        // 检查是否在图像范围内
-        if (pixel_point.x() >= 0 && pixel_point.x() < width &&
-            pixel_point.y() >= 0 && pixel_point.y() < height) {
-            return pixel_point;
-        } else {
-            return std::nullopt;
-        }
-    }
+    //     // 检查是否在图像范围内
+    //     if (pixel_point.x() >= 0 && pixel_point.x() < width &&
+    //         pixel_point.y() >= 0 && pixel_point.y() < height) {
+    //         return pixel_point;
+    //     } else {
+    //         return std::nullopt;
+    //     }
+    // }
     
-    // 相机间坐标映射：将输入相机的像素坐标映射到垂直向下相机的像素坐标
-    std::optional<Vector2d> mapPixelToVerticalDownCamera(
-        const Vector2d& input_pixel,           // 输入相机的像素坐标
-        double target_height = 0.0             // 目标所在的世界高度
-    ) const {
-        // 步骤1：将输入相机的像素坐标转换为世界坐标
-        auto world_pos = pixelToWorldPosition(input_pixel, target_height);
-        // std::cout << "输入像素坐标: (" << input_pixel.x() << ", " << input_pixel.y() << ")" << std::endl;
-        // std::cout << "转换后的世界坐标: (" << world_pos->x() << ", " << world_pos->y() << ", " << world_pos->z() << ")" << std::endl;
-        if (!world_pos.has_value()) {
-            return std::nullopt; // 转换失败
-        }
+    // // 相机间坐标映射：将输入相机的像素坐标映射到垂直向下相机的像素坐标
+    // std::optional<Vector2d> mapPixelToVerticalDownCamera(
+    //     const Vector2d& input_pixel,           // 输入相机的像素坐标
+    //     double target_height = 0.0             // 目标所在的世界高度
+    // ) const {
+    //     // 步骤1：将输入相机的像素坐标转换为世界坐标
+    //     auto world_pos = pixelToWorldPosition(input_pixel, target_height);
+    //     // std::cout << "输入像素坐标: (" << input_pixel.x() << ", " << input_pixel.y() << ")" << std::endl;
+    //     // std::cout << "转换后的世界坐标: (" << world_pos->x() << ", " << world_pos->y() << ", " << world_pos->z() << ")" << std::endl;
+    //     if (!world_pos.has_value()) {
+    //         return std::nullopt; // 转换失败
+    //     }
         
-        // 步骤2：将世界坐标投影到垂直向下相机的像素坐标
-        return worldToPixelVerticalDown(world_pos.value());
-    }
+    //     // 步骤2：将世界坐标投影到垂直向下相机的像素坐标
+    //     return worldToPixelVerticalDown(world_pos.value());
+    // }
     
 
 };

@@ -1,10 +1,11 @@
 #pragma once
 
 #include "../utils/math.h"
+#include "PosSubscriberInterface.h"
 
 #define DEFAULT_POS INFINITY
 
-class PosSubscriber {
+class PosSubscriber : public PosSubscriberInterface {
 public:
      ~PosSubscriber() = default;
 
@@ -36,6 +37,9 @@ public:
 
 	Vector3f get_gps(){
 		return gps;
+	}
+	void set_gps(Vector3f g){
+		gps = g;
 	}
 
 	float get_altitude(){
@@ -82,6 +86,9 @@ public:
 		// 	return angle;
 		// };
 		return yaw;
+	}
+	void set_yaw(float y){
+		yaw = y;
 	}
 	void set_rpy(float r, float p, float y){
 		roll = r;

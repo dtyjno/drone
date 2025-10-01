@@ -2,10 +2,10 @@
 
 #include <vector>
 #include <functional>
-#include "../../task/Task.h"
-#include "../../utils/math.h"
-#include "../../algorithm/pid/PID.h"  // Add this include for PID::Defaults
-#include "../../module/YOLOTargetType.h"
+#include "../task/Task.h"
+#include "../utils/math.h"
+#include "../algorithm/pid/PID.h"  // Add this include for PID::Defaults
+#include "../drone/YOLOTargetType.h"
 // 前向声明
 class AbstractDrone;
 class ROS2Drone;
@@ -21,6 +21,26 @@ public:
     static std::shared_ptr<AppochTargetTask> createTask(const std::string& task_name = "DoShot");
     static std::shared_ptr<AppochTargetTask> getTask(const std::string& task_name = "DoShot");
 public:
+    enum class Type{
+        AUTO,
+        PID,
+        TARGET,
+        NONE
+    } current_type = Type::NONE;
+    Type getCurrentType() const {
+        return current_type;
+    }
+    std::string getCurrentTypeString() const {
+        switch (current_type) {
+            case Type::PID: return "PID";
+            case Type::TARGET: return "TARGET";
+            case Type::NONE: return "NONE";
+            default: return "UNKNOWN";
+        }
+    }
+    void setTaskType(Type type) {
+        parameters.task_type = type;
+    }
     struct Parameters{
         std::string config_file_name = "shot_config.yaml";                      // 配置文件名
         std::string config_device_name_prefix = "shot_target";                  // 配置文件中目标前缀
@@ -32,10 +52,7 @@ public:
         std::function<Vector2f()> dynamic_target_image_callback;         // 获取动态图像目标坐标的回调函数 x,y
         float target_height = 0.0f;                             // 目标的高度，默认为地面高度0.0m
         float target_yaw = 0.0f;                                // 目标偏航角
-        enum class Type{
-            PID,
-            TARGET
-        } type = Type::PID;
+        Type task_type = Type::AUTO;                                  // 任务类型，AUTO自动选择PID或TARGET
     };
 
 private:

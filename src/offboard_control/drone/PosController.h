@@ -8,8 +8,10 @@
 #include "../utils/math.h"
 #include "../utils/Readyaml.h"
 
-#include "../drone/PosSubscriber.h"
-#include "../drone/PosPublisher.h"
+// #include "../drone/PosSubscriber.h"
+// #include "../drone/PosPublisher.h"
+#include "PosSubscriberInterface.h"
+#include "PosPublisherInterface.h"
 
 
  # define POSCONTROL_Z_P                    0.6f    // vertical velocity controller P gain default
@@ -68,8 +70,7 @@
  
 class PosController {
 public:
-	PosController() = default;
-    PosController(std::shared_ptr<PosSubscriber> pos_data, std::shared_ptr<PosPublisher> pos_publisher) :
+    PosController(std::shared_ptr<PosSubscriberInterface> pos_data, std::shared_ptr<PosPublisherInterface> pos_publisher) :
 		pos_data(pos_data), pos_publisher(pos_publisher)
 	{
 		std::cout << "PosController: Initializing Position Controller" << std::endl;
@@ -223,9 +224,6 @@ public:
 	float get_accel_max();
 	float get_decel_max();
 	float get_jerk_max();
-	// virtual float get_time(void) {
-		// return (node->get_clock()->now().nanoseconds() / 1000)/1000000.0;
-	// }
 	struct Limits_t{
 		float speed_max_xy = POSCONTROL_VEL_XY_MAX;
 		float speed_max_z = POSCONTROL_VEL_Z_MAX;
@@ -260,9 +258,15 @@ public:
 		pid_vy_defaults,
 		pid_vz_defaults;
 	Limits_t limit_defaults;
-
-	std::shared_ptr<PosSubscriber> pos_data;
-	std::shared_ptr<PosPublisher> pos_publisher;
+	std::shared_ptr<PosSubscriberInterface> get_pos_data(){
+		return pos_data;
+	}
+	std::shared_ptr<PosPublisherInterface> get_pos_publisher(){
+		return pos_publisher;
+	}
+	
+	std::shared_ptr<PosSubscriberInterface> pos_data;
+	std::shared_ptr<PosPublisherInterface> pos_publisher;
 protected:
 // private:
 	//

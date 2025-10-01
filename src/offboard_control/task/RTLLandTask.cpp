@@ -1,8 +1,4 @@
 #include "RTLLandTask.h"
-#include "../AbstractDrone.h"
-#include "../../ROS2drone/ROS2Drone.h"
-#include "../../APMROS2drone/APMROS2Drone.h"
-// #include "../../stateMachine/StateMachine.h"
 
 // 定义静态成员
 std::map<std::string, std::shared_ptr<RTLLandTask>> RTLLandTask::TASKS;
@@ -33,7 +29,7 @@ bool RTLLandTask::init(DeviceType device) {
                      "RTLLandTask can only be used with devices derived from AbstractDrone");
         return false;
     } else {
-        device->log_info(get_string().c_str());
+        device->log_info(get_string());
         device->log_info("开始降落");
         device->get_status_controller()->switch_mode("RTL");
         return true;
@@ -48,21 +44,22 @@ bool RTLLandTask::run(DeviceType device) {
         return false;
     } else {
         if (timer_.elapsed() < 18) { // 如果等待超过18秒
+            device->log_info_throttle(std::chrono::milliseconds(1000), "等待降落,RTL中..", timer_.elapsed());
         } else if (timer_.elapsed() < 18 + device->get_wait_time()) {
             device->log_info("等待降落超过18秒，开始降落");
             device->get_status_controller()->switch_mode("GUIDED");
             land_task->reset();    // 重置计时器
         } else {
-            // device->log_info(get_string().c_str());
+            // device->log_info(get_string());
             land_task->visit(device);
             if (device->get_mode() == "GUIDED" && land_task->get_task_result()) {
                 return true;
             } else {
-                device->log_info_throttle(std::chrono::milliseconds(1000), "等待降落中...%f", timer_.elapsed());
+                device->log_info_throttle(std::chrono::milliseconds(1000), "等待降落中...", timer_.elapsed());
             }
         }
     }
-    // device->log_info(get_string().c_str());
+    // device->log_info(get_string());
     return false;
 }
 
@@ -73,8 +70,8 @@ bool RTLLandTask::end(DeviceType device) {
                      "RTLLandTask can only be used with devices derived from AbstractDrone");
         return false;
     } else {
-        // device->log_info(get_string().c_str());
-        device->log_info("%s: 降落完成", get_string().c_str());
+        // device->log_info(get_string());
+        device->log_info("%s: 降落完成", get_string());
         device->get_status_controller()->switch_mode("LAND");
         // Note: State machine access removed - should be handled by device itself
     }
