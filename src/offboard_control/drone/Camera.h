@@ -108,8 +108,10 @@ public:
         height = config["height"].as<double>(height);
     }
 
-    Vector3d get_position() const override { return camera_relative_position + parent_position; }
-
+    // start
+    Vector3d get_position() const override {
+        return NED2ENU * eulerAnglesToRotationMatrixCameraToWorld() * ENU2NED * camera_relative_position + parent_position;
+    }
     // 像素坐标转换为归一化坐标（带畸变校正）
     Vector2d pixelToNormalized(const Vector2d& pixel) const {
         // 更新相机矩阵和畸变系数矩阵
@@ -152,7 +154,7 @@ public:
     }
 
     // 生成旋转矩阵，处理对应坐标系下旋转角的输入
-    Matrix3d eulerAnglesToRotationMatrixWorldToCamera() const {
+    Matrix3d eulerAnglesToRotationMatrixCameraToWorld() const {
         // 正确分配欧拉角
         double roll_c  = camera_relative_rotation[0]; // X轴
         double pitch_c = camera_relative_rotation[1]; // Y轴
@@ -215,6 +217,9 @@ public:
         return R_total;
     }
 
+    Matrix3d eulerAnglesToRotationMatrixWorldToCamera() const {
+        return eulerAnglesToRotationMatrixCameraToWorld().transpose();
+    }
  
     // 世界坐标转换为像素坐标
     std::optional<Vector2d> worldToPixel(const Vector3d& world_point) const {

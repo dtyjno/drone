@@ -166,23 +166,22 @@ TEST(TaskTest, DoShotTask) {
 
 	auto do_shot_task = DoShotTask::createTask("Do_shot");
 	DoShotTask::Parameters doshot_params;
-  std::function<Vector4f()> empty_position_callback = []() -> Vector4f {
-      return Vector4f::Zero();
+  std::function<AppochTargetTask::PositionTarget()> empty_position_callback = []() -> AppochTargetTask::PositionTarget {
+      AppochTargetTask::PositionTarget pos_target;
+			pos_target.position = Vector3f::Zero();
+			pos_target.radius = 0.0f;
+			pos_target.index = -1;
+			return pos_target;
   };
   std::function<Vector2f()> empty_image_callback = []() -> Vector2f {
       return Vector2f::Zero();
   };
-  std::function<Vector4f()> target_position_callback = [this, do_shot_waypoint_task]() -> Vector4f {
-		// Vector2d drone_to_shot_rotated; // 中间变量
-		// rotate_local2world(0.0, 0.10, drone_to_shot_rotated.x(), drone_to_shot_rotated.y());
-		// if (!cal_center.empty()) {
-		// 	return Vector4f(cal_center[do_shot_waypoint_task->get_counter()].point.x() + drone_to_shot_rotated.x(),
-		// 					cal_center[do_shot_waypoint_task->get_counter()].point.y() + drone_to_shot_rotated.y(),
-		// 					shot_halt_low, 0.0f);
-		// } else {
-		// 	return Vector4f::Zero(); // 如果没有目标，返回一个默认值
-		// }
-      return Vector4f(1.0f, 1.0f, 1.0f, 0.0f);
+  std::function<AppochTargetTask::PositionTarget()> target_position_callback = []() -> AppochTargetTask::PositionTarget {
+      AppochTargetTask::PositionTarget pos_target;
+			pos_target.position = Vector3f{1.0f, 1.0f, 1.0f};
+			pos_target.radius = 0.5f;
+			pos_target.index = 0;
+      return pos_target;
 	};
   // (-1.0, -1.0)
   std::function<Vector2f()> target_image_callback = [device, bucket_height]() -> Vector2f {
@@ -263,7 +262,7 @@ TEST(TaskTest, DoShotTask) {
   do_shot_task->setDynamicPositionTargetCallback(target_position_callback);
   do_shot_task->setDynamicImageTargetCallback(target_image_callback);
   device->accept(do_shot_task);
-  std::cout << "dynamic_target_position_callback" << appoch_ptr->getCurrentPositionTargets().transpose() << std::endl;
+  std::cout << "dynamic_target_position_callback" << appoch_ptr->getCurrentPositionTargets().position.transpose() << std::endl;
   std::cout << "dynamic_target_image_callback" << appoch_ptr->getCurrentImageTargets().transpose() << std::endl;
   EXPECT_TRUE(appoch_ptr->getCurrentType() == AppochTargetTask::Type::TARGET);
   std::cout << "只有位置目标" << std::endl;
@@ -297,7 +296,7 @@ TEST(TaskTest, DoShotTask) {
   do_shot_task->setDynamicPositionTargetCallback(empty_position_callback);
   do_shot_task->setDynamicImageTargetCallback(target_image_callback);
   do_shot_task->get_appochtarget_task()->setTaskType(AppochTargetTask::Type::PID);   // 只测试PID逻辑
-  for (int i = 0; i * device->get_wait_time() < 2.0; ++i) {
+  for (int i = 0; i * device->get_wait_time() < 2.5; ++i) {
 	    device->get_camera()->set_parent_position(Vector3d(device->get_x_pos(), device->get_y_pos(), device->get_z_pos()));
       std::cout << "Step " << i << ": Position: (" 
                 << device->get_x_pos() << ", "

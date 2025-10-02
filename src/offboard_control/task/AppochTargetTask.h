@@ -44,7 +44,11 @@ public:
     void set_device_index(size_t index) {
         parameters.device_index = index;
     }
-    
+    struct PositionTarget {
+        Vector3f position;       // 位置
+        float radius;            // 直径
+        size_t index;            // 目标索引
+    };
     struct Parameters{
         std::string config_file_name = "shot_config.yaml";                      // 配置文件名
         std::string config_device_name_prefix = "shot_target";                  // 配置文件中目标前缀
@@ -52,19 +56,24 @@ public:
         YOLO_TARGET_TYPE target_type;                                  // 目标类型
         size_t device_index = 0;                                                // 当前接近的设备索引,从0开始
         float fx = 1.0f;                                        // 相机焦距，像素单位
-        std::function<Vector4f()> dynamic_target_position_callback;         // 获取动态准确目标坐标的回调函数 x,y,z,r
+        std::function<PositionTarget()> dynamic_target_position_callback;         // 获取动态准确目标坐标的回调函数 x,y,z,r
         std::function<Vector2f()> dynamic_target_image_callback;         // 获取动态图像目标坐标的回调函数 x,y
         float target_height = 0.0f;                             // 目标的高度，默认为地面高度0.0m
         float target_yaw = 0.0f;                                // 目标偏航角
         Type task_type = Type::AUTO;                                  // 任务类型，AUTO自动选择PID或TARGET
     };
 
+
+    Timer target_timer;               // 目标检测计时器
+    float max_target_position_accurate = 0.1f;  // 设置最大允许误差
+    size_t pre_position_target_index = -1;  // 上一次的位置目标
+    // Vector4f pre_position_targets = Vector4f::Zero(); // 上一次的位置目标
+
 private:
     AppochTargetTask(std::string name) : 
         Task<AppochTargetTask>(name) {}
 
     // 任务执行
-	float find_duration = 0; 					    // 累计连续接近目标时间
 	float accuracy = 0.1;						    // 声明读取的准确度
     PID::Defaults pid_defaults;                     // 声明读取的默认PID参数
     std::vector<Vector3f> device_position;          // 声明读取的设备需要接近目标的位置
@@ -73,18 +82,25 @@ private:
     float radius = 0.1; 						    // 声明读取的映射失败时使用的像素精度
     Parameters parameters;
 public:
+    void reset() {
+        Task<AppochTargetTask>::reset();
+        current_type = Type::NONE;
+        target_timer.reset();
+        pre_position_target_index = -1;
+        // pre_position_targets = Vector4f::Zero();
+    }
 
     void setParameters(Parameters &parameters) {
         this->parameters = parameters;
     }
 
     // 设置动态目标坐标回调函数
-    void setDynamicPositionTargetCallback(std::function<Vector4f()> callback) {
+    void setDynamicPositionTargetCallback(std::function<PositionTarget()> callback) {
         parameters.dynamic_target_position_callback = callback;
     }
     
     // 获取当前目标坐标（动态或静态）
-    Vector4f getCurrentPositionTargets() {
+    PositionTarget getCurrentPositionTargets() {
         if (parameters.dynamic_target_position_callback) {
             return parameters.dynamic_target_position_callback();
         }

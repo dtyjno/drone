@@ -16,7 +16,7 @@ public:
     static std::shared_ptr<DoLandTask> getTask(const std::string& task_name = "DoLand");
     
     // 设置动态目标坐标回调函数
-    void setDynamicPositionTargetCallback(std::function<Vector4f()> callback) {
+    void setDynamicPositionTargetCallback(std::function<AppochTargetTask::PositionTarget()> callback) {
         parameters.dynamic_target_position_callback = callback;   // 防止重置后init重置为参数更改
         task->setDynamicPositionTargetCallback(callback);
     }
@@ -40,7 +40,7 @@ public:
         std::vector<std::string> config_device_name_suffix = {""};      // 配置文件中目标后缀，决定了支持的目标数量
         size_t device_index = 0;                                                // 当前接近的设备索引
         float fx = 1.0f;                                        // 相机焦距，像素单位
-        std::function<Vector4f()> dynamic_target_position_callback;         // 获取动态准确目标坐标的回调函数 x,y,z,r
+        std::function<AppochTargetTask::PositionTarget()> dynamic_target_position_callback;         // 获取动态准确目标坐标的回调函数 x,y,z,r
         std::function<Vector2f()> dynamic_target_image_callback = []{return Vector2f::Zero();};         // 获取动态图像目标坐标的回调函数 x,y,z,r
         float target_height = 0.0f;                             // 目标的高度，默认为地面高度0.0m
         float target_yaw = 0.0f;                                // 目标偏航角

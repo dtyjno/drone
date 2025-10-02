@@ -70,18 +70,23 @@ public:
 
 	void timer_callback_update() {
 		// 更新相机位置和方向
-		if (debug_mode_ && get_position_controller() && get_position_controller()->pos_data) { // 调试模式下，强制设置飞机位置
-			get_position_controller()->pos_data->set_position(Vector3f(0.0, 0.0, 1.2)); // 设置飞机初始位置为(0,0,1.2)
+		if (debug_mode_ && get_position_controller() && get_position_controller()->get_pos_data()) { // 调试模式下，强制设置飞机位置
+			get_position_controller()->get_pos_data()->set_position(Vector3f(0.0, 0.0, 1.2)); // 设置飞机初始位置为(0,0,1.2)
 		}
 		float roll, pitch, yaw;
 		get_euler(roll, pitch, yaw);
-		if (debug_mode_ && get_status_controller() && get_status_controller()->get_system_status() == StatusController::State__system_status::MAV_STATE_UNINIT) {
+		if (debug_mode_ && get_status_controller()) {
 			roll = 0.0f;
 			pitch = 0.0f;
+			// std::cout << "ENU 0E->N yaw" << get_yaw() << "NED 0N->E world_yaw" << get_world_yaw() << std::endl; // 默认飞机方向为正东 yaw=0,world_yaw=90 ,北 yaw 90 world_yaw 0.0
 		}
 		_camera_gimbal->set_parent_position(Vector3d(get_x_pos(), get_y_pos(), get_z_pos()));
 		_camera_gimbal->set_camera_relative_rotation(Vector3d(0, 0, 0)); // 相机相对飞机的旋转，roll=0, pitch=0 (垂直向下), yaw=0
-		_camera_gimbal->set_parent_rotation(Vector3d(roll, pitch, get_world_yaw()));
+		_camera_gimbal->set_parent_rotation(Vector3d(roll, pitch, get_world_yaw() + headingangle_compass));
+		if (debug_mode_) {
+			std::cout << "相机位置: (" << _camera_gimbal->get_position().transpose() << ")" << std::endl;
+			std::cout << "相机旋转: (" << _camera_gimbal->get_parent_rotation().transpose() << ")" << std::endl;
+		}
 	}
 
 	// 获取YOLO检测器

@@ -284,9 +284,8 @@ public:
 			drone_to_camera[0] = config["drone_to_camera_x"].as<float>();
 			drone_to_camera[1] = config["drone_to_camera_y"].as<float>();
 			drone_to_camera[2] = config["drone_to_camera_z"].as<float>();
-			double rotated_x, rotated_y;
-			rotate_world2local(drone_to_camera.x(), drone_to_camera.y(), rotated_x, rotated_y);
-			_camera_gimbal->set_drone_to_camera(Vector3d(rotated_x, rotated_y, drone_to_camera[2]));
+
+			_camera_gimbal->set_drone_to_camera(Vector3d(drone_to_camera[0], drone_to_camera[1], drone_to_camera[2]));
 
 			shot_big_target = config["shot_big_target"].as<bool>(true);
 

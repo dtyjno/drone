@@ -48,9 +48,9 @@ bool AppochTargetTask::init(DeviceType device) {
             std::string key_y = parameters.config_device_name_prefix + "_y" + parameters.config_device_name_suffix[i];
             std::string key_z = parameters.config_device_name_prefix + "_z" + parameters.config_device_name_suffix[i];
             std::cout << "Reading position for target suffix: " << key_x << std::endl;
-            float adjusted_x = config[key_x].as<float>() - device->get_camera()->get_drone_to_camera()[0];
-            float adjusted_y = config[key_y].as<float>() - device->get_camera()->get_drone_to_camera()[1];
-            float adjusted_z = config[key_z].as<float>() - device->get_camera()->get_drone_to_camera()[2];
+            float adjusted_x = config[key_x].as<float>();
+            float adjusted_y = config[key_y].as<float>();
+            float adjusted_z = config[key_z].as<float>();
             this->device_position.push_back(Vector3f(adjusted_x, adjusted_y, adjusted_z)); // 调整高度 待旋转
             device->log_info(get_string(), ": ", parameters.config_device_name_prefix, "_x", parameters.config_device_name_suffix[i], ": " , this->device_position[i].x());
             device->log_info(get_string(), ": ", parameters.config_device_name_prefix, "_y", parameters.config_device_name_suffix[i], ": ", this->device_position[i].y());
@@ -82,7 +82,6 @@ bool AppochTargetTask::init(DeviceType device) {
         }
         device->log_info(get_string(), ": cap_frame_width: ", device->get_yolo_detector()->get_cap_frame_width(), ", cap_frame_height: ", device->get_yolo_detector()->get_cap_frame_height(), ", radius: ", radius, ", accuracy: ", accuracy);
 
-        find_duration = 0.0f;               // 重置查找持续时间
         return true;
     }
 }
@@ -97,39 +96,63 @@ bool AppochTargetTask::run(DeviceType device) {
         return false;
     } else {
         // TARGET 世界坐标系
-        if (!getCurrentPositionTargets().isZero() && (parameters.task_type == Type::TARGET || parameters.task_type == Type::AUTO)) {
+        // if (getCurrentPositionTargets() != pre_position_targets) {
+        //     pre_position_targets = getCurrentPositionTargets();
+        // }
+        if (getCurrentPositionTargets().index != pre_position_target_index) {
+            max_target_position_accurate = std::max(0.1f, getCurrentPositionTargets().radius);
+            pre_position_target_index = getCurrentPositionTargets().index;
+        }
+        if (!getCurrentPositionTargets().position.isZero() &&
+                (parameters.task_type == Type::TARGET ||
+                 parameters.task_type == Type::AUTO && (
+                    target_timer.elapsed() < 6 ||      // 至少稳定6秒
+                    target_timer.elapsed() < 12 && (
+                        abs(device->get_x_pos() - (getCurrentPositionTargets().position.x())) > max_target_position_accurate &&
+                        abs(device->get_y_pos() - (getCurrentPositionTargets().position.y())) > max_target_position_accurate
+                    )
+                 )
+                )
+            ) {
             current_type = Type::TARGET;
             // 显示目标位置
             TargetData temp_target = this->image_targets[0];
-            Vector4f current_targets = getCurrentPositionTargets();
+            Vector3f current_targets = getCurrentPositionTargets().position;
             Vector3d world_target_point(current_targets.x(), current_targets.y(), current_targets.z());
             auto shot_target_opt = device->get_camera()->worldToPixel(world_target_point);
             if (shot_target_opt.has_value()) {
                 Vector2d shot_center = shot_target_opt.value();
                 temp_target.x = shot_center.x();
                 temp_target.y = shot_center.y();
+                // temp_target.z = shot_center.z();
+                temp_target.radius = getCurrentPositionTargets().radius * accuracy; // 使用设定的精度作为像素半径
                 temp_target.category = YOLODetector::enumToString(parameters.target_type).append("_t2p");
                 device->get_yolo_detector()->append_target(temp_target);
             }
 
             device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": Approaching target at (", 
-                getCurrentPositionTargets().x(), ", ",
-                getCurrentPositionTargets().y(), ", ",
-                getCurrentPositionTargets().z(), ") with accuracy ", 
-                getCurrentPositionTargets().w());
-            float target_z = getCurrentPositionTargets().z() > 2 ? getCurrentPositionTargets().z() :
-                             getCurrentPositionTargets().z() < 1.8 && device->get_z_pos() > 2 ? 1.6 :
-                             getCurrentPositionTargets().z() < 1.5 && device->get_z_pos() > 1.7 ? 1.3 :
-                             getCurrentPositionTargets().z() < 1.2 && device->get_z_pos() > 1.3 ? 1.1 :
-                             getCurrentPositionTargets().z();
-            device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": target_z: ", target_z, ", device_z: ", device->get_z_pos(), ", target: ", getCurrentPositionTargets().transpose());
+                getCurrentPositionTargets().position.x(), ", ",
+                getCurrentPositionTargets().position.y(), ", ",
+                getCurrentPositionTargets().position.z(), ") with radius ", 
+                getCurrentPositionTargets().radius);
+            float target_z = getCurrentPositionTargets().position.z() > 2 ? getCurrentPositionTargets().position.z() :
+                             getCurrentPositionTargets().position.z() < 1.8 && device->get_z_pos() > 2 ? 1.6 :
+                             getCurrentPositionTargets().position.z() < 1.5 && device->get_z_pos() > 1.7 ? 1.3 :
+                             getCurrentPositionTargets().position.z() < 1.2 && device->get_z_pos() > 1.3 ? 1.1 :
+                             getCurrentPositionTargets().position.z();
+            device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": target_z: ", target_z, ", device_z: ", device->get_z_pos(), ", target: ", getCurrentPositionTargets().position.transpose());
             if (is_equal(target_z, device->get_z_pos(), 0.10f)) {
-                target_z = getCurrentPositionTargets().z();
+                target_z = getCurrentPositionTargets().position.z();
             }
-            device->send_world_setpoint_command(getCurrentPositionTargets().x(), getCurrentPositionTargets().y(), target_z, getCurrentPositionTargets().w()); // 发送世界坐标系下的航点指令
-            if (is_equal(getCurrentPositionTargets().x(), device->get_x_pos(), radius)
-                && is_equal(getCurrentPositionTargets().y(), device->get_y_pos(), radius)
-                && is_equal(getCurrentPositionTargets().z(), device->get_z_pos(), radius)) {
+            float rotated_x, rotated_y;  // 声明待旋转目标坐标
+            device->rotate_local2world(this->device_position[parameters.device_index].x(), this->device_position[parameters.device_index].y(), rotated_x, rotated_y);
+            device->send_world_setpoint_command(
+                    getCurrentPositionTargets().position.x() + rotated_x,
+                    getCurrentPositionTargets().position.y() + rotated_y,
+                    target_z + device_position[parameters.device_index].z(), parameters.target_yaw); // 发送世界坐标系下的航点指令
+            if (is_equal(getCurrentPositionTargets().position.x() + rotated_x, device->get_x_pos(), radius)
+                && is_equal(getCurrentPositionTargets().position.y() + rotated_y, device->get_y_pos(), radius)
+                && is_equal(getCurrentPositionTargets().position.z() + device_position[parameters.device_index].z(), device->get_z_pos(), radius)) {
                 // device->log_info("Arrive, Doshot");
                 task_result = true;
             } else {
@@ -141,6 +164,7 @@ bool AppochTargetTask::run(DeviceType device) {
         // PID
         if (!getCurrentImageTargets().isZero() && (parameters.task_type == Type::PID || parameters.task_type == Type::AUTO)) {
             current_type = Type::PID;
+            max_target_position_accurate = 5.0f; // PID模式下，允许更大的误差
             device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": Approaching image target ", parameters.device_index, " at (",
                 getCurrentImageTargets().x(), ", ",
                 getCurrentImageTargets().y(), ")");
@@ -175,9 +199,15 @@ bool AppochTargetTask::run(DeviceType device) {
                 TargetData t2p_target = image_targets[0];
                 float rotated_x, rotated_y;  // 声明待旋转目标坐标
                 device->rotate_local2world(this->device_position[i].x(), this->device_position[i].y(), rotated_x, rotated_y);
+                if (device->debug_mode_) {
+                    device->log_info(get_string(), ": 计算目标 ", i, "(", this->device_position[i].x(), ", ", this->device_position[i].y(), ") 在世界坐标系的位置: (", 
+                        device->get_x_pos() + rotated_x, ", ",
+                        device->get_y_pos() + rotated_y, ", ",
+                        parameters.target_height + this->device_position[i].z(), ")");
+                }
                 Vector3d world_point_target(
-                    device->get_camera()->get_position().x() + rotated_x,
-                    device->get_camera()->get_position().y() + rotated_y,
+                    device->get_x_pos() + rotated_x,
+                    device->get_y_pos() + rotated_y,
                     parameters.target_height + this->device_position[i].z()
                     // -1.0
                     // device->get_target_position().z() + this->device_position[i].z()
@@ -190,9 +220,10 @@ bool AppochTargetTask::run(DeviceType device) {
                     t2p_target.y = output_pixel.y();
                     t2p_target.category = YOLODetector::enumToString(parameters.target_type).append("_d2p").append(parameters.config_device_name_suffix[i]);
                     if (!device->debug_mode_) {
-                        t2p_target.radius = getCurrentPositionTargets().w() / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
+                        t2p_target.radius = getCurrentPositionTargets().radius * accuracy; // 设置目标半径为像素半径的百分比
                         t2p_targets.push_back(t2p_target);
                     } else { // 发布所有的目标
+                        std::cout << "计算目标 " << i << " 在图像上的位置: (" << t2p_target.x << ", " << t2p_target.y << ")" << std::endl;
                         t2p_target.radius = 0.15 / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
                         t2p_targets.push_back(t2p_target);
                         t2p_target.radius = 0.20 / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
@@ -258,7 +289,7 @@ bool AppochTargetTask::run(DeviceType device) {
                 current_target.z);
             device->get_position_controller()->trajectory_setpoint_world(
                 Vector4f{tar_u / max_frame, tar_v / max_frame, static_cast<float>(device->get_z_pos()), static_cast<float>(device->get_world_yaw())}, // 当前坐标        get_world_yaw()  // 当前坐标
-                Vector4f{now_x / max_frame, now_y / max_frame, current_target.z, parameters.target_yaw + device->get_default_yaw()}, // 目标坐标  parameters.target_yaw
+                Vector4f{now_x / max_frame, now_y / max_frame, current_target.z, parameters.target_yaw}, // 目标坐标  parameters.target_yaw
                 pid_defaults,
                 0.0,               				// 精度
                 0.0 			 				// 偏航精度

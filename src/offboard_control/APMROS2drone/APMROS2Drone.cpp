@@ -203,35 +203,27 @@ void APMROS2Drone::timer_callback(void)
 	// 		  << get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE) << ","
 	// 		  << get_yolo_detector()->get_x(YOLO_TARGET_TYPE::H) << ","
 	// 		  << get_yolo_detector()->get_y(YOLO_TARGET_TYPE::H) << std::endl;
-
-	// if (debug_mode_) { // 调试模式下，强制设置飞机位置
-	// 	get_position_controller()->pos_data->set_position(Vector3f(0.0, 0.0, 1.2)); // 设置飞机初始位置为(0,0,1.2)
-	// }
-
-	// // 相机坐标系：相对于飞机机体坐标系，向前旋转90度后垂直向下
-	// // 飞机偏航角 + 相机相对偏航角(90度) + 俯仰角(-90度向下)
-	// float roll, pitch, yaw;
-	// get_euler(roll, pitch, yaw);
-	// if (debug_mode_ && get_status_controller()->get_system_status() == StatusController::State__system_status::MAV_STATE_UNINIT) {
-	// 	roll = 0.0f;
-	// 	pitch = 0.0f;
-	// }
-
-	// _camera_gimbal->set_parent_position(Vector3d(get_x_pos(), get_y_pos(), get_z_pos()));
-	// _camera_gimbal->set_camera_relative_rotation(Vector3d(0, 0, 0)); // 相机相对飞机的旋转，roll=0, pitch=0 (垂直向下), yaw=0
-	// _camera_gimbal->set_parent_rotation(Vector3d(roll, pitch, get_world_yaw()));
-
-	// 测试目标可视化
-	// if (debug_mode_) {
-	// 	bool shot;
-	// 	Doshot(0, shot);
-	// 	Doland();
-	// }
-
 	// 调试输出：像素坐标和相机位置
 	// std::cout << "相机当前位置: (" << _camera_gimbal->position[0] << ", " << _camera_gimbal->position[1] << ", " << _camera_gimbal->position[2] << ")" << std::endl;
 	// std::cout << "相机旋转角度: roll=" << _camera_gimbal->rotation[0] << " pitch=" << _camera_gimbal->rotation[1] << " yaw=" << _camera_gimbal->rotation[2] << std::endl;
 	// std::cout << "相机内参: fx=" << _camera_gimbal->fx << " fy=" << _camera_gimbal->fy << " cx=" << _camera_gimbal->cx << " cy=" << _camera_gimbal->cy << std::endl;
+
+	// 测试目标可视化
+	if (debug_mode_) {
+		auto AppochTargetTask = AppochTargetTask::createTask("AppochTargetTask");
+		AppochTargetTask::Parameters appoch_params;
+		appoch_params.fx = _camera_gimbal->get_fx(); // 相机焦距，像素单位
+		appoch_params.dynamic_target_image_callback = [this]() -> Vector2f {
+			// return Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::CIRCLE),
+			// 				get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE));
+			return Vector2f(100,
+							100);
+		};
+		appoch_params.target_height = bucket_height; // 目标高度
+		appoch_params.task_type = AppochTargetTask::Type::PID;
+		AppochTargetTask->setParameters(appoch_params);
+		accept(AppochTargetTask);
+	}
 
 	calculate_target_position();
 
@@ -305,40 +297,52 @@ void APMROS2Drone::timer_callback(void)
 
 	auto do_shot_task = DoShotTask::createTask("Do_shot");
 	DoShotTask::Parameters doshot_params;
-	doshot_params.dynamic_target_position_callback = [this]() -> Vector4f {
-		Vector2d drone_to_shot_rotated; // 中间变量
-		rotate_local2world(0.0, 0.10, drone_to_shot_rotated.x(), drone_to_shot_rotated.y());
+	doshot_params.dynamic_target_position_callback = [this]() -> AppochTargetTask::PositionTarget {
+		// Vector2d drone_to_shot_rotated; // 中间变量
+		// rotate_local2world(0.0, 0.10, drone_to_shot_rotated.x(), drone_to_shot_rotated.y());
+		AppochTargetTask::PositionTarget pos_target;
 		if (!cal_center.empty()) {
-			return Vector4f(cal_center[this->shot_counter].point.x() + drone_to_shot_rotated.x(),
-							cal_center[this->shot_counter].point.y() + drone_to_shot_rotated.y(),
-							shot_halt_low, 0.0f);
+			pos_target.position.x() = cal_center[this->shot_counter].point.x();
+			pos_target.position.y() = cal_center[this->shot_counter].point.y();
+			pos_target.position.z() = shot_halt_low;
+			pos_target.radius = cal_center[this->shot_counter].diameters / 2.0f; // 目标半径为检测到的物体半径
+			pos_target.index = cal_center[this->shot_counter].cluster_id;
+			return pos_target;
 		} else {
-			return Vector4f::Zero(); // 如果没有目标，返回一个默认值
+			pos_target.position = Vector3f::Zero();
+			pos_target.radius = 0.0f;
+			pos_target.index = -1;
+			return pos_target;
 		}
         // return Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
 	};
 	
 	doshot_params.dynamic_target_image_callback = [this, do_shot_task]() -> Vector2f {
 		static int circle_counter = 0;
-		if (get_yolo_detector()->is_get_target(YOLO_TARGET_TYPE::CIRCLE) && 
-		   !get_yolo_detector()->is_get_target(YOLO_TARGET_TYPE::CIRCLE) ? circle_counter * get_wait_time() > 0.6 : false) {    // 优先找圆桶
-			circle_counter = 0;
-			return Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::CIRCLE),
-							get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE));
-		} else {
-			if (do_shot_task->is_shot()) {    // 如果已经投过弹了，继续找填充物
+		// 优先找圆桶
+		if (!get_yolo_detector()->is_get_target(YOLO_TARGET_TYPE::CIRCLE) && circle_counter * get_wait_time() <= 0.6) {
+			// 没检测到圆桶，计数器累加
+			circle_counter++;
+			return Vector2f::Zero();
+		} else if (!get_yolo_detector()->is_get_target(YOLO_TARGET_TYPE::CIRCLE)) {
+			// 如果已经投过弹了，继续找填充物
+			if (do_shot_task->is_shot()) {
 				return Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::STUFFED),
 								get_yolo_detector()->get_y(YOLO_TARGET_TYPE::STUFFED));
 			} else {
-				circle_counter++;
-				return Vector2f::Zero(); // 如果没有目标，返回一个默认值
+				// 没有目标，返回默认值
+				return Vector2f::Zero();
 			}
-		}
-		// return Vector2f(1.0f, 1.0f);
+		} else {
+			circle_counter = 0;
+			RCLCPP_INFO_THROTTLE(node->get_logger(), *node->get_clock(), 2000, "检测到圆桶目标，坐标: (%.1f, %.1f)", get_yolo_detector()->get_x(YOLO_TARGET_TYPE::CIRCLE), get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE));
+			return Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::CIRCLE),
+							get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE));
+		} 
 	};
 	doshot_params.device_index = 0;
 	doshot_params.target_height = bucket_height;
-	do_shot_task->setParameters(doshot_params);
+	do_shot_task->setParameters(doshot_params);    // 在首次execute任务前设置参数
 
 	SetPointTask::createTask("Goto_Scoutpoint")->set_config(
 		SetPointTask::Parameters{
@@ -415,6 +419,8 @@ void APMROS2Drone::timer_callback(void)
 				// 处理达到最大投弹次数的逻辑
 				current_state = scout;    // 完成投放，进入等待阶段
 			} else {
+				// 超时重复投弹
+				get_servo_controller()->set_servo(11 + shot_counter - 1, get_servo_controller()->get_servo_open_position()); // 设置舵机位置，投弹
 				do_shot_task->reset();    // 重置投弹任务
 				current_state = shot;     // 继续投放下一个
 			}
@@ -454,9 +460,7 @@ void APMROS2Drone::timer_callback(void)
 		// state_machine_.transitionTo("end");
 		current_state = end;
 		return;
-	}
-
-		
+	}	
 
 	terminal_control();
 	// 发布当前状态
@@ -534,11 +538,13 @@ void APMROS2Drone::FlyState_init()
 	// 重新设置家地址
 	if (get_status_controller()->get_system_status() != StatusController::State__system_status::MAV_STATE_ACTIVE && get_z_pos() < 0.5) {
 		get_status_controller()->set_home_position(get_yaw());
+	} else {
+		RCLCPP_WARN(node->get_logger(), "飞机已经起飞，无法重新设置家地址");
 	}
 	get_status_controller()->switch_mode("GUIDED");
 
-	// if (!debug_mode_)
-	reset_wp_limits();
+	if (!debug_mode_)
+		reset_wp_limits();
 }
 
 #ifdef PAL_STATISTIC_VISIBILITY
