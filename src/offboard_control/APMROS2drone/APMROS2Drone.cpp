@@ -135,6 +135,8 @@ APMROS2Drone::APMROS2Drone(const std::string& ardupilot_namespace,
 void APMROS2Drone::timer_callback(void)
 {
 	timer_callback_update();
+	calculate_target_position();
+
 	// accept(
 	// 	SetPointTask::createTask("setpoint0")->set_config(
 	// 		SetPointTask::Parameters{
@@ -216,16 +218,13 @@ void APMROS2Drone::timer_callback(void)
 		appoch_params.dynamic_target_image_callback = [this]() -> Vector2f {
 			// return Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::CIRCLE),
 			// 				get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE));
-			return Vector2f(100,
-							100);
+			return Vector2f(100, 100);
 		};
 		appoch_params.target_height = bucket_height; // 目标高度
 		appoch_params.task_type = AppochTargetTask::Type::PID;
 		AppochTargetTask->setParameters(appoch_params);
 		accept(AppochTargetTask);
 	}
-
-	calculate_target_position();
 
 	// 检查位置数据的有效性，防止段错误
 	if (!debug_mode_ && !print_info_) {
@@ -399,7 +398,7 @@ void APMROS2Drone::timer_callback(void)
 			}
 			break;
 		case shot:
-			doshot_params.device_index = shot_counter;
+			do_shot_task->set_device_index(shot_counter);     // 将doshot_appoch的目标设置为shot_counter，do_shot_task未使用（判断shot_counter和投弹时间解决未超时投弹的重复执行）
 			task_manager.addTask(WaitTask::createTask("Wait_70s")->set_config(70.0, false));
 			task_manager.addTask(do_shot_task->set_task_when_no_target(do_shot_waypoint_task));
 			task_manager.execute();
@@ -414,7 +413,8 @@ void APMROS2Drone::timer_callback(void)
 			// 投放阶段的逻辑
 			shot_counter++;
 			do_shot_waypoint_task->get_timer().reset();
-			do_shot_task->set_device_index(shot_counter);
+			// 问题： Doshot参数未持久化，在execute的init状态执行时更改参数，需在execute前设置参数
+			// doshot_params.device_index = shot_counter;
 			if (shot_counter >= 2) {
 				// 处理达到最大投弹次数的逻辑
 				current_state = scout;    // 完成投放，进入等待阶段
@@ -1427,6 +1427,14 @@ void APMROS2Drone::calculate_target_position()
 	// std::cout << "相机内参: fx=" << get_camera()->get_fx() << " fy=" << get_camera()->get_fy() << " cx=" << get_camera()->get_cx() << " cy=" << get_camera()->get_cy() << std::endl;
 
 	std::vector<vision_msgs::msg::BoundingBox2D> raw_circles = get_yolo_detector()->get_raw_targets(YOLO_TARGET_TYPE::CIRCLE);
+	if (debug_mode_) {
+		vision_msgs::msg::BoundingBox2D debug_circle;
+		debug_circle.center.position.x = 665;
+		debug_circle.center.position.y = 470;
+		debug_circle.size_x = 10;
+		debug_circle.size_y = 10;
+		raw_circles.push_back(debug_circle);
+	}
 	for (const auto& circle : raw_circles) 
 	{
 		// std::cout << "检测到的像素坐标: (" << circle.center.position.x << ", " << circle.center.position.y << ")" << std::endl;
@@ -1442,9 +1450,16 @@ void APMROS2Drone::calculate_target_position()
 			diameter = get_camera()->calculateRealDiameter(avg_size, distance_to_bucket);
 		}
 		if (target1.has_value()) {
-			RCLCPP_INFO_THROTTLE(get_node()->get_logger(), *get_node()->get_clock(), 1000, "(T 1s) Example 1 - Target position: %f, %f, %f. Diameter: %f",
+			// RCLCPP_INFO_THROTTLE(get_node()->get_logger(), *get_node()->get_clock(), 1000, "(T 1s) Example 1 - Target position: %f, %f, %f. Diameter: %f",
+			// 	target1->x(), target1->y(), target1->z(), diameter);
+			RCLCPP_INFO(get_node()->get_logger(), "Example 1 - Target position: %f, %f, %f. Diameter: %f",
 				target1->x(), target1->y(), target1->z(), diameter);
-			Target_Samples.push_back({*target1, 0, static_cast<size_t>(0), diameter});
+			Circles circle;
+			circle.point = Vector3d(target1->x(), target1->y(), target1->z());
+			circle.cluster_id = 0;
+			circle.original_index = 0;
+			circle.diameters = diameter;
+			Target_Samples.push_back(circle);
 		}
 		else {
 			RCLCPP_WARN(get_node()->get_logger(), "Example 1 - 无效的目标位置");
@@ -1485,7 +1500,11 @@ void APMROS2Drone::calculate_target_position()
 			if (tx < dx_shot - shot_length_max / 2 - 1.5 || tx > dx_shot + shot_length_max / 2 + 1.5 ||
 				ty < dy_shot - 1.5 || ty > dy_shot + shot_width_max + 1.5) {
 				// RCLCPP_WARN_THROTTLE(get_node()->get_logger(), *get_node()->get_clock(), 2000, "(T 2s)侦查点坐标异常，跳过: %zu, x: %f, y: %f, tx: %f, ty: %f", i, cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
-				RCLCPP_WARN(get_node()->get_logger(), "侦查点坐标异常，跳过: %zu, x: %f, y: %f, tx: %f, ty: %f", i, cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
+				// RCLCPP_WARN(get_node()->get_logger(), "侦查点坐标异常，跳过: %zu, x: %f, y: %f, tx: %f, ty: %f", i, cal_center[i].point.x(), cal_center[i].point.y(), tx, ty);
+				ss << "侦查点坐标异常，跳过: " << i << ", x: " << cal_center[i].point.x() 
+					<< ", y: " << cal_center[i].point.y() 
+					<< ", tx: " << tx 
+					<< ", ty: " << ty << "\n";
 				cal_center.erase(cal_center.begin() + i);
 				i--; // 调整索引以适应删除后的数组
 				continue;

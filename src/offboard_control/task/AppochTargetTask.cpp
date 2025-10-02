@@ -105,20 +105,22 @@ bool AppochTargetTask::run(DeviceType device) {
         }
         if (!getCurrentPositionTargets().position.isZero() &&
                 (parameters.task_type == Type::TARGET ||
-                 parameters.task_type == Type::AUTO && (
+                  (parameters.task_type == Type::AUTO && (
                     target_timer.elapsed() < 6 ||      // 至少稳定6秒
-                    target_timer.elapsed() < 12 && (
+                      (target_timer.elapsed() < 12 && (
                         abs(device->get_x_pos() - (getCurrentPositionTargets().position.x())) > max_target_position_accurate &&
                         abs(device->get_y_pos() - (getCurrentPositionTargets().position.y())) > max_target_position_accurate
+                        )
+                      )
                     )
-                 )
+                  )
                 )
             ) {
             current_type = Type::TARGET;
-            // 显示目标位置
+            // 显示目标位置在地面的投影
             TargetData temp_target = this->image_targets[0];
             Vector3f current_targets = getCurrentPositionTargets().position;
-            Vector3d world_target_point(current_targets.x(), current_targets.y(), current_targets.z());
+            Vector3d world_target_point(current_targets.x(), current_targets.y(), 0.0);
             auto shot_target_opt = device->get_camera()->worldToPixel(world_target_point);
             if (shot_target_opt.has_value()) {
                 Vector2d shot_center = shot_target_opt.value();
@@ -136,9 +138,9 @@ bool AppochTargetTask::run(DeviceType device) {
                 getCurrentPositionTargets().position.z(), ") with radius ", 
                 getCurrentPositionTargets().radius);
             float target_z = getCurrentPositionTargets().position.z() > 2 ? getCurrentPositionTargets().position.z() :
-                             getCurrentPositionTargets().position.z() < 1.8 && device->get_z_pos() > 2 ? 1.6 :
-                             getCurrentPositionTargets().position.z() < 1.5 && device->get_z_pos() > 1.7 ? 1.3 :
-                             getCurrentPositionTargets().position.z() < 1.2 && device->get_z_pos() > 1.3 ? 1.1 :
+                             getCurrentPositionTargets().position.z() < 1.8 && device->get_z_pos() > 2 ? 1.8 :
+                             getCurrentPositionTargets().position.z() < 1.5 && device->get_z_pos() > 1.7 ? 1.5 :
+                             getCurrentPositionTargets().position.z() < 1.2 && device->get_z_pos() > 1.3 ? 1.15 :
                              getCurrentPositionTargets().position.z();
             device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": target_z: ", target_z, ", device_z: ", device->get_z_pos(), ", target: ", getCurrentPositionTargets().position.transpose());
             if (is_equal(target_z, device->get_z_pos(), 0.10f)) {
@@ -150,7 +152,7 @@ bool AppochTargetTask::run(DeviceType device) {
                     getCurrentPositionTargets().position.x() + rotated_x,
                     getCurrentPositionTargets().position.y() + rotated_y,
                     target_z + device_position[parameters.device_index].z(), parameters.target_yaw); // 发送世界坐标系下的航点指令
-            if (is_equal(getCurrentPositionTargets().position.x() + rotated_x, device->get_x_pos(), radius)
+            if (parameters.task_type == Type::TARGET && is_equal(getCurrentPositionTargets().position.x() + rotated_x, device->get_x_pos(), radius)
                 && is_equal(getCurrentPositionTargets().position.y() + rotated_y, device->get_y_pos(), radius)
                 && is_equal(getCurrentPositionTargets().position.z() + device_position[parameters.device_index].z(), device->get_z_pos(), radius)) {
                 // device->log_info("Arrive, Doshot");
@@ -203,14 +205,14 @@ bool AppochTargetTask::run(DeviceType device) {
                     device->log_info(get_string(), ": 计算目标 ", i, "(", this->device_position[i].x(), ", ", this->device_position[i].y(), ") 在世界坐标系的位置: (", 
                         device->get_x_pos() + rotated_x, ", ",
                         device->get_y_pos() + rotated_y, ", ",
-                        parameters.target_height + this->device_position[i].z(), ")");
+                        parameters.target_height, ")");         // 目标为投弹位置到地面上目标的投影
                 }
                 Vector3d world_point_target(
                     device->get_x_pos() + rotated_x,
                     device->get_y_pos() + rotated_y,
-                    parameters.target_height + this->device_position[i].z()
+                    parameters.target_height
                     // -1.0
-                    // device->get_target_position().z() + this->device_position[i].z()
+                    // device->get_target_position().z()
                 );
                 // 获取读取的需要接近的相对飞机目标在地面上的映射像素坐标
                 auto output_pixel_opt = device->get_camera()->worldToPixel(world_point_target);
@@ -237,6 +239,7 @@ bool AppochTargetTask::run(DeviceType device) {
             
             TargetData current_target; // 当前投弹目标
             if(parameters.device_index < t2p_targets.size() && !t2p_targets.empty()){    // 使用计算出的图像上目标
+                std::cout << "使用计算出的图像上目标, parameters.device_index: " << parameters.device_index << ", t2p_targets.size(): " << t2p_targets.size() << std::endl;
                 current_target = t2p_targets[parameters.device_index];
                 t2p_targets.erase(t2p_targets.begin() + parameters.device_index); // 移除当前投弹目标，避免重复添加
             } else if (parameters.device_index < image_targets.size()) {     // 使用读取的对应目标
@@ -297,7 +300,8 @@ bool AppochTargetTask::run(DeviceType device) {
                 //	get_velocity_x(target) / max_frame, 	// 飞机速度
                 //	get_velocity_y(target) / max_frame  	// 飞机速度
             );
-            if (abs(now_x - tar_u) <= current_target.caculate_pixel_radius() && abs(now_y - tar_v) <= current_target.caculate_pixel_radius())
+            if ((abs(now_x - tar_u) <= current_target.caculate_pixel_radius() && abs(now_y - tar_v) <= current_target.caculate_pixel_radius()) ||
+                (abs(now_x - image_targets[parameters.device_index].x) <= current_target.caculate_pixel_radius() && abs(now_y - image_targets[parameters.device_index].y) <= current_target.caculate_pixel_radius()))  // 接近目标
             {
                 device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": Arrive at image target (", now_x, ", ", now_y, ") with radius ", current_target.caculate_pixel_radius());    // return true;
                 current_target.r = 0.0f; // 设置当前目标颜色为绿色

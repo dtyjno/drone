@@ -54,7 +54,7 @@ public:
         float target_yaw = 0.0f;                                // 目标偏航角
         float shot_duration = -1.0f; 					    // 等待读取，稳定持续时间
         float shot_wait = -1.0f; 				     		// 等待读取，投弹后稳定时间
-        AppochTargetTask::Type task_type = AppochTargetTask::Type::PID;  // 任务类型，AUTO自动选择PID或TARGET
+        AppochTargetTask::Type task_type = AppochTargetTask::Type::AUTO;  // 任务类型，AUTO自动选择PID或TARGET
     };
 
     bool is_shot() const {

@@ -110,6 +110,10 @@ public:
 
     // start
     Vector3d get_position() const override {
+        // std::cout << "eulerAnglesToRotationMatrixCameraToWorld()" << eulerAnglesToRotationMatrixCameraToWorld() << std::endl;
+        // std::cout << "camera_relative_position: " << camera_relative_position.transpose() << std::endl;
+        // std::cout << "parent_position: " << parent_position.transpose() << std::endl;
+        // std::cout << "camera_to_world: " << NED2ENU * eulerAnglesToRotationMatrixCameraToWorld() * ENU2NED * camera_relative_position + parent_position << std::endl;
         return NED2ENU * eulerAnglesToRotationMatrixCameraToWorld() * ENU2NED * camera_relative_position + parent_position;
     }
     // 像素坐标转换为归一化坐标（带畸变校正）
@@ -240,7 +244,10 @@ public:
         // 3. 检查点是否在相机前方
         if (cam_point.z() <= 0) {
             // 点在相机后方，无法投影
-            std::cout << "点在相机后方，无法投影" << cam_point.x() << ", " << cam_point.y() << ", " << cam_point.z() << std::endl;
+            std::cout << "点在相机后方，无法投影, cam_point: " << cam_point.transpose()
+                      << ", world_point: " << world_point.transpose()
+                      << ", get_position(): " << get_position().transpose()
+                      << ", R: " << R << std::endl;
             return std::nullopt;
         }
         
@@ -358,25 +365,22 @@ public:
         // }
         
         // 4. 复杂相机姿态的通用处理
-        Matrix3d R = eulerAnglesToRotationMatrixWorldToCamera();
-        
-        // 添加旋转矩阵调试输出
-        // std::cout << "旋转矩阵 R:" << std::endl;
-        // std::cout << R << std::endl;
+        Matrix3d R = eulerAnglesToRotationMatrixCameraToWorld();
         
         // 4. 创建归一化相机坐标系中的射线方向 (Z=1)
         Vector3d ray_cam(norm_point.x(), norm_point.y(), 1.0);
-        ray_cam = ESD2NED * ray_cam; // 转换到ENU坐标系
-        // std::cout << "ray_cam ENU" << std::endl;
+        ray_cam = ESD2NED * ray_cam; // 转换到NED坐标系
+        // std::cout << "ray_cam NED" << std::endl;
         // std::cout << ray_cam.transpose() << std::endl;  // 横向显示
         
         // 5. 转换到世界坐标系(ENU)
         // R 将相机坐标系中的方向向量转换到世界坐标系
         // 对于向下看的相机(-90度俯仰)，相机的Z轴应该指向世界的-Z方向
 
-        // std::cout << "R.transpose():" << std::endl;
-        // std::cout << R.transpose() << std::endl;  // 横向显示
-        Vector3d ray_world = NED2ENU * R.transpose() * ray_cam;
+        // 添加旋转矩阵调试输出
+        // std::cout << "旋转矩阵 R:" << std::endl;
+        // std::cout << R << std::endl;
+        Vector3d ray_world = NED2ENU * R * ray_cam;
         // std::cout << "ray_world ENU:" << std::endl;
         // std::cout << ray_world.transpose() << std::endl;  // 横向显示
         ray_world.normalize();
@@ -421,8 +425,16 @@ public:
         // 10. 计算最终的世界坐标
         Vector3d target_world = get_position() + s * ray_world;
         
+        // std::cout << "pixel_point: (" << pixel_point.x() << ", " << pixel_point.y() << ")" << std::endl;
+        // std::cout << "camera_position: (" << get_position().x() << ", " << get_position().y() << ", " << get_position().z() << ")" << std::endl;
+        // std::cout << "目标世界坐标: (" << target_world.x() << ", " << target_world.y() << ", " << target_world.z() << ")" << std::endl;
         // std::cout << "最终目标世界坐标: (" << target_world.x() << ", " << target_world.y() << ", " << target_world.z() << ")" << std::endl;
         
+        if (std::isnan(target_world.x()) || std::isnan(target_world.y()) || std::isnan(target_world.z()) || std::isinf(target_world.x()) || std::isinf(target_world.y()) || std::isinf(target_world.z())) {
+            // std::cerr << "错误: 计算结果包含NaN值" << std::endl;
+            return std::nullopt;
+        }
+
         return target_world;
     }
     

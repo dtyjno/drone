@@ -262,15 +262,15 @@ public:
 		try {
 			std::cout << "读取配置文件: " << filename << std::endl;
 
-			// headingangle_compass = config["headingangle_compass"].as<float>(180.0); // 默认罗盘角度
-			// headingangle_real = config["headingangle_real"].as<float>(headingangle_compass);
+			// headingangle_compass = config["headingangle_compass"].as<float>(180.0); // 默认罗盘角度 ENU
+			// // headingangle_real = config["headingangle_real"].as<float>(headingangle_compass);
 			// // 1. 航向角转换：指南针角度 → 数学标准角度（东为0°，逆时针）
 			// // default_yaw = fmod(90.0 - headingangle_compass + 720.0, 360.0); // 确保角度在0到360度之间
 			// default_yaw = fmod(headingangle_compass + 360.0, 360.0); // 确保角度在0到360度之间
+			// default_yaw = M_PI/2 - default_yaw * M_PI / 180.0; // 弧度制 NED
 			// RCLCPP_INFO(node->get_logger(), "读取罗盘角度: %f，默认旋转角：%f, 实际方向角：%f", headingangle_compass, default_yaw, headingangle_real);
 			// headingangle_compass = headingangle_compass * M_PI / 180.0; // 弧度制
-			// default_yaw = M_PI/2 - default_yaw * M_PI / 180.0; // 弧度制
-			// headingangle_real = headingangle_real * M_PI / 180.0; // 弧度制
+			// // headingangle_real = headingangle_real * M_PI / 180.0; // 弧度制
 			
 			dx_shot = config["dx_shot"].as<float>();
 			dy_shot = config["dy_shot"].as<float>();

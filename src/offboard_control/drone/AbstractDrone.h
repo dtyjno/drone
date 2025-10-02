@@ -50,7 +50,7 @@ public:
 	{
 		pos_ctl_->set_dt(get_wait_time()); // 设置控制器的时间间隔
         std::cout << "AbstractDrone: Starting Drone example and setting up controllers" << std::endl;
-        read_default_yaw_configs("Drone.yaml");
+        read_default_yaw_configs("OffboardControl.yaml");
     }
     
     // 初始化方法，用于在构造后设置控制器
@@ -82,7 +82,8 @@ public:
 		}
 		_camera_gimbal->set_parent_position(Vector3d(get_x_pos(), get_y_pos(), get_z_pos()));
 		_camera_gimbal->set_camera_relative_rotation(Vector3d(0, 0, 0)); // 相机相对飞机的旋转，roll=0, pitch=0 (垂直向下), yaw=0
-		_camera_gimbal->set_parent_rotation(Vector3d(roll, pitch, get_world_yaw() + headingangle_compass));
+		// std::cout << "ENU 0E->N yaw" << get_yaw() << "NED 0N->E world_yaw" << get_world_yaw() << "headingangle_compass: " << headingangle_compass << std::endl; // 默认飞机方向为正东 世界方向 yaw=0,world_yaw=90 ,北 yaw 90 world_yaw 0.0
+		_camera_gimbal->set_parent_rotation(Vector3d(roll, pitch, get_world_yaw()));
 		if (debug_mode_) {
 			std::cout << "相机位置: (" << _camera_gimbal->get_position().transpose() << ")" << std::endl;
 			std::cout << "相机旋转: (" << _camera_gimbal->get_parent_rotation().transpose() << ")" << std::endl;
@@ -443,7 +444,7 @@ public:
 		 // 读取配置文件
 		YAML::Node config = Readyaml::readYAML(filename);
 		try {
-			headingangle_compass = config["headingangle_compass"].as<float>(180.0); // 默认罗盘角度
+			headingangle_compass = config["headingangle_compass"].as<float>(180.0); // 默认罗盘角度 ENU
 			headingangle_real = config["headingangle_real"].as<float>(headingangle_compass);
 			// 1. 航向角转换：指南针角度 → 数学标准角度（东为0°，逆时针）
 			// default_yaw = fmod(90.0 - headingangle_compass + 720.0, 360.0); // 确保角度在0到360度之间
@@ -451,7 +452,7 @@ public:
 			if (!debug_mode_)
 				std::cout << "读取默认偏航角: " << default_yaw << "，默认旋转角：" << default_yaw << "，实际方向角：" << headingangle_real << std::endl;
 			headingangle_compass = headingangle_compass * M_PI / 180.0; // 弧度制
-			default_yaw = M_PI/2 - default_yaw * M_PI / 180.0; // 弧度制
+			default_yaw = M_PI/2 - default_yaw * M_PI / 180.0; // 弧度制 NED
 			headingangle_real = headingangle_real * M_PI / 180.0; // 弧度制
 			
 		} catch (const YAML::Exception &e) {

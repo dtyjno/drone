@@ -113,7 +113,7 @@ bool DoShotTask::run(DeviceType device) {
                         device->log_info("Doshot: Arrive, 再次投弹, wait, time = %fs", find_duration - shot_duration);
                         device->get_servo_controller()->set_servo(11 + parameters.device_index, device->get_servo_controller()->get_servo_open_position()); // 重复投弹
                     } else {
-                        device->log_info("Doshot: Arrive, 等待, wait, time = %fs", find_duration - shot_duration);
+                        device->log_info("Doshot: Arrive, 等待, wait, time = ", find_duration - shot_duration, "s");
                     }
                 }			
             }
