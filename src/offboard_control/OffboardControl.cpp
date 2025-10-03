@@ -75,7 +75,7 @@ void OffboardControl::timer_callback(void)
 	}
 
 	_camera_gimbal->camera_relative_rotation = Vector3d(0, 0, 0); // 相机相对飞机的旋转，roll=0, pitch=0 (垂直向下), yaw=0
-	_camera_gimbal->parent_rotation = Vector3d(-pitch, roll, get_world_yaw()); 
+	_camera_gimbal->parent_rotation = Vector3d(roll, -pitch, get_world_yaw()); 
 
 	// 测试目标可视化
 	if (debug_mode_) {
