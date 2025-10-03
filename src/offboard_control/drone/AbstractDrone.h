@@ -83,7 +83,7 @@ public:
 		_camera_gimbal->set_parent_position(Vector3d(get_x_pos(), get_y_pos(), get_z_pos()));
 		_camera_gimbal->set_camera_relative_rotation(Vector3d(0, 0, 0)); // 相机相对飞机的旋转，roll=0, pitch=0 (垂直向下), yaw=0
 		// std::cout << "ENU 0E->N yaw" << get_yaw() << "NED 0N->E world_yaw" << get_world_yaw() << "headingangle_compass: " << headingangle_compass << std::endl; // 默认飞机方向为正东 世界方向 yaw=0,world_yaw=90 ,北 yaw 90 world_yaw 0.0
-		_camera_gimbal->set_parent_rotation(Vector3d(pitch, roll, get_world_yaw()));
+		_camera_gimbal->set_parent_rotation(Vector3d(-pitch, roll, get_world_yaw()));
 		if (debug_mode_) {
 			std::cout << "相机位置: (" << _camera_gimbal->get_position().transpose() << ")" << std::endl;
 			std::cout << "相机旋转: (" << _camera_gimbal->get_parent_rotation().transpose() << ")" << std::endl;
