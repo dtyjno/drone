@@ -83,7 +83,7 @@ public:
 		_camera_gimbal->set_parent_position(Vector3d(get_x_pos(), get_y_pos(), get_z_pos()));
 		_camera_gimbal->set_camera_relative_rotation(Vector3d(0, 0, 0)); // 相机相对飞机的旋转，roll=0, pitch=0 (垂直向下), yaw=0
 		// std::cout << "ENU 0E->N yaw" << get_yaw() << "NED 0N->E world_yaw" << get_world_yaw() << "headingangle_compass: " << headingangle_compass << std::endl; // 默认飞机方向为正东 世界方向 yaw=0,world_yaw=90 ,北 yaw 90 world_yaw 0.0
-		_camera_gimbal->set_parent_rotation(Vector3d(roll, pitch, get_world_yaw()));
+		_camera_gimbal->set_parent_rotation(Vector3d(pitch, roll, get_world_yaw()));
 		if (debug_mode_) {
 			std::cout << "相机位置: (" << _camera_gimbal->get_position().transpose() << ")" << std::endl;
 			std::cout << "相机旋转: (" << _camera_gimbal->get_parent_rotation().transpose() << ")" << std::endl;
@@ -241,6 +241,9 @@ public:
 	float get_default_yaw() {
 		return default_yaw;
 	}
+	float get_default_world_yaw() {
+		return headingangle_compass;
+	}
 
     // GPS相关接口
     Vector3f get_gps(void){
@@ -321,15 +324,14 @@ public:
 
 	template <typename T>
 	void rotate_world2start(T in_x, T in_y, T &out_x, T &out_y) {
-		rotate_angle(in_x, in_y, start.w());
+		rotate_angle(in_x, in_y, -start.w());
 		out_x = in_x;
 		out_y = in_y;
 	}
 	
 	template <typename T>
 	void rotate_world2local(T in_x, T in_y, T &out_x, T &out_y) {
-		// std::cout << "rotate_2local yaw: " << - (M_PI_2 - get_yaw()) << std::endl;
-		rotate_angle(in_x, in_y, get_world_yaw()); // 使用 get_world_yaw() 获取世界坐标系下的偏航角
+		rotate_angle(in_x, in_y, -get_world_yaw()); // 使用 get_world_yaw() 获取世界坐标系下的偏航角
 		out_x = in_x;
 		out_y = in_y;
 	}
@@ -337,7 +339,7 @@ public:
 	template <typename T>
 	void rotate_local2world(T in_x, T in_y, T &out_x, T &out_y) {
 		// std::cout << "rotate_2world yaw: " << get_world_yaw() << std::endl;
-		rotate_angle(in_x, in_y, -get_world_yaw()); // 使用 get_world_yaw() 获取世界坐标系下的偏航角
+		rotate_angle(in_x, in_y, get_world_yaw()); // 使用 get_world_yaw() 获取世界坐标系下的偏航角
 		out_x = in_x;
 		out_y = in_y;
 	}

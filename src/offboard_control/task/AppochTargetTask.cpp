@@ -147,7 +147,7 @@ bool AppochTargetTask::run(DeviceType device) {
                 target_z = getCurrentPositionTargets().position.z();
             }
             float rotated_x, rotated_y;  // 声明待旋转目标坐标
-            device->rotate_local2world(this->device_position[parameters.device_index].x(), this->device_position[parameters.device_index].y(), rotated_x, rotated_y);
+            device->rotate_world2local(this->device_position[parameters.device_index].x(), this->device_position[parameters.device_index].y(), rotated_x, rotated_y);
             device->send_world_setpoint_command(
                     getCurrentPositionTargets().position.x() + rotated_x,
                     getCurrentPositionTargets().position.y() + rotated_y,
@@ -200,7 +200,7 @@ bool AppochTargetTask::run(DeviceType device) {
             {
                 TargetData t2p_target = image_targets[0];
                 float rotated_x, rotated_y;  // 声明待旋转目标坐标
-                device->rotate_local2world(this->device_position[i].x(), this->device_position[i].y(), rotated_x, rotated_y);
+                device->rotate_world2local(this->device_position[i].x(), this->device_position[i].y(), rotated_x, rotated_y);
                 if (device->debug_mode_) {
                     device->log_info(get_string(), ": 计算目标 ", i, "(", this->device_position[i].x(), ", ", this->device_position[i].y(), ") 在世界坐标系的位置: (", 
                         device->get_x_pos() + rotated_x, ", ",
@@ -225,7 +225,7 @@ bool AppochTargetTask::run(DeviceType device) {
                         t2p_target.radius = getCurrentPositionTargets().radius * accuracy; // 设置目标半径为像素半径的百分比
                         t2p_targets.push_back(t2p_target);
                     } else { // 发布所有的目标
-                        std::cout << "计算目标 " << i << " 在图像上的位置: (" << t2p_target.x << ", " << t2p_target.y << ")" << std::endl;
+                        // std::cout << "计算目标 " << i << " 在图像上的位置: (" << t2p_target.x << ", " << t2p_target.y << ")" << std::endl;
                         t2p_target.radius = 0.15 / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
                         t2p_targets.push_back(t2p_target);
                         t2p_target.radius = 0.20 / 2.0f * accuracy; // 设置目标半径为像素半径的百分比
@@ -239,7 +239,7 @@ bool AppochTargetTask::run(DeviceType device) {
             
             TargetData current_target; // 当前投弹目标
             if(parameters.device_index < t2p_targets.size() && !t2p_targets.empty()){    // 使用计算出的图像上目标
-                std::cout << "使用计算出的图像上目标, parameters.device_index: " << parameters.device_index << ", t2p_targets.size(): " << t2p_targets.size() << std::endl;
+                // std::cout << "使用计算出的图像上目标, parameters.device_index: " << parameters.device_index << ", t2p_targets.size(): " << t2p_targets.size() << std::endl;
                 current_target = t2p_targets[parameters.device_index];
                 t2p_targets.erase(t2p_targets.begin() + parameters.device_index); // 移除当前投弹目标，避免重复添加
             } else if (parameters.device_index < image_targets.size()) {     // 使用读取的对应目标
@@ -292,7 +292,7 @@ bool AppochTargetTask::run(DeviceType device) {
                 current_target.z);
             device->get_position_controller()->trajectory_setpoint_world(
                 Vector4f{tar_u / max_frame, tar_v / max_frame, static_cast<float>(device->get_z_pos()), static_cast<float>(device->get_world_yaw())}, // 当前坐标        get_world_yaw()  // 当前坐标
-                Vector4f{now_x / max_frame, now_y / max_frame, current_target.z, parameters.target_yaw}, // 目标坐标  parameters.target_yaw
+                Vector4f{now_x / max_frame, now_y / max_frame, current_target.z, parameters.target_yaw + device->get_default_world_yaw()}, // 目标坐标  parameters.target_yaw
                 pid_defaults,
                 0.0,               				// 精度
                 0.0 			 				// 偏航精度

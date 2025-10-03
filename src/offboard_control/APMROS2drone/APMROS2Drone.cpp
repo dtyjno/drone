@@ -249,9 +249,12 @@ void APMROS2Drone::timer_callback(void)
 	}
 
 	// state_machine_.executeAllStates();
-
-	accept(PrintInfoTask::createTask()->set_print_time(5));
-
+	if (print_info_) {
+		accept(PrintInfoTask::createTask()->set_print_time(10000));
+		return;
+	} else {
+		accept(PrintInfoTask::createTask()->set_print_time(3));
+	}
 	TaskManager<APMROS2Drone> task_manager(shared_from_this());
 
 	SetPointTask::createTask("Goto_shotpoint")->set_config(
@@ -261,7 +264,7 @@ void APMROS2Drone::timer_callback(void)
 			shot_halt,    // target_z
 			0.0f,  // target_yaw
 			12.0f,    // point_time (到达点位的最长等待时间)
-			0.2f     // accuracy (点位到达精度)
+			0.10f     // accuracy (点位到达精度)
 		}
 	);
 
@@ -301,16 +304,17 @@ void APMROS2Drone::timer_callback(void)
 		// rotate_local2world(0.0, 0.10, drone_to_shot_rotated.x(), drone_to_shot_rotated.y());
 		AppochTargetTask::PositionTarget pos_target;
 		if (!cal_center.empty()) {
-			pos_target.position.x() = cal_center[this->shot_counter].point.x();
-			pos_target.position.y() = cal_center[this->shot_counter].point.y();
+			pos_target.position.x() = cal_center[0].point.x();
+			pos_target.position.y() = cal_center[0].point.y();
 			pos_target.position.z() = shot_halt_low;
-			pos_target.radius = cal_center[this->shot_counter].diameters / 2.0f; // 目标半径为检测到的物体半径
-			pos_target.index = cal_center[this->shot_counter].cluster_id;
+			pos_target.radius = cal_center[0].diameters / 2.0f; // 目标半径为检测到的物体半径
+			pos_target.index = cal_center[0].cluster_id;
 			return pos_target;
 		} else {
 			pos_target.position = Vector3f::Zero();
 			pos_target.radius = 0.0f;
 			pos_target.index = -1;
+
 			return pos_target;
 		}
         // return Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
@@ -426,7 +430,7 @@ void APMROS2Drone::timer_callback(void)
 			}
 			break;
 		case scout:
-			accept(SetPointTask::getTask("Goto_Scoutpoint")->next_task(do_scout_waypoint_task));
+			accept(WaitTask::createTask("Wait_3s_shot")->set_config(3.0, true)->next_task(SetPointTask::getTask("Goto_Scoutpoint")->next_task(do_scout_waypoint_task)));
 			if (do_scout_waypoint_task->is_execute_finished()) {
 				current_state = land; // 返回搜索阶段
 			}
@@ -1452,8 +1456,8 @@ void APMROS2Drone::calculate_target_position()
 		if (target1.has_value()) {
 			// RCLCPP_INFO_THROTTLE(get_node()->get_logger(), *get_node()->get_clock(), 1000, "(T 1s) Example 1 - Target position: %f, %f, %f. Diameter: %f",
 			// 	target1->x(), target1->y(), target1->z(), diameter);
-			RCLCPP_INFO(get_node()->get_logger(), "Example 1 - Target position: %f, %f, %f. Diameter: %f",
-				target1->x(), target1->y(), target1->z(), diameter);
+			// RCLCPP_INFO(get_node()->get_logger(), "Example 1 - Target position: %f, %f, %f. Diameter: %f",
+			// 	target1->x(), target1->y(), target1->z(), diameter);
 			Circles circle;
 			circle.point = Vector3d(target1->x(), target1->y(), target1->z());
 			circle.cluster_id = 0;
@@ -1493,6 +1497,22 @@ void APMROS2Drone::calculate_target_position()
 		uint8_t shot_count = 0;
 		std::stringstream ss;
 		ss << "(T 2s) \n";
+		for (size_t i = 0; i < shoted_cluster_ids.size(); i++) {
+			size_t index = static_cast<size_t>(-1);
+			for (size_t j = 0; j < cal_center.size(); j++) {
+				if (static_cast<size_t>(cal_center[j].cluster_id) == shoted_cluster_ids[i]) {
+					index = j;
+					break;
+				}
+			}
+			if (index == static_cast<size_t>(-1)) {
+				RCLCPP_WARN(get_node()->get_logger(), "侦查目标已投弹，但在当前目标列表中未找到对应的cluster_id: %ld", shoted_cluster_ids[i]);
+				continue;
+			}
+			ss << "侦查目标已投弹: " << i << ", x: " << cal_center[index].point.x() 
+				<< ", y: " << cal_center[index].point.y() << "\n";
+			// cal_center.erase(cal_center.begin() + index);  // 不去除，保留已投弹目标
+		}
 		for(size_t i = 0; i < cal_center.size(); ++i)
 		{
 			double tx, ty;
@@ -1506,7 +1526,7 @@ void APMROS2Drone::calculate_target_position()
 					<< ", tx: " << tx 
 					<< ", ty: " << ty << "\n";
 				cal_center.erase(cal_center.begin() + i);
-				i--; // 调整索引以适应删除后的数组
+				i--;    // 调整索引以适应删除后的数组
 				continue;
 			}
 			// 从大到小排列
@@ -1519,8 +1539,8 @@ void APMROS2Drone::calculate_target_position()
 				<< ", y: " << cal_center[i].point.y() 
 				<< ", n_x: " << surround_shot_points[shot_count].x() 
 				<< ", n_y: " << surround_shot_points[shot_count].y() 
-				<< ", d: " << cal_center[i].diameters << "\n";
+				<< ", d: " << cal_center[i].diameters << ", cluster_id: " << cal_center[i].cluster_id << "\n";
 		}
-		RCLCPP_INFO_THROTTLE(get_node()->get_logger(), *get_node()->get_clock(), 2000, "(T 2s) %s", ss.str().c_str());
+		RCLCPP_INFO_THROTTLE(get_node()->get_logger(), *get_node()->get_clock(), 2000, "%s", ss.str().c_str());
 	}
 }

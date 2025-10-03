@@ -101,6 +101,7 @@ public:
 
 	// shot
 	int shot_counter = 0;
+	vector<size_t> shoted_cluster_ids; // 已投弹的目标索引
 
 
 

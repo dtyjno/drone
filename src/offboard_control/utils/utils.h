@@ -50,7 +50,7 @@ inline char _getch() {
     return ch;
 }
 
-// 顺时针旋转 2D 坐标点 (x, y) 以原点为中心，旋转角度为 angle（弧度制）
+// 逆时针旋转 2D 坐标点 (x, y) 以原点为中心，旋转角度为 angle（弧度制）
 template <typename T>
 void rotate_angle(T &x,T &y, float angle) {
   const T cs = std::cos(angle);
