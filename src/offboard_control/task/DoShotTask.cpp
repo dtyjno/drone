@@ -104,7 +104,7 @@ bool DoShotTask::run(DeviceType device) {
                     device->log_info("Doshot: Approach, 投弹, time > ", shot_duration, "s");
                     if constexpr (std::is_same_v<DeviceType, std::shared_ptr<APMROS2Drone>>) {
                         device->shoted_cluster_ids.push_back(parameters.dynamic_target_position_callback().index);
-                    }   
+                    }
                     shot_flag = true; // 设置投弹标志
                     device->get_servo_controller()->set_servo(11 + parameters.device_index, device->get_servo_controller()->get_servo_open_position()); // 设置舵机位置，投弹
                 } 

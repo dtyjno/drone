@@ -299,16 +299,16 @@ void APMROS2Drone::timer_callback(void)
 
 	auto do_shot_task = DoShotTask::createTask("Do_shot");
 	DoShotTask::Parameters doshot_params;
-	doshot_params.dynamic_target_position_callback = [this]() -> AppochTargetTask::PositionTarget {
+	doshot_params.dynamic_target_position_callback = [this, do_shot_task]() -> AppochTargetTask::PositionTarget {
 		// Vector2d drone_to_shot_rotated; // 中间变量
 		// rotate_local2world(0.0, 0.10, drone_to_shot_rotated.x(), drone_to_shot_rotated.y());
 		AppochTargetTask::PositionTarget pos_target;
-		if (!cal_center.empty()) {
-			pos_target.position.x() = cal_center[0].point.x();
-			pos_target.position.y() = cal_center[0].point.y();
+		if (!cal_center.empty() && do_shot_task->get_appochtarget_task()->get_auto_target_position_index() < cal_center.size()) {    // 确保索引在范围内
+			pos_target.position.x() = cal_center[do_shot_task->get_appochtarget_task()->get_auto_target_position_index()].point.x();
+			pos_target.position.y() = cal_center[do_shot_task->get_appochtarget_task()->get_auto_target_position_index()].point.y();
 			pos_target.position.z() = shot_halt_low;
-			pos_target.radius = cal_center[0].diameters / 2.0f; // 目标半径为检测到的物体半径
-			pos_target.index = cal_center[0].cluster_id;
+			pos_target.radius = cal_center[do_shot_task->get_appochtarget_task()->get_auto_target_position_index()].diameters / 2.0f;    // 目标半径为检测到的物体半径
+			pos_target.index = cal_center[do_shot_task->get_appochtarget_task()->get_auto_target_position_index()].cluster_id;
 			return pos_target;
 		} else {
 			pos_target.position = Vector3f::Zero();
@@ -343,7 +343,7 @@ void APMROS2Drone::timer_callback(void)
 							get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE));
 		} 
 	};
-	doshot_params.device_index = 0;
+	doshot_params.device_index = shot_counter;     // 投弹计数
 	doshot_params.target_height = bucket_height;
 	do_shot_task->setParameters(doshot_params);    // 在首次execute任务前设置参数
 
@@ -402,7 +402,7 @@ void APMROS2Drone::timer_callback(void)
 			}
 			break;
 		case shot:
-			do_shot_task->set_device_index(shot_counter);     // 将doshot_appoch的目标设置为shot_counter，do_shot_task未使用（判断shot_counter和投弹时间解决未超时投弹的重复执行）
+			// do_shot_task->set_device_index(shot_counter);     // 将doshot_appoch的目标设置为shot_counter，do_shot_task未使用（判断shot_counter和投弹时间解决未超时投弹的重复执行）
 			task_manager.addTask(WaitTask::createTask("Wait_70s")->set_config(70.0, false));
 			task_manager.addTask(do_shot_task->set_task_when_no_target(do_shot_waypoint_task));
 			task_manager.execute();
@@ -421,6 +421,7 @@ void APMROS2Drone::timer_callback(void)
 			// doshot_params.device_index = shot_counter;
 			if (shot_counter >= 2) {
 				// 处理达到最大投弹次数的逻辑
+				get_servo_controller()->set_servo(11 + shot_counter - 1, get_servo_controller()->get_servo_open_position()); // 设置舵机位置，投弹
 				current_state = scout;    // 完成投放，进入等待阶段
 			} else {
 				// 超时重复投弹

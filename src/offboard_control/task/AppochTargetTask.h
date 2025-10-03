@@ -68,6 +68,10 @@ public:
     float max_target_position_accurate = 0.1f;  // 设置最大允许误差
     size_t pre_position_target_index = -1;  // 上一次的位置目标
     // Vector4f pre_position_targets = Vector4f::Zero(); // 上一次的位置目标
+	int auto_target_position_index = 0;     // 目标位置索引
+    int get_auto_target_position_index() const {
+        return auto_target_position_index;
+    }
 
 private:
     AppochTargetTask(std::string name) : 

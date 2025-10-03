@@ -100,10 +100,9 @@ public:
 	}
 
 	// shot
-	int shot_counter = 0;
+	// int target_position_index = 0;     // 目标位置索引
+	int shot_counter = 0;              // 投弹计数
 	vector<size_t> shoted_cluster_ids; // 已投弹的目标索引
-
-
 
     // // 日志接口
     //  int save_log(bool finish = false) = 0;

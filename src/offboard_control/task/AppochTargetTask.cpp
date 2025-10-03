@@ -165,6 +165,9 @@ bool AppochTargetTask::run(DeviceType device) {
 
         // PID
         if (!getCurrentImageTargets().isZero() && (parameters.task_type == Type::PID || parameters.task_type == Type::AUTO)) {
+            if (parameters.task_type == Type::AUTO && current_type == Type::TARGET) {
+                auto_target_position_index++;
+            }
             current_type = Type::PID;
             max_target_position_accurate = 5.0f; // PID模式下，允许更大的误差
             device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": Approaching image target ", parameters.device_index, " at (",

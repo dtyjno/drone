@@ -97,6 +97,7 @@ public:
             {
                 if (impl().init(device))
                 {
+                    timer_.reset();
                     task_result = false;
                     task_state_ = TaskState::running;
                     continue;
