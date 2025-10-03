@@ -52,7 +52,7 @@ public:
     const Matrix3d ENU2ESD = ESD2ENU.transpose();
 
     Vector3d get_position() const {
-        return camera_relative_position + parent_position;
+        return NED2ENU * eulerAnglesToRotationMatrixCameraToWorld() * ENU2NED * camera_relative_position + parent_position;
     }
     // Vector3d get_rotation() const {
     //     return camera_relative_rotation;
@@ -144,29 +144,29 @@ public:
         // 相机旋转矩阵 (Z-Y-X顺序: yaw->pitch->roll)
         Matrix3d R_roll_c; // X轴
         R_roll_c << 1, 0, 0,
-                    0, cos(roll_c), -sin(roll_c),
-                    0, sin(roll_c), cos(roll_c);
+                    0, cos(roll_c), sin(roll_c),
+                    0, -sin(roll_c), cos(roll_c);
         
         Matrix3d R_pitch_c; // Y轴
-        R_pitch_c << cos(pitch_c), 0, sin(pitch_c),
+        R_pitch_c << cos(pitch_c), 0, -sin(pitch_c),
                     0, 1, 0,
-                    -sin(pitch_c), 0, cos(pitch_c);
+                    sin(pitch_c), 0, cos(pitch_c);
         
         Matrix3d R_yaw_c; // Z轴
-        R_yaw_c << cos(yaw_c), -sin(yaw_c), 0,
-                sin(yaw_c), cos(yaw_c), 0,
+        R_yaw_c << cos(yaw_c), sin(yaw_c), 0,
+                -sin(yaw_c), cos(yaw_c), 0,
                 0, 0, 1;
         
         // 父级旋转矩阵 (同样Z-Y-X顺序)
         Matrix3d R_roll_p; // X轴
         R_roll_p << 1, 0, 0,
-                    0, cos(roll_p), -sin(roll_p),
-                    0, sin(roll_p), cos(roll_p);
+                    0, cos(roll_p), sin(roll_p),
+                    0, -sin(roll_p), cos(roll_p);
         
         Matrix3d R_pitch_p; // Y轴
-        R_pitch_p << cos(pitch_p), 0, sin(pitch_p),
+        R_pitch_p << cos(pitch_p), 0, -sin(pitch_p),
                     0, 1, 0,
-                    -sin(pitch_p), 0, cos(pitch_p);
+                    sin(pitch_p), 0, cos(pitch_p);
         
         Matrix3d R_yaw_p; // Z轴
         R_yaw_p << cos(yaw_p), sin(yaw_p), 0,
@@ -194,6 +194,10 @@ public:
         return R_total;
     }
 
+    Matrix3d eulerAnglesToRotationMatrixCameraToWorld() const {
+        return eulerAnglesToRotationMatrixWorldToCamera().transpose();
+    }
+ 
     // 世界坐标转换为像素坐标
     std::optional<Vector2d> worldToPixel(const Vector3d& world_point) const {
         // 1. 世界坐标转换为相机坐标
