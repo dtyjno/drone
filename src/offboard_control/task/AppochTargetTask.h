@@ -91,12 +91,14 @@ private:
     // 任务执行
 	float accuracy = 0.1;						    // 声明读取的准确度
     PID::Defaults pid_defaults;                     // 声明读取的默认PID参数
+    PID::Defaults pos_pid_defaults;                     // 声明读取的默认PID参数
     std::vector<Vector3f> device_position;          // 声明读取的设备需要接近目标的位置
     std::vector<YOLO_TARGET_TYPE> targets; 		// 声明读取的映射失败时目标u和v坐标
     std::vector<TargetData> image_targets;    // 声明读取的映射失败时目标u和v坐标
     float radius = 0.1; 						    // 声明读取的映射失败时使用的像素精度
     Parameters parameters;
     bool pid_end_use_next_target_index = false;                          // 投弹标志
+    bool use_pos_pid = true;                                            // 使用位置PID控制
 public:
     void reset() {
         Task<AppochTargetTask>::reset();

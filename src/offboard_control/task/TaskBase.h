@@ -46,10 +46,10 @@ public:
         if (next_task) {
             next_task->set_next_task(_sub_task);
             next_task->set_first_task(_first_task ? _first_task : shared_from_this());
-            _sub_task = next_task;
-            // next_task->reset();
+            set_next_task(next_task);
             return next_task;
         } else {
+            std::cerr << "Warning: next_task is null for " << get_name() << std::endl; 
             return shared_from_this();
         }
     }

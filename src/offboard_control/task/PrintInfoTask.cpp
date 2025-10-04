@@ -7,9 +7,9 @@ std::shared_ptr<PrintInfoTask> PrintInfoTask::createTask(const std::string& task
         PrintInfoTask *new_task = new PrintInfoTask(task_name);
         TASKS[task_name] = std::shared_ptr<PrintInfoTask>(new_task);
         std::cout << "Creating " << TASKS[task_name]->get_name() << " instance." << std::endl;
+        TASKS[task_name]->next_task(TASKS[task_name]);
     }
     // std::cout << "Creating next task link for " << TASKS[task_name]->get_name() << std::endl;
-    TASKS[task_name]->next_task(TASKS[task_name]);
     return TASKS[task_name];
 }
 

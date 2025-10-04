@@ -8,8 +8,8 @@ std::shared_ptr<SetPointTask> SetPointTask::createTask(const std::string& task_n
         SetPointTask *new_task = new SetPointTask(task_name);
         TASKS[task_name] = std::shared_ptr<SetPointTask>(new_task);
         std::cout << "Creating " << TASKS[task_name]->get_name() << " instance." << std::endl;
+        TASKS[task_name]->next_task(TASKS[task_name]);
     }
-    TASKS[task_name]->next_task(TASKS[task_name]);
     return TASKS[task_name];
 }
 

@@ -7,8 +7,8 @@ std::shared_ptr<AppochTargetTask> AppochTargetTask::createTask(const std::string
     if (TASKS.find(task_name) == TASKS.end()) {
         TASKS[task_name] = std::shared_ptr<AppochTargetTask>(new AppochTargetTask(task_name));
         std::cout << "Creating " << TASKS[task_name]->get_name() << " instance." << std::endl;
+        TASKS[task_name]->next_task(TASKS[task_name]);
     }
-    TASKS[task_name]->next_task(TASKS[task_name]);
     return TASKS[task_name];
 }
 
@@ -32,6 +32,7 @@ bool AppochTargetTask::init(DeviceType device) {
     } else {
         device->get_position_controller()->reset_pid();
         pid_defaults = PID::readPIDParameters(parameters.config_file_name, "pid");
+        pos_pid_defaults = PID::readPIDParameters(parameters.config_file_name, "pos_pid");
         PosController::Limits_t limits = device->get_position_controller()->readLimits(parameters.config_file_name, "limits");
         device->get_position_controller()->set_limits(limits);
         // 读取距离目标一定范围内退出的距离
@@ -80,6 +81,7 @@ bool AppochTargetTask::init(DeviceType device) {
             device->log_info(get_string(), ": tar_x: ", target.x, ", tar_y: ", target.y,", tar_z: ", target.z);
             this->image_targets.push_back(target);
         }
+        target_timer.reset();          // 重置计时器
         device->log_info(get_string(), ": cap_frame_width: ", device->get_yolo_detector()->get_cap_frame_width(), ", cap_frame_height: ", device->get_yolo_detector()->get_cap_frame_height(), ", radius: ", radius, ", accuracy: ", accuracy);
 
         return true;
@@ -274,62 +276,108 @@ bool AppochTargetTask::run(DeviceType device) {
             current_target.g = 1.0f; 
             current_target.b = 0.0f;
 
-
-            // PID发布速度接近目标点, 输入目标像素坐标，返回是否到达目标点
-
-            // RCLCPP_INFO(device->get_node()->get_logger(), "--------------------\n\n读取pid参数: p: %f, i: %f, d: %f, ff: %f, dff: %f, imax: %f", defaults.p, defaults.i, defaults.d, defaults.ff, defaults.dff, defaults.imax);d_max_xy: %f, speed_max_z: %f, accel_max_x: %f, accel_max_z: %f", limits.speed_max_xy, limits.speed_max_z, limits.accel_max_xy, limits.accel_max_z);
-            // 检查YOLO帧尺寸是否有效
-            // if (get_cap_frame_width() <= 0 || get_cap_frame_height() <= 0) {
-            //     RCLCPP_ERROR(device->get_node()->get_logger(), "Invalid YOLO frame dimensions: width=%d, height=%d", 
-            //                  get_cap_frame_width(), get_cap_frame_height());
-            //     return false;
-            // }
             // yolo返回值坐标系：x右y下（x_flip|y_flip = false），转换为飞机坐标系：x右y上
             float now_x = getCurrentImageTargets().x();    // get_cap_frame_width() - get_x(target);
             float now_y = device->get_yolo_detector()->get_cap_frame_height() - getCurrentImageTargets().y();    // get_y(target);
             float tar_u = current_target.x;    // get_cap_frame_width() - current_target.x; // 目标x坐标
             float tar_v = device->get_yolo_detector()->get_cap_frame_height() - current_target.y;    // tar_y; // 目标y坐标
-            // 检查坐标是否有效
-            // if (!std::isfinite(now_x) || !std::isfinite(now_y) || !std::isfinite(current_target.x) || !std::isfinite(tar_y)) {
-            //     RCLCPP_ERROR(device->get_node()->get_logger(), "Invalid coordinates detected");
-            //     return false;
-            // }
-            rotate_xy(now_x, now_y, -device->get_world_yaw()); // 将目标坐标旋转到世界坐标系 headingangle_compass
-            rotate_xy(tar_u, tar_v, -device->get_world_yaw()); // 将目标坐标旋转到世界坐标系 headingangle_compass
-            float max_frame = std::max(device->get_yolo_detector()->get_cap_frame_width(), device->get_yolo_detector()->get_cap_frame_height());
-            // RCLCPP_INFO(device->get_node()->get_logger(), "catch_target_bucket: yaw: %f, default_yaw: %f, headingangle_compass: %f", get_yaw(), default_yaw, headingangle_compass);
-            // RCLCPP_INFO(device->get_node()->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_u: %f, tar_y: %f", now_x, now_y, tar_u, tar_y);
-            // RCLCPP_INFO(device->get_node()->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_u: %f, tar_y: %f", now_x / get_cap_frame_width(), now_y / get_cap_frame_height(), (tar_u) / get_cap_frame_width(), (tar_y) / get_cap_frame_height());
-            // RCLCPP_INFO(device->get_node()->get_logger(), "catch_target_bucket: now_z: %f, current_target.z: %f, now_yaw: %f, parameters.target_yaw: %f", get_z_pos(), current_target.z, get_yaw(), parameters.target_yaw);
-            // RCLCPP_INFO(device->get_node()->get_logger(), "catch_target: current_target.caculate_pixel_radius(): %f, max_frame: %f", current_target.caculate_pixel_radius(), max_frame);
-
-            // bool trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target, PID::Defaults defaults, double current_target.caculate_pixel_radius(), double yaw_current_target.caculate_pixel_radius(), bool calculate_or_get_vel, float vel_x = DEFAULT_VELOCITY, float vel_y = DEFAULT_VELOCITY);
-            device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": now_x: ",
-                now_x, ", now_y: ",
-                now_y, ", target_x: ",
-                tar_u, ", target_y: ",
-                tar_v, ", target_z: ",
-                current_target.z);
-            device->get_position_controller()->trajectory_setpoint_world(
-                Vector4f{tar_u / max_frame, tar_v / max_frame, static_cast<float>(device->get_z_pos()), static_cast<float>(device->get_world_yaw())}, // 当前坐标        get_world_yaw()  // 当前坐标
-                Vector4f{now_x / max_frame, now_y / max_frame, current_target.z, parameters.target_yaw + device->get_default_world_yaw()}, // 目标坐标  parameters.target_yaw
-                pid_defaults,
-                0.0,               				// 精度
-                0.0 			 				// 偏航精度
-                // true             				// 是否不使用飞机速度计算
-                //	get_velocity_x(target) / max_frame, 	// 飞机速度
-                //	get_velocity_y(target) / max_frame  	// 飞机速度
+    //
+            std::optional<Vector3d> image_target_position = device->get_camera()->pixelToWorldPosition(
+                Vector2d(getCurrentImageTargets().x(), getCurrentImageTargets().y()),    // 图像上的目标像素坐标
+                0.3     // 桶顶高度
             );
-            if ((abs(now_x - tar_u) <= current_target.caculate_pixel_radius() && abs(now_y - tar_v) <= current_target.caculate_pixel_radius()) ||
-                (abs(now_x - image_targets[parameters.device_index].x) <= current_target.caculate_pixel_radius() && abs(now_y - image_targets[parameters.device_index].y) <= current_target.caculate_pixel_radius()))  // 接近目标
-            {
-                device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": Arrive at image target (", now_x, ", ", now_y, ") with radius ", current_target.caculate_pixel_radius());    // return true;
-                current_target.r = 0.0f; // 设置当前目标颜色为绿色
-                current_target.g = 1.0f;
-                current_target.b = 0.0f;
-                task_result = true; // 设置任务结果为成功   
+            if (image_target_position.has_value() && use_pos_pid) {
+                // device->log_info("Pixel to world position: (", image_target_position->x(), ", ", image_target_position->y(), ", ", image_target_position->z(), ")");
+                // 更新位置目标
+                PositionTarget pos_target;
+                pos_target.position = Vector3f(image_target_position->x(), image_target_position->y(), current_target.z);
+                pos_target.radius = getCurrentPositionTargets().radius * accuracy;
+                pos_target.index = get_auto_target_position_index();
+                device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), "Image target to world position: (", pos_target.position.x(), ", ", pos_target.position.y(), ", ", pos_target.position.z(), "), radius: ", pos_target.radius);
+                float rotated_x, rotated_y;  // 声明待旋转目标坐标
+                device->rotate_world2local(this->device_position[parameters.device_index].x(), this->device_position[parameters.device_index].y(), rotated_x, rotated_y);
+                device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), "Device position: (", device->get_x_pos() + rotated_x, ", ", device->get_y_pos() + rotated_y, ", ", device->get_z_pos() + this->device_position[parameters.device_index].z(), ")");
+                // updatePositionTargets(pos_target);
+                device->get_position_controller()->trajectory_setpoint_world(
+                    Vector4f{device->get_x_pos() + rotated_x, device->get_y_pos() + rotated_y, device->get_z_pos() + this->device_position[parameters.device_index].z(), static_cast<float>(device->get_world_yaw())}, // 当前坐标        get_world_yaw()  // 当前坐标
+                    Vector4f{pos_target.position.x(), pos_target.position.y(), pos_target.position.z(), parameters.target_yaw + device->get_default_world_yaw()}, // 目标坐标  parameters.target_yaw
+                    pos_pid_defaults,
+                    0.0,               				// 精度
+                    0.0 			 				// 偏航精度
+                    // true             				// 是否不使用飞机速度计算
+                    //	get_velocity_x(target) / max_frame, 	// 飞机速度
+                    //	get_velocity_y(target) / max_frame  	// 飞机速度
+                );
+                if ((abs(device->get_x_pos() + rotated_x - pos_target.position.x()) <= pos_target.radius && abs(device->get_y_pos() + rotated_y - pos_target.position.y()) <= pos_target.radius) ||
+                    (abs(now_x - image_targets[parameters.device_index].x) <= current_target.caculate_pixel_radius() && abs(now_y - image_targets[parameters.device_index].y) <= current_target.caculate_pixel_radius()))  // 接近目标
+                {
+                    device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": Arrive at image target (", now_x, ", ", now_y, ") with radius ", pos_target.radius);    // return true;
+                    current_target.r = 0.0f; // 设置当前目标颜色为绿色
+                    current_target.g = 1.0f;
+                    current_target.b = 0.0f;
+                    task_result = true; // 设置任务结果为成功   
+                } else {
+                    task_result = false; // 设置任务结果为失败
+                }
+
             } else {
-                task_result = false; // 设置任务结果为失败
+    //
+                // PID发布速度接近目标点, 输入目标像素坐标，返回是否到达目标点
+
+                // RCLCPP_INFO(device->get_node()->get_logger(), "--------------------\n\n读取pid参数: p: %f, i: %f, d: %f, ff: %f, dff: %f, imax: %f", defaults.p, defaults.i, defaults.d, defaults.ff, defaults.dff, defaults.imax);d_max_xy: %f, speed_max_z: %f, accel_max_x: %f, accel_max_z: %f", limits.speed_max_xy, limits.speed_max_z, limits.accel_max_xy, limits.accel_max_z);
+                // 检查YOLO帧尺寸是否有效
+                // if (get_cap_frame_width() <= 0 || get_cap_frame_height() <= 0) {
+                //     RCLCPP_ERROR(device->get_node()->get_logger(), "Invalid YOLO frame dimensions: width=%d, height=%d", 
+                //                  get_cap_frame_width(), get_cap_frame_height());
+                //     return false;
+                // }
+                    // // yolo返回值坐标系：x右y下（x_flip|y_flip = false），转换为飞机坐标系：x右y上
+                    // float now_x = getCurrentImageTargets().x();    // get_cap_frame_width() - get_x(target);
+                    // float now_y = device->get_yolo_detector()->get_cap_frame_height() - getCurrentImageTargets().y();    // get_y(target);
+                    // float tar_u = current_target.x;    // get_cap_frame_width() - current_target.x; // 目标x坐标
+                    // float tar_v = device->get_yolo_detector()->get_cap_frame_height() - current_target.y;    // tar_y; // 目标y坐标
+                // 检查坐标是否有效
+                // if (!std::isfinite(now_x) || !std::isfinite(now_y) || !std::isfinite(current_target.x) || !std::isfinite(tar_y)) {
+                //     RCLCPP_ERROR(device->get_node()->get_logger(), "Invalid coordinates detected");
+                //     return false;
+                // }
+                rotate_xy(now_x, now_y, -device->get_world_yaw()); // 将目标坐标旋转到世界坐标系 headingangle_compass
+                rotate_xy(tar_u, tar_v, -device->get_world_yaw()); // 将目标坐标旋转到世界坐标系 headingangle_compass
+                float max_frame = std::max(device->get_yolo_detector()->get_cap_frame_width(), device->get_yolo_detector()->get_cap_frame_height());
+                // RCLCPP_INFO(device->get_node()->get_logger(), "catch_target_bucket: yaw: %f, default_yaw: %f, headingangle_compass: %f", get_yaw(), default_yaw, headingangle_compass);
+                // RCLCPP_INFO(device->get_node()->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_u: %f, tar_y: %f", now_x, now_y, tar_u, tar_y);
+                // RCLCPP_INFO(device->get_node()->get_logger(), "catch_target_bucket: now_x: %f, now_y: %f, tar_u: %f, tar_y: %f", now_x / get_cap_frame_width(), now_y / get_cap_frame_height(), (tar_u) / get_cap_frame_width(), (tar_y) / get_cap_frame_height());
+                // RCLCPP_INFO(device->get_node()->get_logger(), "catch_target_bucket: now_z: %f, current_target.z: %f, now_yaw: %f, parameters.target_yaw: %f", get_z_pos(), current_target.z, get_yaw(), parameters.target_yaw);
+                // RCLCPP_INFO(device->get_node()->get_logger(), "catch_target: current_target.caculate_pixel_radius(): %f, max_frame: %f", current_target.caculate_pixel_radius(), max_frame);
+
+                // bool trajectory_setpoint_world(Vector4f pos_now, Vector4f pos_target, PID::Defaults defaults, double current_target.caculate_pixel_radius(), double yaw_current_target.caculate_pixel_radius(), bool calculate_or_get_vel, float vel_x = DEFAULT_VELOCITY, float vel_y = DEFAULT_VELOCITY);
+                device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": now_x: ",
+                    now_x, ", now_y: ",
+                    now_y, ", target_x: ",
+                    tar_u, ", target_y: ",
+                    tar_v, ", target_z: ",
+                    current_target.z);
+                device->get_position_controller()->trajectory_setpoint_world(
+                    Vector4f{tar_u / max_frame, tar_v / max_frame, static_cast<float>(device->get_z_pos()), static_cast<float>(device->get_world_yaw())}, // 当前坐标        get_world_yaw()  // 当前坐标
+                    Vector4f{now_x / max_frame, now_y / max_frame, current_target.z, parameters.target_yaw + device->get_default_world_yaw()}, // 目标坐标  parameters.target_yaw
+                    pid_defaults,
+                    0.0,               				// 精度
+                    0.0 			 				// 偏航精度
+                    // true             				// 是否不使用飞机速度计算
+                    //	get_velocity_x(target) / max_frame, 	// 飞机速度
+                    //	get_velocity_y(target) / max_frame  	// 飞机速度
+                );
+                if ((abs(now_x - tar_u) <= current_target.caculate_pixel_radius() && abs(now_y - tar_v) <= current_target.caculate_pixel_radius()) ||
+                    (abs(now_x - image_targets[parameters.device_index].x) <= current_target.caculate_pixel_radius() && abs(now_y - image_targets[parameters.device_index].y) <= current_target.caculate_pixel_radius()))  // 接近目标
+                {
+                    device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": Arrive at image target (", now_x, ", ", now_y, ") with radius ", current_target.caculate_pixel_radius());    // return true;
+                    current_target.r = 0.0f; // 设置当前目标颜色为绿色
+                    current_target.g = 1.0f;
+                    current_target.b = 0.0f;
+                    task_result = true; // 设置任务结果为成功   
+                } else {
+                    task_result = false; // 设置任务结果为失败
+                }
             }
             device->get_yolo_detector()->append_target(current_target); // 将当前投弹目标添加到YOLO中准备发布
             // 接近目标

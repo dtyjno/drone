@@ -88,12 +88,12 @@ Vector4f PosController::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fu
 		f.w() = pid_yaw.update_all(now.w(), target.w() + yaw_diff_last, dt, max_speed_yaw, this->pos_data->get_velocity_yaw());
 		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: yaw p:%f i:%f d:%f", 
 		// 	kp, ki, kd);
-		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: px:%f py:%f pz:%f pyaw:%f",
-		// 	now.x(), now.y(), now.z(), now.w() + yaw_diff_last);
-		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: tx:%f ty:%f tz:%f tyaw:%f",
-		// 	target.x(), target.y(), target.z(), target.w());
-		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: vx:%f vy:%f vz:%f vyaw:%f",
-		// 	f.x(), f.y(), f.z(), f.w());
+		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: px:%f py:%f pz:%f pyaw:%f",
+			now.x(), now.y(), now.z(), now.w() + yaw_diff_last);
+		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: tx:%f ty:%f tz:%f tyaw:%f",
+			target.x(), target.y(), target.z(), target.w());
+		RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: vx:%f vy:%f vz:%f vyaw:%f",
+			f.x(), f.y(), f.z(), f.w());
 		return f;
 	} else{
 		Vector4f f;

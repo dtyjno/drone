@@ -11,8 +11,8 @@ std::shared_ptr<WaitTask> WaitTask::createTask(const std::string& task_name) {
         WaitTask *new_task = new WaitTask(task_name);
         TASKS[task_name] = std::shared_ptr<WaitTask>(new_task);
         std::cout << "Creating " << TASKS[task_name]->get_name() << " instance." << std::endl;
+        TASKS[task_name]->next_task(TASKS[task_name]);
     }
-    TASKS[task_name]->next_task(TASKS[task_name]);
     return TASKS[task_name];
 }
 

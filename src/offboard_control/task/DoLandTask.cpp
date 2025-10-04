@@ -9,8 +9,8 @@ std::shared_ptr<DoLandTask> DoLandTask::createTask(const std::string& task_name)
         DoLandTask *new_task = new DoLandTask(task_name);
         TASKS[task_name] = std::shared_ptr<DoLandTask>(new_task);
         std::cout << "Creating " << TASKS[task_name]->get_name() << " instance." << std::endl;
+        TASKS[task_name]->next_task(TASKS[task_name]);
     }
-    TASKS[task_name]->next_task(TASKS[task_name]);
     return TASKS[task_name];
 }
 

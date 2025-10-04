@@ -62,7 +62,7 @@ public:
         }
         else if (type == STUFFED){
             return stuffed_raw.size() > 0 ? stuffed_raw[0].center.position.x : 0.0f;
-        } 
+        }
         return 0;
     }
     float get_raw_y(YOLO_TARGET_TYPE type) const override {
@@ -127,12 +127,10 @@ public:
     {
         YAML::Node config = Readyaml::readYAML(filename);
         cap_frame_width = config["width"].as<float>();
-        cap_frame_height = config["height"].as<float>();  
+        cap_frame_height = config["height"].as<float>();
         process_noise = config["process_noise"].as<double>(0.01);
-        measurement_noise = config["measurement_noise"].as<double>(0.5);  
-
+        measurement_noise = config["measurement_noise"].as<double>(0.5);
     }
-
 
     int get_cap_frame_width() const override 
     {

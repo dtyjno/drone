@@ -9,8 +9,8 @@ std::shared_ptr<WayPointTask> WayPointTask::createTask(const std::string& task_n
         WayPointTask *new_task = new WayPointTask(task_name);
         TASKS[task_name] = std::shared_ptr<WayPointTask>(new_task);
         std::cout << "Creating " << TASKS[task_name]->get_name() << " instance." << std::endl;
+        TASKS[task_name]->next_task(TASKS[task_name]);
     }
-    TASKS[task_name]->next_task(TASKS[task_name]);
     return TASKS[task_name];
 }
 
