@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CameraInterface.h"
 
 class CameraGimbalInterface {
 public:

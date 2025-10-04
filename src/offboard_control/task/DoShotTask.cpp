@@ -49,7 +49,7 @@ bool DoShotTask::init(DeviceType device) {
         task_params.task_type = parameters.task_type;                                   // 任务类型
         // task_params.task_type = AppochTargetTask::Type::PID;                                  // 任务类型
         task->setParameters(task_params);
-        task->reset();
+        // task->reset();
         find_duration = 0.0f;               // 重置查找持续时间
         shot_flag = false;                  // 重置投弹标志
         return true;
@@ -71,12 +71,49 @@ bool DoShotTask::run(DeviceType device) {
         // {
         //     device->log_info("Doshot: yolo未识别到桶，等待");
         // } 
-        // 执行投弹命令后，如果查找到持续时间大于于投弹持续时间+等待时间
+        // // 执行投弹命令后，如果查找到持续时间大于于投弹持续时间+等待时间
+        // if (shot_flag) 
+        // {
+        //     find_duration += device->get_wait_time(); // 投弹后必定累加查找持续时间
+        //     device->get_yolo_detector()->get_raw_y(YOLO_TARGET_TYPE::CIRCLE);
+        //     if (find_duration >= shot_duration + shot_wait) {
+        //         device->log_info("Doshot: 投弹后等待已完成, find_duration_time = ", find_duration, "s");
+        //         task_result = true;
+        //         return true;
+        //     }
+        // }
+        // ...existing code...
+
+        const double center_tolerance = 300.0; // 距离中心的像素容忍范围
+
         if (shot_flag) 
         {
-            find_duration += device->get_wait_time(); // 投弹后必定累加查找持续时间
+            find_duration += device->get_wait_time();
+            double center_x = device->get_yolo_detector()->get_cap_frame_width() / 2.0;
+            double center_y = device->get_yolo_detector()->get_cap_frame_height() / 2.0;
+
+            // 默认为0
+            double dx = std::abs(device->get_yolo_detector()->get_x(YOLO_TARGET_TYPE::STUFFED) - center_x);
+            double dy = std::abs(device->get_yolo_detector()->get_y(YOLO_TARGET_TYPE::STUFFED) - center_y);
+            if (dx < center_tolerance && dy < center_tolerance) {
+                miss_count++;
+            } else {
+                miss_count = 0;
+            }
+
+            if (miss_count * device->get_wait_time() >= 0.3 * shot_wait) {
+                device->log_info("Doshot: 连续投中目标，判定为投中");
+                miss_flag = false;
+                miss_count = 0;
+            }
+
             if (find_duration >= shot_duration + shot_wait) {
                 device->log_info("Doshot: 投弹后等待已完成, find_duration_time = ", find_duration, "s");
+                miss_count = 0;
+                if (!miss_flag) {
+                    task->is_pid_end_use_next_target_index(true);
+                    device->log_info("Doshot: 投中目标，继续下一个目标");
+                }
                 task_result = true;
                 return true;
             }
@@ -89,7 +126,12 @@ bool DoShotTask::run(DeviceType device) {
             device->send_velocity_command(0, 0, 0, 0); // 停止飞行
         } else {
             task->visit(device);
-            
+            // 未投弹且有目标且未接近目标
+            if (!shot_flag && task->getCurrentType() == AppochTargetTask::Type::NONE)   // task无法执行接近目标任务
+            {
+                device->log_info_throttle(std::chrono::milliseconds(100), get_string(), ": (T 0.1s) Doshot: Searching for target, time = ", find_duration, "s");
+                find_duration = 0.0f; // 重置查找持续时间
+            }
             // 执行接近目标任务
             if ( (task->getCurrentType() == AppochTargetTask::Type::TARGET ||
                   task->getCurrentType() == AppochTargetTask::Type::PID) && 
@@ -118,20 +160,6 @@ bool DoShotTask::run(DeviceType device) {
                         device->log_info("Doshot: Arrive, 等待, wait, time = ", find_duration - shot_duration, "s");
                     }
                 }			
-            }
-            // 未投弹且有目标且未接近目标
-            else if (!shot_flag && task->getCurrentType() == AppochTargetTask::Type::NONE)   // task未执行操作，执行waypoint_task接近目标任务
-            {
-                if (waypoint_task != nullptr) {
-                    device->log_info_throttle(std::chrono::milliseconds(100), get_string(), ": (T 0.1s) Doshot: Searching for target, time = ", find_duration, "s");
-                    waypoint_task->visit(device);
-                    if (waypoint_task->is_execute_finished()){
-                        waypoint_task->reset();    // 重置任务以循环使用
-                    }
-                }
-                // do_next_task = true;
-                find_duration = 0.0f; // 重置查找持续时间
-
             }
             // return false;
         }

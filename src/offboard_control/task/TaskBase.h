@@ -84,6 +84,7 @@ protected:
     
     bool task_result = false;
     bool execute_finished_ = false;
+    // bool execute_next_task_ = false;      // 指示是否应执行下一个任务,次执行后置false
     std::shared_ptr<TaskBase> _sub_task = nullptr;
     std::shared_ptr<TaskBase> _first_task = nullptr;
 };

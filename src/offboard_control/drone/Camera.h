@@ -67,11 +67,19 @@ public:
           parent_rotation(rot),
           fx(fx), fy(fy), cx(cx), cy(cy), width(width), height(height) {
     }
+
+    // PosDataObserverInterface 实现
+    void on_position_update(double x, double y, double z) override {
+        parent_position = Vector3d(x, y, z);
+    }
+    void on_velocity_update(double, double, double) override {
+        // 速度更新暂时不处理
+    }
+    void on_orientation_update(double roll, double pitch, double yaw) override {
+        parent_rotation = Vector3d(roll, -pitch, M_PI_2 - yaw);    // NED to ENU
+    }
     
     // CameraInterface 实现
-    Vector3d get_drone_to_camera() const override { return camera_relative_position; }
-    void set_drone_to_camera(const Vector3d& pos) override { camera_relative_position = pos; }
-
     Vector3d get_camera_relative_rotation() const override { return camera_relative_rotation; }
     void set_camera_relative_rotation(const Vector3d& rot) override { camera_relative_rotation = rot; }
 
@@ -106,6 +114,12 @@ public:
         k3 = config["k3"].as<double>(k3);
         width = config["width"].as<double>(width);
         height = config["height"].as<double>(height);
+        camera_relative_position[0] = config["camera_relative_position_x"].as<float>();
+        camera_relative_position[1] = config["camera_relative_position_y"].as<float>();
+        camera_relative_position[2] = config["camera_relative_position_z"].as<float>();
+        camera_relative_rotation[0] = config["camera_relative_rotation_roll"].as<float>();
+        camera_relative_rotation[1] = config["camera_relative_rotation_pitch"].as<float>();
+        camera_relative_rotation[2] = config["camera_relative_rotation_yaw"].as<float>();
     }
 
     // start

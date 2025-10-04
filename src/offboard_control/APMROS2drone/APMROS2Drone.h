@@ -52,6 +52,7 @@ public:
 		instance->set_yolo_detector(std::make_shared<ROS2YOLODetector>(node));
 		instance->set_servo_controller(std::make_shared<ROS2ServoController>(topic_namespace, node));
 		instance->set_camera_gimbal(std::make_shared<ROS2CameraGimbal>(topic_namespace, node));
+		pos_subscriber->add_observer(instance->get_camera().get()); // 订阅位置数据更新
 
 		instance->read_configs("OffboardControl.yaml");
 		
@@ -261,16 +262,6 @@ public:
 		YAML::Node config = Readyaml::readYAML(filename);
 		try {
 			std::cout << "读取配置文件: " << filename << std::endl;
-
-			// headingangle_compass = config["headingangle_compass"].as<float>(180.0); // 默认罗盘角度 ENU
-			// // headingangle_real = config["headingangle_real"].as<float>(headingangle_compass);
-			// // 1. 航向角转换：指南针角度 → 数学标准角度（东为0°，逆时针）
-			// // default_yaw = fmod(90.0 - headingangle_compass + 720.0, 360.0); // 确保角度在0到360度之间
-			// default_yaw = fmod(headingangle_compass + 360.0, 360.0); // 确保角度在0到360度之间
-			// default_yaw = M_PI/2 - default_yaw * M_PI / 180.0; // 弧度制 NED
-			// RCLCPP_INFO(node->get_logger(), "读取罗盘角度: %f，默认旋转角：%f, 实际方向角：%f", headingangle_compass, default_yaw, headingangle_real);
-			// headingangle_compass = headingangle_compass * M_PI / 180.0; // 弧度制
-			// // headingangle_real = headingangle_real * M_PI / 180.0; // 弧度制
 			
 			dx_shot = config["dx_shot"].as<float>();
 			dy_shot = config["dy_shot"].as<float>();
@@ -280,12 +271,6 @@ public:
 			shot_halt_surround = config["shot_halt_surround"].as<float>();
 			shot_halt_low = config["shot_halt_low"].as<float>();
 			see_halt = config["see_halt"].as<float>();
-			Vector3d drone_to_camera;
-			drone_to_camera[0] = config["drone_to_camera_x"].as<float>();
-			drone_to_camera[1] = config["drone_to_camera_y"].as<float>();
-			drone_to_camera[2] = config["drone_to_camera_z"].as<float>();
-
-			_camera_gimbal->set_drone_to_camera(Vector3d(drone_to_camera[0], drone_to_camera[1], drone_to_camera[2]));
 
 			shot_big_target = config["shot_big_target"].as<bool>(true);
 

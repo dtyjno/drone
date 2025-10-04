@@ -20,11 +20,6 @@ public:
     static std::shared_ptr<DoShotTask> createTask(const std::string& task_name = "DoShot");
     static std::shared_ptr<DoShotTask> getTask(const std::string& task_name = "DoShot");
 
-    std::shared_ptr<DoShotTask> set_task_when_no_target(std::shared_ptr<TaskBase> waypoint_task) {
-        this->waypoint_task = waypoint_task;
-        return std::static_pointer_cast<DoShotTask>(this->shared_from_this());
-    }
-
     // 设置动态目标坐标回调函数
     void setDynamicPositionTargetCallback(std::function<AppochTargetTask::PositionTarget()> callback) {
         parameters.dynamic_target_position_callback = callback;   // 防止重置后init重置为参数更改
@@ -67,6 +62,11 @@ public:
         }
         return task;
     }
+    std::shared_ptr<DoShotTask> set_task_when_no_target(std::shared_ptr<TaskBase> waypoint_task) {
+        get_appochtarget_task();
+        task->set_task_when_no_target(waypoint_task);
+        return std::static_pointer_cast<DoShotTask>(this->shared_from_this());
+    }
     
 
 private:
@@ -80,9 +80,10 @@ private:
     float shot_duration = 2; 					    // 等待读取，稳定持续时间
     float shot_wait = 0.5; 				     		// 等待读取，投弹后稳定时间
 	bool shot_flag = false; 						// 投弹标志
+    int miss_count = 0;       // 连续未投中次数
+    bool miss_flag = true;   // 未投中标志
 
     std::shared_ptr<AppochTargetTask> task;
-    std::shared_ptr<TaskBase> waypoint_task = nullptr;
     Parameters parameters;
 public:
     std::shared_ptr<DoShotTask> setParameters(Parameters &parameters) {
@@ -105,11 +106,13 @@ public:
     void reset() override {
         Task<DoShotTask>::reset();
         // 不重置航点任务
-        if (task) {
-            task->reset();
-        }
+        // if (task) {
+        //     task->reset();
+        // }
         find_duration = 0.0f;               // 重置查找持续时间
         shot_flag = false;                  // 重置投弹标志
+        miss_count = 0;
+        miss_flag = true;
     }
 public:
     // CRTP 需要的方法 - 由基类的 impl() 调用

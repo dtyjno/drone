@@ -65,11 +65,11 @@ public:
             // }
             // std::cout << "_first_task " << (_first_task ? _first_task->get_name() : "null") 
             //               << ", current task: " << impl().getTask(_name)->get_name() << std::endl;
-            // if (do_next_task) {
-            //     device->log_info_throttle(std::chrono::milliseconds(100), "%s: (T 0.1s) Task: do_next_task=true, Moving to next task: %s", impl().getTask(_name)->get_string(), (_sub_task ? _sub_task->get_name() : "null"));
+            // if (execute_next_task_) {
+            //     device->log_info_throttle(std::chrono::milliseconds(100), "%s: (T 0.1s) Task: execute_next_task_=true, Moving to next task: %s", impl().getTask(_name)->get_string(), (_sub_task ? _sub_task->get_name() : "null"));
             // }
             if ((execute_finished_) && _sub_task != nullptr) {
-                // do_next_task = false;
+                // execute_next_task_ = false;
                 if (_first_task == _sub_task) {
                     // std::cout << "All tasks completed." << std::endl;
                     // std::cout << (_first_task ? _first_task->get_string() : "null") << "->" <<  impl().getTask(_name)->get_string() << ": All tasks completed." << std::endl;

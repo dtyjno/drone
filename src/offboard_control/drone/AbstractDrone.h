@@ -39,6 +39,7 @@ public:
 		pos_ctl_ = std::make_shared<PosController>(pos_subscriber, pos_publisher);
 		pos_ctl_->set_dt(get_wait_time()); // 设置控制器的时间间隔
 		set_camera_gimbal(std::make_shared<CameraGimbal>());
+		pos_subscriber->add_observer(get_camera().get()); // 订阅位置数据更新
 		set_servo_controller(std::make_shared<ServoController>());
 		set_yolo_detector(std::make_shared<YOLODetector>());
 		pos_subscriber->set_position(Vector3f{0.0, 0.0, 2.0}); // 初始位置设为(0,0,2)
@@ -73,17 +74,10 @@ public:
 		if (debug_mode_ && get_position_controller() && get_position_controller()->get_pos_data()) { // 调试模式下，强制设置飞机位置
 			get_position_controller()->get_pos_data()->set_position(Vector3f(0.0, 0.0, 1.2)); // 设置飞机初始位置为(0,0,1.2)
 		}
-		float roll, pitch, yaw;
-		get_euler(roll, pitch, yaw);
-		if (debug_mode_ && get_status_controller()) {
-			roll = 0.0f;
-			pitch = 0.0f;
-			// std::cout << "ENU 0E->N yaw" << get_yaw() << "NED 0N->E world_yaw" << get_world_yaw() << std::endl; // 默认飞机方向为正东 yaw=0,world_yaw=90 ,北 yaw 90 world_yaw 0.0
-		}
-		_camera_gimbal->set_parent_position(Vector3d(get_x_pos(), get_y_pos(), get_z_pos()));
-		_camera_gimbal->set_camera_relative_rotation(Vector3d(0, 0, 0)); // 相机相对飞机的旋转，roll=0, pitch=0 (垂直向下), yaw=0
-		// std::cout << "ENU 0E->N yaw" << get_yaw() << "NED 0N->E world_yaw" << get_world_yaw() << "headingangle_compass: " << headingangle_compass << std::endl; // 默认飞机方向为正东 世界方向 yaw=0,world_yaw=90 ,北 yaw 90 world_yaw 0.0
-		_camera_gimbal->set_parent_rotation(Vector3d(-pitch, roll, get_world_yaw()));
+		// _camera_gimbal->set_parent_position(Vector3d(get_x_pos(), get_y_pos(), get_z_pos()));
+		// _camera_gimbal->set_camera_relative_rotation(Vector3d(0, 0, 0)); // 相机相对飞机的旋转，roll=0, pitch=0 (垂直向下), yaw=0
+		// // std::cout << "ENU 0E->N yaw" << get_yaw() << "NED 0N->E world_yaw" << get_world_yaw() << "headingangle_compass: " << headingangle_compass << std::endl; // 默认飞机方向为正东 世界方向 yaw=0,world_yaw=90 ,北 yaw 90 world_yaw 0.0
+		// _camera_gimbal->set_parent_rotation(Vector3d(-pitch, roll, get_world_yaw()));
 		if (debug_mode_) {
 			std::cout << "相机位置: (" << _camera_gimbal->get_position().transpose() << ")" << std::endl;
 			std::cout << "相机旋转: (" << _camera_gimbal->get_parent_rotation().transpose() << ")" << std::endl;
@@ -171,62 +165,11 @@ public:
 
     // 姿态相关接口
 
-	// 角度标准化到 [-π, π]
-	float normalize_angle(float angle){
-		while (angle > M_PI) angle -= 2.0f * M_PI;
-		while (angle < -M_PI) angle += 2.0f * M_PI;
-		return angle;
-	};
 	
 	void get_euler(float &roll, float &pitch, float &yaw) {
-		// 获取四元数分量
-		float w = pos_ctl_->pos_data->get_orientation().w();
-		float x = pos_ctl_->pos_data->get_orientation().x();
-		float y = pos_ctl_->pos_data->get_orientation().y();
-		float z = pos_ctl_->pos_data->get_orientation().z();
-
-		// // 验证四元数有效性
-		// float norm = sqrt(w*w + x*x + y*y + z*z);
-		// if (fabs(norm - 1.0f) > 0.1f) {
-		// 	RCLCPP_WARN(this->get_logger(), "四元数异常！norm=%.6f", norm);
-		// 	// 标准化四元数
-		// 	if (norm > 0.001f) {
-		// 		w /= norm; x /= norm; y /= norm; z /= norm;
-		// 	} else {
-		// 		w = 1.0f; x = y = z = 0.0f; // 默认无旋转
-		// 	}
-		// }
-		
-		// 使用稳定的欧拉角计算方法
-		// Roll (X轴旋转)
-		float sinr_cosp = 2.0f * (w * x + y * z);
-		float cosr_cosp = 1.0f - 2.0f * (x * x + y * y);
-		roll = atan2(sinr_cosp, cosr_cosp);
-		
-		// Pitch (Y轴旋转) - 处理万向锁
-		float sinp = 2.0f * (w * y - z * x);
-		if (fabs(sinp) >= 1.0f) {
-			pitch = copysign(M_PI / 2.0f, sinp);
-		} else {
-			pitch = asin(sinp);
-		}
-		
-		// Yaw (Z轴旋转)
-		float siny_cosp = 2.0f * (w * z + x * y);
-		float cosy_cosp = 1.0f - 2.0f * (y * y + z * z);
-		yaw = atan2(siny_cosp, cosy_cosp);
-		
-		roll = normalize_angle(roll);
-		pitch = normalize_angle(pitch);
-		yaw = normalize_angle(yaw);
-		
-		// 调试输出四元数信息
-		// static int debug_count = 0;
-		// if (++debug_count % 100 == 0) { // 每10秒输出一次
-		// 	RCLCPP_INFO(this->get_logger(), 
-		// 				"四元数调试: w=%.3f x=%.3f y=%.3f z=%.3f norm=%.6f", 
-		// 				w, x, y, z, norm);
-		// }
+		roll = pos_ctl_->pos_data->get_roll();
+		pitch = pos_ctl_->pos_data->get_pitch();
+		yaw = pos_ctl_->pos_data->get_yaw();
 	}
 
     float get_yaw() {

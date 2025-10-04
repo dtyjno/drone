@@ -9,6 +9,12 @@ p2: 0.001
 k3: 0.050
 width: 1280
 height: 720
+camera_relative_position_x: 0.0 #-0.050 # 2
+camera_relative_position_y: 0.17 # 0.08 0.230 # 2 6.2
+camera_relative_position_z: 0.15 # 0.20 # 2 14.1
+camera_relative_rotation_roll: 0.0
+camera_relative_rotation_pitch: 0.0
+camera_relative_rotation_yaw: 0.0
 
 # 滤波器参数
 process_noise: 0.015             # 过程噪声 - 降低以获得更平滑的轨迹

@@ -2,10 +2,11 @@
 
 #include "../utils/math.h"
 #include "PosSubscriberInterface.h"
+#include "PosDataObserverInterface.h"
 
 #define DEFAULT_POS INFINITY
 
-class PosSubscriber : public PosSubscriberInterface {
+class PosSubscriber : public PosSubscriberInterface, public PosDataObservable{
 public:
      ~PosSubscriber() = default;
 
@@ -90,7 +91,69 @@ public:
 	void set_yaw(float y){
 		yaw = y;
 	}
-	void set_rpy(float r, float p, float y){
+
+	// 角度标准化到 [-π, π]
+	float normalize_angle(float angle){
+		while (angle > M_PI) angle -= 2.0f * M_PI;
+		while (angle < -M_PI) angle += 2.0f * M_PI;
+		return angle;
+	};
+	void calculate_euler(float &roll, float &pitch, float &yaw) {
+		// 获取四元数分量
+		float w = orientation.w();
+		float x = orientation.x();
+		float y = orientation.y();
+		float z = orientation.z();
+
+		// // 验证四元数有效性
+		// float norm = sqrt(w*w + x*x + y*y + z*z);
+		// if (fabs(norm - 1.0f) > 0.1f) {
+		// 	RCLCPP_WARN(this->get_logger(), "四元数异常！norm=%.6f", norm);
+		// 	// 标准化四元数
+		// 	if (norm > 0.001f) {
+		// 		w /= norm; x /= norm; y /= norm; z /= norm;
+		// 	} else {
+		// 		w = 1.0f; x = y = z = 0.0f; // 默认无旋转
+		// 	}
+		// }
+		
+		// 使用稳定的欧拉角计算方法
+		// Roll (X轴旋转)
+		float sinr_cosp = 2.0f * (w * x + y * z);
+		float cosr_cosp = 1.0f - 2.0f * (x * x + y * y);
+		roll = atan2(sinr_cosp, cosr_cosp);
+		
+		// Pitch (Y轴旋转) - 处理万向锁
+		float sinp = 2.0f * (w * y - z * x);
+		if (fabs(sinp) >= 1.0f) {
+			pitch = copysign(M_PI / 2.0f, sinp);
+		} else {
+			pitch = asin(sinp);
+		}
+		
+		// Yaw (Z轴旋转)
+		float siny_cosp = 2.0f * (w * z + x * y);
+		float cosy_cosp = 1.0f - 2.0f * (y * y + z * z);
+		yaw = atan2(siny_cosp, cosy_cosp);
+		
+		roll = normalize_angle(roll);
+		pitch = normalize_angle(pitch);
+		yaw = normalize_angle(yaw);
+		
+		// 调试输出四元数信息
+		// static int debug_count = 0;
+		// if (++debug_count % 100 == 0) { // 每10秒输出一次
+		// 	RCLCPP_INFO(this->get_logger(), 
+		// 				"四元数调试: w=%.3f x=%.3f y=%.3f z=%.3f norm=%.6f", 
+		// 				w, x, y, z, norm);
+		// }
+	}
+	void get_euler(float &r, float &p, float &y){
+		r = roll;
+		p = pitch;
+		y = yaw;
+	}
+	void set_euler(float r, float p, float y){
 		roll = r;
 		pitch = p;
 		yaw = y;

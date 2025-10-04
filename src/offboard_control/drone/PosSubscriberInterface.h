@@ -31,5 +31,6 @@ public:
 	virtual float get_pitch() = 0;
 	virtual float get_yaw() = 0;
 	virtual void set_yaw(float y) = 0;
-	virtual void set_rpy(float r, float p, float y) = 0;
+	virtual void get_euler(float &roll, float &pitch, float &yaw) = 0;
+	virtual void set_euler(float r, float p, float y) = 0;
 };

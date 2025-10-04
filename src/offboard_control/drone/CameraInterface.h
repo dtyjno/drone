@@ -4,15 +4,17 @@
 #include <optional>
 #include <string>
 
+#include "PosDataObserverInterface.h"
+
 using namespace Eigen;
 
-class CameraInterface {
+class CameraInterface : public PosDataObserverInterface {
 public:
     virtual ~CameraInterface() = default;
 
-    // 获取/设置相机与无人机的相对位置
-    virtual Vector3d get_drone_to_camera() const = 0;
-    virtual void set_drone_to_camera(const Vector3d& pos) = 0;
+    // // 获取/设置相机与无人机的相对位置
+    // virtual Vector3d get_drone_to_camera() const = 0;
+    // virtual void set_drone_to_camera(const Vector3d& pos) = 0;
 
     // 获取/设置相机的旋转
     virtual Vector3d get_camera_relative_rotation() const = 0;

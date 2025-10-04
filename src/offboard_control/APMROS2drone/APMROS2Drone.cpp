@@ -135,8 +135,6 @@ APMROS2Drone::APMROS2Drone(const std::string& ardupilot_namespace,
 void APMROS2Drone::timer_callback(void)
 {
 	timer_callback_update();
-	calculate_target_position();
-
 	// accept(
 	// 	SetPointTask::createTask("setpoint0")->set_config(
 	// 		SetPointTask::Parameters{
@@ -248,6 +246,10 @@ void APMROS2Drone::timer_callback(void)
 		}
 	}
 
+	if (current_state == state::init || current_state ==  state::gotoshot || current_state == state::shot || current_state == state::dropping) {
+		calculate_target_position();
+	}
+
 	// state_machine_.executeAllStates();
 	if (print_info_) {
 		accept(PrintInfoTask::createTask()->set_print_time(10000));
@@ -303,7 +305,7 @@ void APMROS2Drone::timer_callback(void)
 		// Vector2d drone_to_shot_rotated; // 中间变量
 		// rotate_local2world(0.0, 0.10, drone_to_shot_rotated.x(), drone_to_shot_rotated.y());
 		AppochTargetTask::PositionTarget pos_target;
-		if (!cal_center.empty() && do_shot_task->get_appochtarget_task()->get_auto_target_position_index() < cal_center.size()) {    // 确保索引在范围内
+		if (!cal_center.empty() && static_cast<size_t>(do_shot_task->get_appochtarget_task()->get_auto_target_position_index()) < cal_center.size()) {    // 确保索引在范围内
 			pos_target.position.x() = cal_center[do_shot_task->get_appochtarget_task()->get_auto_target_position_index()].point.x();
 			pos_target.position.y() = cal_center[do_shot_task->get_appochtarget_task()->get_auto_target_position_index()].point.y();
 			pos_target.position.z() = shot_halt_low;

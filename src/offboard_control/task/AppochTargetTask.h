@@ -44,6 +44,11 @@ public:
     void set_device_index(size_t index) {
         parameters.device_index = index;
     }
+
+    std::shared_ptr<AppochTargetTask> set_task_when_no_target(std::shared_ptr<TaskBase> waypoint_task) {
+        this->waypoint_task = waypoint_task;
+        return std::static_pointer_cast<AppochTargetTask>(this->shared_from_this());
+    }
     struct PositionTarget {
         Vector3f position;       // 位置
         float radius;            // 直径
@@ -66,13 +71,19 @@ public:
 
     Timer target_timer;               // 目标检测计时器
     float max_target_position_accurate = 0.1f;  // 设置最大允许误差
-    size_t pre_position_target_index = -1;  // 上一次的位置目标
     // Vector4f pre_position_targets = Vector4f::Zero(); // 上一次的位置目标
 	int auto_target_position_index = 0;     // 目标位置索引
     int get_auto_target_position_index() const {
         return auto_target_position_index;
     }
+    void set_auto_target_position_index(int index) {
+        auto_target_position_index = index;
+    }
 
+    std::shared_ptr<TaskBase> waypoint_task = nullptr;
+    void is_pid_end_use_next_target_index(bool flag) {
+        pid_end_use_next_target_index = flag;
+    }
 private:
     AppochTargetTask(std::string name) : 
         Task<AppochTargetTask>(name) {}
@@ -85,12 +96,12 @@ private:
     std::vector<TargetData> image_targets;    // 声明读取的映射失败时目标u和v坐标
     float radius = 0.1; 						    // 声明读取的映射失败时使用的像素精度
     Parameters parameters;
+    bool pid_end_use_next_target_index = false;                          // 投弹标志
 public:
     void reset() {
         Task<AppochTargetTask>::reset();
         current_type = Type::NONE;
         target_timer.reset();
-        pre_position_target_index = -1;
         // pre_position_targets = Vector4f::Zero();
     }
 

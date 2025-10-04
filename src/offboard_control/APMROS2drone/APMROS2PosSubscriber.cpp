@@ -38,7 +38,10 @@ void APMROS2PosSubscriber::status_callback(const nav_msgs::msg::Odometry::Shared
 	position = Vector3f(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z);
 	orientation = Quaternionf(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z);
 	velocity = Vector4f(msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z, msg->twist.twist.angular.z);
-
+	notify_position_update(position.x(), position.y(), position.z());
+	notify_velocity_update(velocity.x(), velocity.y(), velocity.z());
+	calculate_euler(roll, pitch, yaw);
+	notify_orientation_update(roll, pitch, yaw);
 	// node->set_pose();
 	// quaternion.w() = msg->pose.orientation.w;
 	// quaternion.x() = msg->pose.orientation.x;

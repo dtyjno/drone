@@ -95,26 +95,47 @@ bool AppochTargetTask::run(DeviceType device) {
         device->log_error(get_string(), ": init can only be used with APMROS2Drone");
         return false;
     } else {
-        // TARGET 世界坐标系
         // if (getCurrentPositionTargets() != pre_position_targets) {
         //     pre_position_targets = getCurrentPositionTargets();
         // }
-        if (getCurrentPositionTargets().index != pre_position_target_index) {
-            max_target_position_accurate = std::max(0.1f, getCurrentPositionTargets().radius);
-            pre_position_target_index = getCurrentPositionTargets().index;
-        }
-        if (!getCurrentPositionTargets().position.isZero() &&
-                (parameters.task_type == Type::TARGET ||
-                  (parameters.task_type == Type::AUTO && (
-                    target_timer.elapsed() < 6 ||      // 至少稳定6秒
-                      (target_timer.elapsed() < 12 && (
-                        abs(device->get_x_pos() - (getCurrentPositionTargets().position.x())) > max_target_position_accurate &&
-                        abs(device->get_y_pos() - (getCurrentPositionTargets().position.y())) > max_target_position_accurate
-                        )
-                      )
-                    )
-                  )
+        bool is_target = !getCurrentPositionTargets().position.isZero();
+        bool is_auto_target =  (
+            target_timer.elapsed() < 6 ||      // 至少稳定6秒
+                (target_timer.elapsed() < 12 && (
+                abs(device->get_x_pos() - (getCurrentPositionTargets().position.x())) > max_target_position_accurate &&
+                abs(device->get_y_pos() - (getCurrentPositionTargets().position.y())) > max_target_position_accurate
                 )
+                )
+            );
+        bool is_pid = !getCurrentImageTargets().isZero();
+
+        // 设置Type::AUTO状态转换逻辑
+        if (parameters.task_type == Type::AUTO) {
+            if (current_type == Type::TARGET && !is_auto_target && is_pid) {          // if target->pid
+                device->log_info(get_string(), ": target->pid");
+                max_target_position_accurate = 5.0f;               // pid->pid | none(waypoint)  acc++ PID模式下，允许更大的误差
+            } else if (current_type == Type::TARGET && !is_auto_target && !is_pid) {   // if target->none(waypoint)
+                device->log_info(get_string(), ": target->target[index++] | none(waypoint)");
+                auto_target_position_index++;
+                target_timer.reset();          // 重置计时器
+                max_target_position_accurate = std::max(0.1f, getCurrentPositionTargets().radius);    // acc--
+            } else if (current_type == Type::PID && !is_auto_target && !is_pid) {     // if pid->none(waypoint)
+                device->log_info(get_string(), ": pid->target");
+                if (pid_end_use_next_target_index) {
+                    device->log_info(get_string(), ": pid->target[index++] | none(waypoint), pid_end_use_next_target_index=true");
+                    pid_end_use_next_target_index = false;
+                    auto_target_position_index++;                 // pid->target[index++] | none(waypoint)
+                }
+                target_timer.reset();                             // pid->target[index]
+                max_target_position_accurate = std::max(0.1f, getCurrentPositionTargets().radius);    // acc--
+            }
+        }
+
+        // TARGET 世界坐标系
+        if (is_target &&
+             (parameters.task_type == Type::TARGET ||
+               (parameters.task_type == Type::AUTO && is_auto_target)
+             )
             ) {
             current_type = Type::TARGET;
             // 显示目标位置在地面的投影
@@ -164,12 +185,8 @@ bool AppochTargetTask::run(DeviceType device) {
         }
 
         // PID
-        if (!getCurrentImageTargets().isZero() && (parameters.task_type == Type::PID || parameters.task_type == Type::AUTO)) {
-            if (parameters.task_type == Type::AUTO && current_type == Type::TARGET) {
-                auto_target_position_index++;
-            }
+        if (is_pid && (parameters.task_type == Type::PID || parameters.task_type == Type::AUTO)) {
             current_type = Type::PID;
-            max_target_position_accurate = 5.0f; // PID模式下，允许更大的误差
             device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": Approaching image target ", parameters.device_index, " at (",
                 getCurrentImageTargets().x(), ", ",
                 getCurrentImageTargets().y(), ")");
@@ -225,7 +242,7 @@ bool AppochTargetTask::run(DeviceType device) {
                     t2p_target.y = output_pixel.y();
                     t2p_target.category = YOLODetector::enumToString(parameters.target_type).append("_d2p").append(parameters.config_device_name_suffix[i]);
                     if (!device->debug_mode_) {
-                        t2p_target.radius = getCurrentPositionTargets().radius * accuracy; // 设置目标半径为像素半径的百分比
+                        t2p_target.radius = getCurrentPositionTargets().position.isZero() ? radius * accuracy : getCurrentPositionTargets().radius * accuracy; // 设置目标半径为像素半径的百分比
                         t2p_targets.push_back(t2p_target);
                     } else { // 发布所有的目标
                         // std::cout << "计算目标 " << i << " 在图像上的位置: (" << t2p_target.x << ", " << t2p_target.y << ")" << std::endl;
@@ -319,8 +336,14 @@ bool AppochTargetTask::run(DeviceType device) {
             return false;
         }
         current_type = Type::NONE;
-
-        // return true; // 没有目标，结束任务
+        // execute_next_task_ = true; // 指示执行下一个任务
+        if (waypoint_task != nullptr) {
+            waypoint_task->visit(device);
+            if (waypoint_task->is_execute_finished()){
+                waypoint_task->reset();    // 重置任务以循环使用
+            }
+        }
+        return false;
     }
     device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": No target found");
     return false;
