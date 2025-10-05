@@ -45,11 +45,15 @@ bool RTLLandTask::run(DeviceType device) {
     } else {
         if (timer_.elapsed() < 18) { // 如果等待超过18秒
             device->log_info_throttle(std::chrono::milliseconds(1000), "等待降落,RTL中..", timer_.elapsed());
-        } else if (timer_.elapsed() < 18 + device->get_wait_time()) {
+        } else if (timer_.elapsed() < 18 + 2 * device->get_wait_time()) {
             device->log_info("等待降落超过18秒，开始降落");
             device->get_status_controller()->switch_mode("GUIDED");
             land_task->reset();    // 重置计时器
         } else {
+            if (device->get_mode() != "GUIDED") {
+                device->log_info("切换到GUIDED模式等待get_mode降落, 当前为", device->get_mode());
+                device->get_status_controller()->switch_mode("GUIDED");
+            }
             // device->log_info(get_string());
             land_task->visit(device);
             if (land_task->get_task_result()) {     // device->get_mode() == "GUIDED" && 

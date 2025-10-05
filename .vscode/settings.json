@@ -95,7 +95,13 @@
         "span": "cpp",
         "syncstream": "cpp",
         "valarray": "cpp",
-        "__nullptr": "cpp"
+        "__nullptr": "cpp",
+        "__node_handle": "cpp",
+        "expected": "cpp",
+        "spanstream": "cpp",
+        "stacktrace": "cpp",
+        "format": "cpp",
+        "stdfloat": "cpp"
     },
     "python.autoComplete.extraPaths": [
         "/home/linhao/ardupilot_ws/install/rviz_plugin_tutorial_msgs/local/lib/python3.10/dist-packages",

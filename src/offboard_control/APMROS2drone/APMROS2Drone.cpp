@@ -11,6 +11,7 @@
 #include "../task/DoShotTask.h"
 #include "../task/DoLandTask.h"
 #include "../task/WaitTask.h"
+#include "../task/DoLandTask.h"
 // #include "state/states.h"
 
 // Constructor implementation
@@ -51,7 +52,6 @@ APMROS2Drone::APMROS2Drone(const std::string& ardupilot_namespace,
 	// 	wait_time,
 	// 	std::bind(&ROS2Drone::timer_callback, this)
 	// );
-
 	// timestamp_init = get_cur_time();
 }
 // void APMROS2Drone::initializeStateMachine() {
@@ -324,7 +324,7 @@ void APMROS2Drone::timer_callback(void)
 	
 	doshot_params.dynamic_target_image_callback = [this, do_shot_task]() -> Vector2f {
 		static int circle_counter = 0;
-		float wait_time = 0.7;
+		float wait_time = 1.0;
 		// 命中则不等待
 		// if (!do_shot_task->miss_flag) {
 		// 	wait_time = 0;
@@ -394,15 +394,26 @@ void APMROS2Drone::timer_callback(void)
 			0.10f     // accuracy (航点到达精度)
 		}
 	);
-	auto do_land_task = DoLand::createTask("Do_land")
-	DoLand::Parameters doshot_params;
-	doshot_params.fx = get_camera()->get_fx();
-	doshot_params.dynamic_target_image_callback = [this]() -> Vector2f {
-		return Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::H),
-		 				get_yolo_detector()->get_y(YOLO_TARGET_TYPE::H));
+	auto do_land_task = DoLandTask::createTask("Do_land");
+	DoLandTask::Parameters doland_params;
+	doland_params.fx = get_camera()->get_fx();
+	doland_params.dynamic_target_image_callback = [this]() -> Vector2f {
+		static float h_x = 0.0f, h_y = 0.0f;
+		// std::cout <<  "dynamic_target_image_callback" << Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::H),
+		//  				get_yolo_detector()->get_y(YOLO_TARGET_TYPE::H)).transpose() << std::endl;
+		h_x = get_yolo_detector()->get_x(YOLO_TARGET_TYPE::H);
+		h_y = get_yolo_detector()->get_y(YOLO_TARGET_TYPE::H);
+		if (get_yolo_detector()->is_get_target(YOLO_TARGET_TYPE::H)) {
+			// RCLCPP_INFO_THROTTLE(node->get_logger(), *node->get_clock(), 2000, "检测到降落桩目标，坐标: (%.1f, %.1f)", h_x, h_y);
+			return Vector2f(h_x, h_y);
+		} else {
+			return Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::H),
+							get_yolo_detector()->get_y(YOLO_TARGET_TYPE::H));
+		}
 	};
+	do_land_task->setParameters(doland_params);
 
-	// static state current_state = shot;
+	// static state current_state =setParameters shot;
 	switch (current_state) {
 		case init:
 			FlyState_init();
@@ -424,10 +435,7 @@ void APMROS2Drone::timer_callback(void)
 			break;
 		case shot:
 			// do_shot_task->set_device_index(shot_counter);     // 将doshot_appoch的目标设置为shot_counter，do_shot_task未使用（判断shot_counter和投弹时间解决未超时投弹的重复执行）
-			task_manager.addTask(WaitTask::createTask("Wait_70s")->set_config(70.0
-		// // 走航点时出现pid位置界限需要规范
-		// return Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::CIRCLE),
-		//  				get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE));, false));
+			task_manager.addTask(WaitTask::createTask("Wait_70s")->set_config(70.0, false));
 			task_manager.addTask(do_shot_task->set_task_when_no_target(do_shot_waypoint_task));
 			task_manager.execute();
             RCLCPP_INFO_THROTTLE(node->get_logger(), *node->get_clock(), 2000, "投弹次数: %d, 时间: %.1f/70.0", shot_counter, WaitTask::getTask("Wait_70s")->get_timer().elapsed());
@@ -461,7 +469,7 @@ void APMROS2Drone::timer_callback(void)
 			}
 			break;
 		case land:
-			accept(RTLLandTask::createTask()->setLandTask(DoLandTask::createTask()));
+			accept(RTLLandTask::createTask()->setLandTask(do_land_task));
 			if (RTLLandTask::getTask()->is_execute_finished()) {
 				current_state = end; // 任务结束
 			}
