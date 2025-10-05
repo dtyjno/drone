@@ -8,21 +8,21 @@ pid:
 limits:
   speed_max_xy: 0.7
   speed_max_z: 0.15
-  speed_max_yaw: 0.05
+  speed_max_yaw: 0.05 
   accel_max_xy: 0.5
   accel_max_z: 0.1
 
 shot_duration: 2.0   # 投弹持续时间 单位：s
 shot_wait: 0.7       # 投弹后等待时间 单位：s
-accuracy: 0.80   # 使用像素半径作为目标范围的百分比 * radius 单位：1
+accuracy: 0.70   # 使用像素半径作为目标范围的百分比 * radius 单位：1
 radius: 0.080      # 到达目标范围内的精度 单位：m
 
-tar_x_l: 665.0     # 左侧舵机 目标x坐标，单位：px  0使用默认值
-tar_y_l: 470.0     # 左侧舵机 目标y坐标，单位：px  0使用默认值
-tar_z_l: 1.2         # 目标z坐标 单位：m
-tar_x_r: 615.0     # 右侧舵机 目标x坐标，单位：px  0使用默认值
-tar_y_r: 470.0     # 右侧舵机 目标y坐标，单位：px  0使用默认值
-tar_z_r: 1.2         # 目标y坐标 单位：m
+tar_x_l: 665.0     # z=1.2m 左侧舵机 目标x坐标，单位：px  0使用默认值
+tar_y_l: 470.0     # z=1.2m 左侧舵机 目标y坐标，单位：px  0使用默认值
+tar_z_l: 0.8         # 目标z坐标 单位：m
+tar_x_r: 615.0     # z=1.2m 右侧舵机 目标x坐标，单位：px  0使用默认值
+tar_y_r: 470.0     # z=1.2m 右侧舵机 目标y坐标，单位：px  0使用默认值
+tar_z_r: 0.8         # 目标y坐标 单位：m
 shot_target_x_l: -0.048  # 2 0.045 #0.130   # 0.045 # 左侧舵机 相对于飞机坐标 投弹点x坐标，单位：m
 shot_target_y_l: 0.01   # 2 左侧舵机 投弹点y坐标，单位：m
 shot_target_z_l: 0.07    # 未使用 2 左侧舵机 投弹点z坐标，单位：m

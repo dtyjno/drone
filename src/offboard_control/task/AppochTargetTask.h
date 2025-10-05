@@ -98,7 +98,7 @@ private:
     float radius = 0.1; 						    // 声明读取的映射失败时使用的像素精度
     Parameters parameters;
     bool pid_end_use_next_target_index = false;                          // 投弹标志
-    bool use_pos_pid = true;                                            // 使用位置PID控制
+    bool use_pos_pid = false;                                            // 使用位置PID控制
 public:
     void reset() {
         Task<AppochTargetTask>::reset();

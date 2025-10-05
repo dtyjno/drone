@@ -353,9 +353,9 @@ void APMROS2Drone::timer_callback(void)
 			return Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::CIRCLE),
 							get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE));
 		}
-		// 防止走航点时出现s->circle执行错误pid出现出界问题
+		// // 走航点时出现pid位置界限需要规范
 		// return Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::CIRCLE),
-		// 				get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE));
+		//  				get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE));
 	};
 	doshot_params.device_index = shot_counter;     // 投弹计数
 	doshot_params.target_height = bucket_height;
@@ -379,8 +379,8 @@ void APMROS2Drone::timer_callback(void)
 			Vector4f(0.0f, 4.5f, see_halt, 0.0f),
 			Vector4f(-3.0f, 0.2f, see_halt, 0.0f),
 			Vector4f(-3.0f, 4.5f, see_halt, 0.0f),
-			Vector4f(3.0f, 0.2f, see_halt, 0.0f)
-			Vector4f(3.0f, 4.5f, see_halt, 0.0f),
+			Vector4f(3.0f, 0.2f, see_halt, 0.0f),
+			Vector4f(3.0f, 4.5f, see_halt, 0.0f)
 		}
 	);
 	do_scout_waypoint_task->set_config(
@@ -394,6 +394,13 @@ void APMROS2Drone::timer_callback(void)
 			0.10f     // accuracy (航点到达精度)
 		}
 	);
+	auto do_land_task = DoLand::createTask("Do_land")
+	DoLand::Parameters doshot_params;
+	doshot_params.fx = get_camera()->get_fx();
+	doshot_params.dynamic_target_image_callback = [this]() -> Vector2f {
+		return Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::H),
+		 				get_yolo_detector()->get_y(YOLO_TARGET_TYPE::H));
+	};
 
 	// static state current_state = shot;
 	switch (current_state) {
@@ -417,7 +424,10 @@ void APMROS2Drone::timer_callback(void)
 			break;
 		case shot:
 			// do_shot_task->set_device_index(shot_counter);     // 将doshot_appoch的目标设置为shot_counter，do_shot_task未使用（判断shot_counter和投弹时间解决未超时投弹的重复执行）
-			task_manager.addTask(WaitTask::createTask("Wait_70s")->set_config(70.0, false));
+			task_manager.addTask(WaitTask::createTask("Wait_70s")->set_config(70.0
+		// // 走航点时出现pid位置界限需要规范
+		// return Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::CIRCLE),
+		//  				get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE));, false));
 			task_manager.addTask(do_shot_task->set_task_when_no_target(do_shot_waypoint_task));
 			task_manager.execute();
             RCLCPP_INFO_THROTTLE(node->get_logger(), *node->get_clock(), 2000, "投弹次数: %d, 时间: %.1f/70.0", shot_counter, WaitTask::getTask("Wait_70s")->get_timer().elapsed());
