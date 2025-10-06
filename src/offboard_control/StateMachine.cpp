@@ -176,7 +176,7 @@ void StateMachine::handle_state<FlyState::Doshot>() {
 				RCLCPP_INFO_THROTTLE(owner_->get_logger(), *owner_->get_clock(), 1000, "handle_state<Doshot>:(THROTTLE 1s) counter=%d shot_counter=%d x:%f, y:%f max:%f", counter, shot_counter,
 					abs(owner_->_yolo->get_x(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_width()/2), abs(owner_->_yolo->get_y(YOLO::TARGET_TYPE::CIRCLE) - owner_->_yolo->get_cap_frame_height()/2), max_accurate);
 				if (!shot_flag && static_cast<size_t>(counter) < owner_->cal_center.size() && (
-						owner_->waypoint_timer_.elapsed() < 6.0 || ( // 至少稳定6秒
+						owner_->waypoint_timer_.elapsed() < 8.0 || ( // 至少稳定6秒
 							owner_->waypoint_timer_.elapsed() < 10.0 && ( // 如果小于10秒，且当前无人机位置偏差大于最大距离
 							abs(owner_->get_x_pos() - (owner_->cal_center[counter].point.x())) > max_accurate && 
 							abs(owner_->get_y_pos() - (owner_->cal_center[counter].point.y())) > max_accurate

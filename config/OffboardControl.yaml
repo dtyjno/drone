@@ -1,4 +1,4 @@
-headingangle_compass: 349.0
+headingangle_compass: 257.0
 # headingangle_compass: 349.0
 # headingangle_real: 263.0 # 限定投弹区域有效位置范围的实际角度，不设置默认为headingangle_compass
 dx_shot: 0.0
@@ -9,8 +9,8 @@ shot_halt: 4.5
 shot_halt_surround: 3.0
 shot_halt_low: 1.8
 see_halt: 3.5
-drone_to_camera_x: 0.0   #-0.050 # 2
-drone_to_camera_y: 0.19  #0.062   #0.230   # 2   6.2
+drone_to_camera_x: 0.01   #-0.050 # 2
+drone_to_camera_y: 0.07  #0.19 0.062   #0.230   # 2   6.2
 drone_to_camera_z: 0.141   #0.20   # 2   14.1
 
 # drone_to_camera_x: -0.045 # 1
