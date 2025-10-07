@@ -317,7 +317,7 @@ bool OffboardControl::waypoint_goto_next(float x, float y, float length, float w
 
 // 接近目标点
 bool OffboardControl::catch_target(PID::Defaults defaults, enum YOLO::TARGET_TYPE target, float tar_x, float tar_y, float tar_z, float tar_yaw, float accuracy){
-	// RCLCPP_INFO(this->get_logger(), "--------------------\n\n读取pid参数: p: %f, i: %f, d: %f, ff: %f, dff: %f, imax: %f", defaults.p, defaults.i, defaults.d, defaults.ff, defaults.dff, defaults.imax);d_max_xy: %f, speed_max_z: %f, accel_max_x: %f, accel_max_z: %f", limits.speed_max_xy, limits.speed_max_z, limits.accel_max_xy, limits.accel_max_z);
+	//RCLCPP_INFO(this->get_logger(), "--------------------\n\n读取pid参数: p: %f, i: %f, d: %f, ff: %f, dff: %f, imax: %f", defaults.p, defaults.i, defaults.d, defaults.ff, defaults.dff, defaults.imax);d_max_xy: %f, speed_max_z: %f, accel_max_x: %f, accel_max_z: %f", limits.speed_max_xy, limits.speed_max_z, limits.accel_max_xy, limits.accel_max_z);
 	// 检查YOLO帧尺寸是否有效
 	// if (_yolo->get_cap_frame_width() <= 0 || _yolo->get_cap_frame_height() <= 0) {
 	//     RCLCPP_ERROR(this->get_logger(), "Invalid YOLO frame dimensions: width=%d, height=%d", 
