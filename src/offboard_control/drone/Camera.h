@@ -21,6 +21,7 @@ using namespace Eigen;
 
 class Camera : public CameraInterface {
 public:
+    CameraData* camera_data;
     Vector3d camera_relative_position; // 相机相对于飞机的位置 (tx, ty, tz)
     Vector3d camera_relative_rotation; // 相机在世界坐标系中的旋转 (roll, pitch, yaw)
     Vector3d parent_position; // 父节点的位置 (tx, ty, tz)
@@ -60,12 +61,25 @@ public:
           fx(1.0), fy(1.0), cx(0.0), cy(0.0), width(640), height(480) {
         read_configs("camera.yaml");
     }
+    Camera(CameraData& data)
+        : camera_data(&data),
+          camera_relative_position(Vector3d::Zero()),
+          camera_relative_rotation(Vector3d::Zero()),
+          parent_position(Vector3d::Zero()),
+          parent_rotation(Vector3d::Zero()),
+          fx(1.0), fy(1.0), cx(0.0), cy(0.0), width(640), height(480) {
+        read_configs("camera.yaml");
+    }
     Camera(const Vector3d& pos, const Vector3d& rot, double fx, double fy, double cx, double cy, double width, double height)
         : camera_relative_position(Vector3d::Zero()),
           camera_relative_rotation(Vector3d::Zero()),
           parent_position(pos),
           parent_rotation(rot),
           fx(fx), fy(fy), cx(cx), cy(cy), width(width), height(height) {
+    }
+
+    CameraData get_camera_data() const override {
+        return *camera_data;
     }
 
     // PosDataObserverInterface 实现
@@ -272,7 +286,8 @@ public:
         Vector2d norm_point(cam_point.x() / cam_point.z(), cam_point.y() / cam_point.z());
         
         // 5. 应用畸变
-        Vector2d distorted_point = applyDistortion(norm_point);
+        // Vector2d distorted_point = applyDistortion(norm_point);
+        Vector2d distorted_point = norm_point;
         // std::cout << "归一化坐标: " << norm_point.transpose() << ", 畸变后: " << distorted_point.transpose() << std::endl;
         
         // 6. 转换为像素坐标
@@ -326,7 +341,8 @@ public:
         // 1. 像素坐标转换为归一化坐标（带畸变校正）
         Vector2d norm_point;
         try {
-            norm_point = pixelToNormalized(pixel_point);
+            // norm_point = pixelToNormalized(pixel_point);
+            norm_point = pixel_point;
         } catch (const cv::Exception& e) {
             std::cerr << "Error in distortion correction: " << e.what() << std::endl;
             return std::nullopt;

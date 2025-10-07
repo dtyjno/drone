@@ -1,4 +1,5 @@
-headingangle_compass: 348.0
+headingangle_compass: 70.0
+# headingangle_compass: 348.0
 # headingangle_real: 263.0 # 限定投弹区域有效位置范围的实际角度，不设置默认为headingangle_compass
 dx_shot: 0.0
 dy_shot: 30.0
@@ -11,4 +12,4 @@ see_halt: 3.5
 
 servo_open_position: 1980
 servo_close_position: 1200
-shot_big_target: true
+shot_big_target: false

@@ -86,6 +86,7 @@ Vector4f PosController::input_pos_xyz_yaw(Vector4f now, Vector4f target, bool fu
 		fuzzy_pid.fuzzy_pid_control(now.w(), target.w(), 3, kp, ki, kd, delta_k);
 		pid_yaw.set_gains(kp, ki, kd);
 		f.w() = pid_yaw.update_all(now.w(), target.w() + yaw_diff_last, dt, max_speed_yaw, this->pos_data->get_velocity_yaw());
+		// std::cout << "input_pos_vel_xyz_yaw: yaw_diff: " << yaw_diff << ", yaw_diff_last: " << yaw_diff_last << std::endl;
 		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: yaw p:%f i:%f d:%f", 
 		// 	kp, ki, kd);
 		// RCLCPP_INFO(node->get_logger(), "input_pos_vel_xyz_yaw: px:%f py:%f pz:%f pyaw:%f",

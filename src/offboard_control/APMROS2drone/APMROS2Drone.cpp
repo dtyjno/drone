@@ -213,10 +213,13 @@ void APMROS2Drone::timer_callback(void)
 		auto AppochTargetTask = AppochTargetTask::createTask("AppochTargetTask");
 		AppochTargetTask::Parameters appoch_params;
 		appoch_params.fx = _camera_gimbal->get_fx(); // 相机焦距，像素单位
-		appoch_params.dynamic_target_image_callback = [this]() -> Vector2f {
+		appoch_params.dynamic_target_image_callback = [this]() -> AppochTargetTask::ImageTargetData {
 			// return Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::CIRCLE),
 			// 				get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE));
-			return Vector2f(100, 100);
+			AppochTargetTask::ImageTargetData data;
+			data.has_target = true;
+			data.data = Vector2f(100, 100);
+			return data;
 		};
 		appoch_params.target_height = bucket_height; // 目标高度
 		appoch_params.task_type = AppochTargetTask::Type::PID;
@@ -322,20 +325,23 @@ void APMROS2Drone::timer_callback(void)
         // return Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
 	};
 	
-	doshot_params.dynamic_target_image_callback = [this, do_shot_task]() -> Vector2f {
+	doshot_params.dynamic_target_image_callback = [this, do_shot_task]() -> AppochTargetTask::ImageTargetData {
 		static int circle_counter = 0;
-		float wait_time = 1.0;
+		float wait_time = 2.0;
+		AppochTargetTask::ImageTargetData result;
 		// 命中则不等待
 		// if (!do_shot_task->miss_flag) {
 		// 	wait_time = 0;
 		// }
 		// 优先找圆桶
+		// std::cout << "寻找圆桶目标 circle_counter: " << circle_counter << std::endl;
 		if (!get_yolo_detector()->is_get_target(YOLO_TARGET_TYPE::CIRCLE) && circle_counter * get_wait_time() <= wait_time) {
 			// 没检测到圆桶，计数器累加
 			circle_counter++;
 			// return Vector2f::Zero();
-			return Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::CIRCLE),
+			result.data = Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::CIRCLE),
 				get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE));
+			result.has_target = false;
 		} else if (!get_yolo_detector()->is_get_target(YOLO_TARGET_TYPE::CIRCLE)) {
 			// // 如果已经投过弹了，继续找填充物
 			// if (do_shot_task->is_shot()) {
@@ -344,15 +350,21 @@ void APMROS2Drone::timer_callback(void)
 			// 					get_yolo_detector()->get_y(YOLO_TARGET_TYPE::STUFFED));
 			// } else {
 			// 没有目标，返回默认值
-			return Vector2f::Zero();
+			result.data = Vector2f::Zero();
+			result.has_target = true;
+			// return Vector2f::Zero();
 			// }
 		} else {
 			wait_time = 0.7;
 			circle_counter = 0;
 			RCLCPP_INFO_THROTTLE(node->get_logger(), *node->get_clock(), 2000, "检测到圆桶目标，坐标: (%.1f, %.1f)", get_yolo_detector()->get_x(YOLO_TARGET_TYPE::CIRCLE), get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE));
-			return Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::CIRCLE),
-							get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE));
+			// return Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::CIRCLE),
+			// 				get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE));
+			result.data = Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::CIRCLE),
+				get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE));
+			result.has_target = true;
 		}
+		return result;
 		// // 走航点时出现pid位置界限需要规范
 		// return Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::CIRCLE),
 		//  				get_yolo_detector()->get_y(YOLO_TARGET_TYPE::CIRCLE));
@@ -397,19 +409,23 @@ void APMROS2Drone::timer_callback(void)
 	auto do_land_task = DoLandTask::createTask("Do_land");
 	DoLandTask::Parameters doland_params;
 	doland_params.fx = get_camera()->get_fx();
-	doland_params.dynamic_target_image_callback = [this]() -> Vector2f {
+	doland_params.dynamic_target_image_callback = [this]() -> AppochTargetTask::ImageTargetData {
 		static float h_x = 0.0f, h_y = 0.0f;
+		AppochTargetTask::ImageTargetData result;
 		// std::cout <<  "dynamic_target_image_callback" << Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::H),
 		//  				get_yolo_detector()->get_y(YOLO_TARGET_TYPE::H)).transpose() << std::endl;
 		h_x = get_yolo_detector()->get_x(YOLO_TARGET_TYPE::H);
 		h_y = get_yolo_detector()->get_y(YOLO_TARGET_TYPE::H);
 		if (get_yolo_detector()->is_get_target(YOLO_TARGET_TYPE::H)) {
 			// RCLCPP_INFO_THROTTLE(node->get_logger(), *node->get_clock(), 2000, "检测到降落桩目标，坐标: (%.1f, %.1f)", h_x, h_y);
-			return Vector2f(h_x, h_y);
+			result.data = Vector2f(h_x, h_y);
+			result.has_target = false;
 		} else {
-			return Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::H),
+			result.data = Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::H),
 							get_yolo_detector()->get_y(YOLO_TARGET_TYPE::H));
+			result.has_target = true;
 		}
+		return result;
 	};
 	do_land_task->setParameters(doland_params);
 

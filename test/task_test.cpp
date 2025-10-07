@@ -167,14 +167,10 @@ TEST(TaskTest, DoShotTask) {
 	auto do_shot_task = DoShotTask::createTask("Do_shot");
 	DoShotTask::Parameters doshot_params;
   std::function<AppochTargetTask::PositionTarget()> empty_position_callback = []() -> AppochTargetTask::PositionTarget {
-      AppochTargetTask::PositionTarget pos_target;
-			pos_target.position = Vector3f::Zero();
-			pos_target.radius = 0.0f;
-			pos_target.index = -1;
-			return pos_target;
+			return AppochTargetTask::PositionTarget();
   };
-  std::function<Vector2f()> empty_image_callback = []() -> Vector2f {
-      return Vector2f::Zero();
+  std::function<AppochTargetTask::ImageTargetData()> empty_image_callback = []() -> AppochTargetTask::ImageTargetData {
+      return AppochTargetTask::ImageTargetData();
   };
   std::function<AppochTargetTask::PositionTarget()> target_position_callback = []() -> AppochTargetTask::PositionTarget {
       AppochTargetTask::PositionTarget pos_target;
@@ -184,19 +180,23 @@ TEST(TaskTest, DoShotTask) {
       return pos_target;
 	};
   // (-1.0, -1.0)
-  std::function<Vector2f()> target_image_callback = [device, bucket_height]() -> Vector2f {
+  std::function<AppochTargetTask::ImageTargetData()> target_image_callback = [device, bucket_height]() -> AppochTargetTask::ImageTargetData {
     // std::cout << "pox_x = " << device->get_x_pos() << " pox_y = " << device->get_y_pos() << " pox_z = " << device->get_z_pos() << std::endl;
     // std::cout << "camera position = " << device->get_camera()->get_position().transpose() << std::endl;
+    AppochTargetTask::ImageTargetData result;
     Vector3d target_world_position = Vector3d{-0.5, -0.5, bucket_height};
     auto output_pixel_opt = device->get_camera()->worldToPixel(target_world_position);
     if (output_pixel_opt.has_value()) {
         Vector2d output_pixel = output_pixel_opt.value();
         std::cout << "worldToPixel: output_pixel: " << output_pixel.transpose() << std::endl;
-        return Vector2f(output_pixel.x(), output_pixel.y());
+        result.data = Vector2f(output_pixel.x(), output_pixel.y());
+        result.has_target = true;
     } else {
         std::cerr << "worldToPixel error" << std::endl;
-        return Vector2f::Zero();
+        result.data = Vector2f::Zero();
+        result.has_target = false;
     }
+    return result;
   };
 
 	doshot_params.dynamic_target_position_callback = empty_position_callback;
@@ -263,7 +263,7 @@ TEST(TaskTest, DoShotTask) {
   do_shot_task->setDynamicImageTargetCallback(target_image_callback);
   device->accept(do_shot_task);
   std::cout << "dynamic_target_position_callback" << appoch_ptr->getCurrentPositionTargets().position.transpose() << std::endl;
-  std::cout << "dynamic_target_image_callback" << appoch_ptr->getCurrentImageTargets().transpose() << std::endl;
+  std::cout << "dynamic_target_image_callback" << appoch_ptr->getCurrentImageTargets().data.transpose() << std::endl;
   EXPECT_TRUE(appoch_ptr->getCurrentType() == AppochTargetTask::Type::TARGET);
   std::cout << "只有位置目标" << std::endl;
   do_shot_task->setDynamicPositionTargetCallback(target_position_callback);
@@ -348,19 +348,23 @@ TEST(TaskTest, DoLandTask) {
       EXPECT_TRUE(false);
       return;
   }
-  land_task_ptr->setDynamicImageTargetCallback([device]() -> Vector2f {
+  land_task_ptr->setDynamicImageTargetCallback([device]() -> AppochTargetTask::ImageTargetData {
     // std::cout << "pox_x = " << device->get_x_pos() << " pox_y = " << device->get_y_pos() << " pox_z = " << device->get_z_pos() << std::endl;
     // std::cout << "camera position = " << device->get_camera()->get_position().transpose() << std::endl;
     Vector3d target_world_position = Vector3d{-0.5, -0.5, 0.0};
+    AppochTargetTask::ImageTargetData result;
     auto output_pixel_opt = device->get_camera()->worldToPixel(target_world_position);
     if (output_pixel_opt.has_value()) {
         Vector2d output_pixel = output_pixel_opt.value();
         std::cout << "worldToPixel: output_pixel: " << output_pixel.transpose() << std::endl;
-        return Vector2f(output_pixel.x(), output_pixel.y());
+        result.data = Vector2f(output_pixel.x(), output_pixel.y());
+        result.has_target = true;
     } else {
         std::cerr << "worldToPixel error" << std::endl;
-        return Vector2f::Zero();
+        result.data = Vector2f::Zero();
+        result.has_target = false;
     }
+    return result;
   });
 
   // 设置相机位置和方向 0, 0, 0 roll=0 pitch=0 yaw=0 垂直向下

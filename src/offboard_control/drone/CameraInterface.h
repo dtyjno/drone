@@ -5,6 +5,7 @@
 #include <string>
 
 #include "PosDataObserverInterface.h"
+#include "CameraDate.h"
 
 using namespace Eigen;
 
@@ -12,7 +13,10 @@ class CameraInterface : public PosDataObserverInterface {
 public:
     virtual ~CameraInterface() = default;
 
-    // // 获取/设置相机与无人机的相对位置
+    // 获取相机数据
+    virtual CameraData get_camera_data() const = 0;
+
+    // 获取/设置相机与无人机的相对位置
     // virtual Vector3d get_drone_to_camera() const = 0;
     // virtual void set_drone_to_camera(const Vector3d& pos) = 0;
 

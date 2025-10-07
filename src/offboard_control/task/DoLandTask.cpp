@@ -50,6 +50,7 @@ bool DoLandTask::init(DeviceType device) {
         task_params.target_height = parameters.target_height;                             // 目标的高度，默认为地面高度0.0m
         task_params.target_yaw = parameters.target_yaw;                                 // 目标偏航角
         task_params.task_type = AppochTargetTask::Type::PID;                                  // 任务类型
+        task_params.pid_mode = AppochTargetTask::PIDControlMode::IMAGE_VEL;
         task->setParameters(task_params);
         device->log_info("Doland");
         // rotate_global2stand(scout_x, scout_y, x_home, y_home);
@@ -91,7 +92,7 @@ bool DoLandTask::run(DeviceType device) {
         }
 
         // if (!device->get_yolo_detector()->is_get_target(YOLO_TARGET_TYPE::H)) // yolo未识别到YOLO::TARGET_TYPE::H   (YOLO::TARGET_TYPE::CIRCLE)
-        if (parameters.dynamic_target_image_callback() == Vector2f::Zero()) // yolo未识别到YOLO::TARGET_TYPE::H   (YOLO::TARGET_TYPE::CIRCLE)
+        if (parameters.dynamic_target_image_callback().data == Vector2f::Zero()) // yolo未识别到YOLO::TARGET_TYPE::H   (YOLO::TARGET_TYPE::CIRCLE)
         {
             if (timer_.get_timepoint_elapsed() > 2.0)
             {

@@ -109,7 +109,7 @@ bool AppochTargetTask::run(DeviceType device) {
                 )
                 )
             );
-        bool is_pid = !getCurrentImageTargets().isZero();
+        bool is_pid = !getCurrentImageTargets().data.isZero();
 
         // 设置Type::AUTO状态转换逻辑
         if (parameters.task_type == Type::AUTO) {
@@ -190,8 +190,8 @@ bool AppochTargetTask::run(DeviceType device) {
         if (is_pid && (parameters.task_type == Type::PID || parameters.task_type == Type::AUTO)) {
             current_type = Type::PID;
             device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": Approaching image target ", parameters.device_index, " at (",
-                getCurrentImageTargets().x(), ", ",
-                getCurrentImageTargets().y(), ")");
+                getCurrentImageTargets().data.x(), ", ",
+                getCurrentImageTargets().data.y(), ")");
             // pid_defaults = PID::readPIDParameters(parameters.config_file_name, "pid");
 
             // 检查是否有目标
@@ -277,37 +277,54 @@ bool AppochTargetTask::run(DeviceType device) {
             current_target.b = 0.0f;
 
             // yolo返回值坐标系：x右y下（x_flip|y_flip = false），转换为飞机坐标系：x右y上
-            float now_x = getCurrentImageTargets().x();    // get_cap_frame_width() - get_x(target);
-            float now_y = device->get_yolo_detector()->get_cap_frame_height() - getCurrentImageTargets().y();    // get_y(target);
+            float now_x = getCurrentImageTargets().data.x();    // get_cap_frame_width() - get_x(target);
+            float now_y = device->get_yolo_detector()->get_cap_frame_height() - getCurrentImageTargets().data.y();    // get_y(target);
             float tar_u = current_target.x;    // get_cap_frame_width() - current_target.x; // 目标x坐标
             float tar_v = device->get_yolo_detector()->get_cap_frame_height() - current_target.y;    // tar_y; // 目标y坐标
     //
             std::optional<Vector3d> image_target_position = device->get_camera()->pixelToWorldPosition(
-                Vector2d(getCurrentImageTargets().x(), getCurrentImageTargets().y()),    // 图像上的目标像素坐标
+                Vector2d(getCurrentImageTargets().data.x(), getCurrentImageTargets().data.y()),    // 图像上的目标像素坐标
                 0.3     // 桶顶高度
             );
-            if (image_target_position.has_value() && use_pos_pid) {
+            if (image_target_position.has_value() && (getCurrentPIDMode() == PIDControlMode::POS_VEL || getCurrentPIDMode() == PIDControlMode::POS_POINT)) {
                 // device->log_info("Pixel to world position: (", image_target_position->x(), ", ", image_target_position->y(), ", ", image_target_position->z(), ")");
+                std::cout << "use_pos_pid: Pixel to world position: (" << image_target_position->x() << ", " << image_target_position->y() << ", " << image_target_position->z() << ")" << std::endl;
                 // 更新位置目标
-                PositionTarget pos_target;
-                pos_target.position = Vector3f(image_target_position->x(), image_target_position->y(), current_target.z);
-                pos_target.radius = getCurrentPositionTargets().radius * accuracy;
-                pos_target.index = get_auto_target_position_index();
+                static PositionTarget pos_target;
+                if (getCurrentImageTargets().has_target) {
+                    pos_target.position = Vector3f(image_target_position->x(), image_target_position->y(), current_target.z);
+                    pos_target.radius = getCurrentPositionTargets().radius * accuracy;
+                    pos_target.index = get_auto_target_position_index();
+                } else if (getCurrentPIDMode() == PIDControlMode::POS_VEL) {
+                    // 如果没有检测到目标，则保持当前位置不变
+                    pos_target.position = Vector3f(device->get_x_pos(), device->get_y_pos(), device->get_z_pos());
+                    // pos_target.radius = 0.0f;
+                    // pos_target.index = -1;
+                } else if (getCurrentPIDMode() == PIDControlMode::POS_POINT) {
+                    // 如果没有检测到目标，则使用先前的投弹位置
+                }
                 device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), "Image target to world position: (", pos_target.position.x(), ", ", pos_target.position.y(), ", ", pos_target.position.z(), "), radius: ", pos_target.radius);
                 float rotated_x, rotated_y;  // 声明待旋转目标坐标
                 device->rotate_world2local(this->device_position[parameters.device_index].x(), this->device_position[parameters.device_index].y(), rotated_x, rotated_y);
                 device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), "Device position: (", device->get_x_pos() + rotated_x, ", ", device->get_y_pos() + rotated_y, ", ", device->get_z_pos() + this->device_position[parameters.device_index].z(), ")");
                 // updatePositionTargets(pos_target);
-                device->get_position_controller()->trajectory_setpoint_world(
-                    Vector4f{device->get_x_pos() + rotated_x, device->get_y_pos() + rotated_y, device->get_z_pos() + this->device_position[parameters.device_index].z(), static_cast<float>(device->get_world_yaw())}, // 当前坐标        get_world_yaw()  // 当前坐标
-                    Vector4f{pos_target.position.x(), pos_target.position.y(), pos_target.position.z(), parameters.target_yaw + device->get_default_world_yaw()}, // 目标坐标  parameters.target_yaw
-                    pos_pid_defaults,
-                    0.0,               				// 精度
-                    0.0 			 				// 偏航精度
-                    // true             				// 是否不使用飞机速度计算
-                    //	get_velocity_x(target) / max_frame, 	// 飞机速度
-                    //	get_velocity_y(target) / max_frame  	// 飞机速度
-                );
+                if (getCurrentPIDMode() == PIDControlMode::POS_VEL) {
+                    device->get_position_controller()->trajectory_setpoint_world(
+                        Vector4f{device->get_x_pos() + rotated_x, device->get_y_pos() + rotated_y, device->get_z_pos() + this->device_position[parameters.device_index].z(), static_cast<float>(device->get_world_yaw())}, // 当前坐标        get_world_yaw()  // 当前坐标
+                        Vector4f{pos_target.position.x(), pos_target.position.y(), pos_target.position.z(), parameters.target_yaw + device->get_default_world_yaw()}, // 目标坐标  parameters.target_yaw
+                        pos_pid_defaults,
+                        0.0,               				// 精度
+                        0.0 			 				// 偏航精度
+                        // true             				// 是否不使用飞机速度计算
+                        //	get_velocity_x(target) / max_frame, 	// 飞机速度
+                        //	get_velocity_y(target) / max_frame  	// 飞机速度
+                    );
+                } else if (getCurrentPIDMode() == PIDControlMode::POS_POINT) {
+                    device->send_world_setpoint_command(
+                        pos_target.position.x() + rotated_x,
+                        pos_target.position.y() + rotated_y,
+                        pos_target.position.z() + this->device_position[parameters.device_index].z(), 0); // 发送世界坐标系下的航点指令
+                }
                 if ((abs(device->get_x_pos() + rotated_x - pos_target.position.x()) <= pos_target.radius && abs(device->get_y_pos() + rotated_y - pos_target.position.y()) <= pos_target.radius) ||
                     (abs(now_x - image_targets[parameters.device_index].x) <= current_target.caculate_pixel_radius() && abs(now_y - image_targets[parameters.device_index].y) <= current_target.caculate_pixel_radius()))  // 接近目标
                 {
@@ -332,8 +349,8 @@ bool AppochTargetTask::run(DeviceType device) {
                 //     return false;
                 // }
                     // // yolo返回值坐标系：x右y下（x_flip|y_flip = false），转换为飞机坐标系：x右y上
-                    // float now_x = getCurrentImageTargets().x();    // get_cap_frame_width() - get_x(target);
-                    // float now_y = device->get_yolo_detector()->get_cap_frame_height() - getCurrentImageTargets().y();    // get_y(target);
+                    // float now_x = getCurrentImageTargets().data.x();    // get_cap_frame_width() - get_x(target);
+                    // float now_y = device->get_yolo_detector()->get_cap_frame_height() - getCurrentImageTargets().data.y();    // get_y(target);
                     // float tar_u = current_target.x;    // get_cap_frame_width() - current_target.x; // 目标x坐标
                     // float tar_v = device->get_yolo_detector()->get_cap_frame_height() - current_target.y;    // tar_y; // 目标y坐标
                 // 检查坐标是否有效

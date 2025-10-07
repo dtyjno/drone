@@ -22,7 +22,7 @@ public:
     }
     
     // 设置动态目标坐标回调函数
-    void setDynamicImageTargetCallback(std::function<Vector2f()> callback) {
+    void setDynamicImageTargetCallback(std::function<AppochTargetTask::ImageTargetData()> callback) {
         parameters.dynamic_target_image_callback = callback;
         task->setDynamicImageTargetCallback(callback);
     }
@@ -41,7 +41,7 @@ public:
         size_t device_index = 0;                                                // 当前接近的设备索引
         float fx = 1.0f;                                        // 相机焦距，像素单位
         std::function<AppochTargetTask::PositionTarget()> dynamic_target_position_callback;         // 获取动态准确目标坐标的回调函数 x,y,z,r
-        std::function<Vector2f()> dynamic_target_image_callback = []{return Vector2f::Zero();};         // 获取动态图像目标坐标的回调函数 x,y,z,r
+        std::function<AppochTargetTask::ImageTargetData()> dynamic_target_image_callback = []{return AppochTargetTask::ImageTargetData();};         // 获取动态图像目标坐标的回调函数 x,y,z,r
         float target_height = 0.0f;                             // 目标的高度，默认为地面高度0.0m
         float target_yaw = 0.0f;                                // 目标偏航角
     };

@@ -9,16 +9,16 @@ p2: 0.001
 k3: 0.050
 width: 1280
 height: 720
-camera_relative_position_x: 0.0 #-0.050 # 2
-camera_relative_position_y: 0.08 # 0.08 0.230 # 2 6.2
-camera_relative_position_z: 0.15 # 0.20 # 2 14.1
+camera_relative_position_x: 0.02 #-0.050 # 2
+camera_relative_position_y: 0.07 # 0.08 0.230 # 2 6.2
+camera_relative_position_z: 0.141 # 0.20 # 2 14.1
 camera_relative_rotation_roll: 0.0
 camera_relative_rotation_pitch: 0.0
 camera_relative_rotation_yaw: 0.0
 
 # 滤波器参数
-process_noise: 0.008             # 过程噪声 - 降低以获得更平滑的轨迹 0.015
-measurement_noise: 0.7           # 测量噪声 - 根据YOLO检测精度调整 0.5
+process_noise: 0.005             # 过程噪声 - 降低以获得更平滑的轨迹 0.015
+measurement_noise: 0.5           # 测量噪声 - 根据YOLO检测精度调整 0.5
 moving_average_window: 3         # 移动平均窗口大小 - 3-5帧的平滑
 outlier_threshold: 100.0         # 异常值阈值（像素）- 超过此距离的测量值被视为异常
 stability_threshold: 10.0        # 稳定性阈值（像素）- 连续测量变化小于此值认为稳定
