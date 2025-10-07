@@ -310,8 +310,8 @@ bool AppochTargetTask::run(DeviceType device) {
                 // updatePositionTargets(pos_target);
                 if (getCurrentPIDMode() == PIDControlMode::POS_VEL) {
                     device->get_position_controller()->trajectory_setpoint_world(
-                        Vector4f{device->get_x_pos() + rotated_x, device->get_y_pos() + rotated_y, device->get_z_pos() + this->device_position[parameters.device_index].z(), static_cast<float>(device->get_world_yaw())}, // 当前坐标        get_world_yaw()  // 当前坐标
-                        Vector4f{pos_target.position.x(), pos_target.position.y(), pos_target.position.z(), parameters.target_yaw + device->get_default_world_yaw()}, // 目标坐标  parameters.target_yaw
+                        Vector4f{device->get_x_pos() + rotated_x, device->get_y_pos() + rotated_y, device->get_z_pos() + this->device_position[parameters.device_index].z(), static_cast<float>(device->get_yaw())}, // 当前坐标        get_world_yaw()  // 当前坐标
+                        Vector4f{pos_target.position.x(), pos_target.position.y(), pos_target.position.z(), parameters.target_yaw + device->get_default_yaw()}, // 目标坐标  parameters.target_yaw
                         pos_pid_defaults,
                         0.0,               				// 精度
                         0.0 			 				// 偏航精度
@@ -375,8 +375,8 @@ bool AppochTargetTask::run(DeviceType device) {
                     tar_v, ", target_z: ",
                     current_target.z);
                 device->get_position_controller()->trajectory_setpoint_world(
-                    Vector4f{tar_u / max_frame, tar_v / max_frame, static_cast<float>(device->get_z_pos()), static_cast<float>(device->get_world_yaw())}, // 当前坐标        get_world_yaw()  // 当前坐标
-                    Vector4f{now_x / max_frame, now_y / max_frame, current_target.z, parameters.target_yaw + device->get_default_world_yaw()}, // 目标坐标  parameters.target_yaw
+                    Vector4f{tar_u / max_frame, tar_v / max_frame, static_cast<float>(device->get_z_pos()), static_cast<float>(device->get_yaw())}, // 当前坐标        get_world_yaw()  // 当前坐标
+                    Vector4f{now_x / max_frame, now_y / max_frame, current_target.z, parameters.target_yaw + device->get_default_yaw()}, // 目标坐标  parameters.target_yaw
                     pid_defaults,
                     0.0,               				// 精度
                     0.0 			 				// 偏航精度

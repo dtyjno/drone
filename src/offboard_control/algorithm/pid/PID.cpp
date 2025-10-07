@@ -298,7 +298,7 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
         }
     }
 #endif
-    float dead_zone = 0.005f; // 死区阈值
+    float dead_zone = 0.01f; // 死区阈值
 
     // Calculate the proportional term
     if (use_increment == true)
@@ -529,19 +529,19 @@ void PID::update_i(float dt, float limit)
     
     
     // 定义积分分离阈值（可根据实际情况调整）
-    float separation_threshold = 0.075f;
+    // float separation_threshold = 0.075f;
     
-    if (fabs(_error) > separation_threshold) 
-    {
-        // 误差大时，完全关闭积分或大幅减弱
-        integral_enabled = false;
-        // 可选：清空或衰减现有积分项
-        _pid_info.I *= 0.89f;  // 快速衰减
-        if (fabs(_pid_info.I) < 0.03f)
-        {
-            _pid_info.I = 0.03f; // 设定积分项最小值防止清0
-        }
-    }
+    // if (fabs(_error) > separation_threshold) 
+    // {
+    //     // 误差大时，完全关闭积分或大幅减弱
+    //     integral_enabled = false;
+    //     // 可选：清空或衰减现有积分项
+    //     _pid_info.I *= 0.89f;  // 快速衰减
+    //     if (fabs(_pid_info.I) < 0.03f)
+    //     {
+    //         _pid_info.I = _pid_info.I > 0 ? 0.03f : -0.03f; // 设定积分项最小值防止清0
+    //     }
+    // }
     // printf("PID%s: integral_increment:%+10f, dt:%+10f, kI:%+10f, I:%+10f, error:%+10f, integral_enabled:%d\n", pid_name.c_str(), integral_increment, dt, _pid_info._kI, _pid_info.I, _error, integral_enabled);
     if (integral_enabled)
     {
