@@ -516,7 +516,6 @@ void PID::update_i(float dt, float limit)
         _pid_info.limit = (limit > 0);
         return;
     }
-    bool integral_enabled = true;
     
     // 计算基本积分项增量
     float integral_increment = _error * _pid_info._kI * dt;
@@ -529,12 +528,12 @@ void PID::update_i(float dt, float limit)
     
     
     // 定义积分分离阈值（可根据实际情况调整）
-    // float separation_threshold = 0.075f;
+    float separation_threshold = 0.075f;
     
     // if (fabs(_error) > separation_threshold) 
     // {
-    //     // 误差大时，完全关闭积分或大幅减弱
-    //     integral_enabled = false;
+    //    
+    //    
     //     // 可选：清空或衰减现有积分项
     //     _pid_info.I *= 0.89f;  // 快速衰减
     //     if (fabs(_pid_info.I) < 0.03f)
@@ -543,8 +542,6 @@ void PID::update_i(float dt, float limit)
     //     }
     // }
     // printf("PID%s: integral_increment:%+10f, dt:%+10f, kI:%+10f, I:%+10f, error:%+10f, integral_enabled:%d\n", pid_name.c_str(), integral_increment, dt, _pid_info._kI, _pid_info.I, _error, integral_enabled);
-    if (integral_enabled)
-    {
         if (limit <= 0)
         {
             _pid_info.I += integral_increment;
@@ -610,7 +607,16 @@ void PID::update_i(float dt, float limit)
         // printf("PID%s: Integral decay applied: %f\n", pid_name.c_str(), _pid_info.I);
             _pid_info.I *= 0.99f; // 轻微衰减，避免长期偏差
         }
-    }
+        if (fabs(_error) > separation_threshold) 
+        {
+            // 可选：清空或衰减现有积分项
+            _pid_info.I *= 0.89f;  // 轻微衰减
+            if (fabs(_pid_info.I) < 0.03f)
+            {
+                _pid_info.I = _pid_info.I > 0 ? 0.03f : -0.03f; // 设定积分项最小值防止清0
+            }
+        }
+    
     // 设置限制标志
     _pid_info.limit = (limit > 0);
 }
