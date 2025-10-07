@@ -146,22 +146,26 @@ public:
     }
     // 像素坐标转换为归一化坐标（带畸变校正）
     Vector2d pixelToNormalized(const Vector2d& pixel) const {
-        // 更新相机矩阵和畸变系数矩阵
-        cv::Mat camera_matrix = (cv::Mat_<double>(3, 3) << 
-            fx, 0, cx, 
-            0, fy, cy, 
-            0, 0, 1
-        );
-        cv::Mat dist_coeffs = (cv::Mat_<double>(1, 5) << 
-            k1, k2, p1, p2, k3);
-        // 输入点准备
-        cv::Point2f src_pt(pixel.x(), pixel.y());
-        std::vector<cv::Point2f> src = {src_pt}, dst;
+        // // 更新相机矩阵和畸变系数矩阵
+        // cv::Mat camera_matrix = (cv::Mat_<double>(3, 3) << 
+        //     fx, 0, cx, 
+        //     0, fy, cy, 
+        //     0, 0, 1
+        // );
+        // cv::Mat dist_coeffs = (cv::Mat_<double>(1, 5) << 
+        //     k1, k2, p1, p2, k3);
+        // // 输入点准备
+        // cv::Point2f src_pt(pixel.x(), pixel.y());
+        // std::vector<cv::Point2f> src = {src_pt}, dst;
         
-        // 去畸变
-        cv::undistortPoints(src, dst, camera_matrix, dist_coeffs);
+        // // 去畸变
+        // cv::undistortPoints(src, dst, camera_matrix, dist_coeffs);
         
-        return Vector2d(dst[0].x, dst[0].y);
+        // return Vector2d(dst[0].x, dst[0].y);
+        // 归一化公式: (u - cx) / fx, (v - cy) / fy
+        double x_norm = (pixel.x() - cx) / fx;
+        double y_norm = (pixel.y() - cy) / fy;
+        return Vector2d(x_norm, y_norm);
     }
     // 应用相机畸变
     Vector2d applyDistortion(const Vector2d& norm_point) const {
@@ -341,8 +345,8 @@ public:
         // 1. 像素坐标转换为归一化坐标（带畸变校正）
         Vector2d norm_point;
         try {
-            // norm_point = pixelToNormalized(pixel_point);
-            norm_point = pixel_point;
+            norm_point = pixelToNormalized(pixel_point);
+            // norm_point = pixel_point;
         } catch (const cv::Exception& e) {
             std::cerr << "Error in distortion correction: " << e.what() << std::endl;
             return std::nullopt;

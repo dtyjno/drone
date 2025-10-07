@@ -298,7 +298,7 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
         }
     }
 #endif
-    float dead_zone = 0.015f; // 死区阈值
+    float dead_zone = 0.005f; // 死区阈值
 
     // Calculate the proportional term
     if (use_increment == true)
