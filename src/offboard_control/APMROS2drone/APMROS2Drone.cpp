@@ -410,20 +410,20 @@ void APMROS2Drone::timer_callback(void)
 	DoLandTask::Parameters doland_params;
 	doland_params.fx = get_camera()->get_fx();
 	doland_params.dynamic_target_image_callback = [this]() -> AppochTargetTask::ImageTargetData {
-		static float h_x = 0.0f, h_y = 0.0f;
+		static float h_x = -1.0f, h_y = -1.0f;
 		AppochTargetTask::ImageTargetData result;
 		// std::cout <<  "dynamic_target_image_callback" << Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::H),
 		//  				get_yolo_detector()->get_y(YOLO_TARGET_TYPE::H)).transpose() << std::endl;
 		h_x = get_yolo_detector()->get_x(YOLO_TARGET_TYPE::H);
 		h_y = get_yolo_detector()->get_y(YOLO_TARGET_TYPE::H);
-		if (get_yolo_detector()->is_get_target(YOLO_TARGET_TYPE::H)) {
+		if (h_x > 0 && h_y > 0 ) {
 			// RCLCPP_INFO_THROTTLE(node->get_logger(), *node->get_clock(), 2000, "检测到降落桩目标，坐标: (%.1f, %.1f)", h_x, h_y);
-			result.data = Vector2f(h_x, h_y);
-			result.has_target = false;
-		} else {
 			result.data = Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::H),
 							get_yolo_detector()->get_y(YOLO_TARGET_TYPE::H));
 			result.has_target = true;
+		} else {
+			result.data = Vector2f::Zero();
+			result.has_target = false;
 		}
 		return result;
 	};

@@ -88,7 +88,7 @@ public:
         float target_height = 0.0f;                             // 目标的高度，默认为地面高度0.0m
         float target_yaw = 0.0f;                                // 目标偏航角
         Type task_type = Type::AUTO;                                  // 任务类型，AUTO自动选择PID或TARGET
-        PIDControlMode pid_mode = PIDControlMode::POS_VEL;
+        PIDControlMode pid_mode = PIDControlMode::IMAGE_VEL;
     };
 
 
