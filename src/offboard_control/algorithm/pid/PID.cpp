@@ -298,7 +298,7 @@ float PID::update_all(float measurement, float target, float dt, float limit, fl
         }
     }
 #endif
-    float dead_zone = 0.01f; // 死区阈值
+    float dead_zone = 0.0012f; // 死区阈值
 
     // Calculate the proportional term
     if (use_increment == true)
@@ -528,8 +528,8 @@ void PID::update_i(float dt, float limit)
     
     
     // 定义积分分离阈值（可根据实际情况调整）
-    float separation_threshold = 0.075f;
-    
+    // float separation_threshold = 0.030f;
+
     // if (fabs(_error) > separation_threshold) 
     // {
     //    
@@ -602,18 +602,18 @@ void PID::update_i(float dt, float limit)
         _pid_info.I = constrain_float(_pid_info.I, _kimax, -_kimax);
     
     // // 积分项衰减机制（当误差接近零时）
-        if (fabs(_error) < 0.05f && fabs(_pid_info.I) > 0.010f)
+        if (fabs(_error) < 0.03f && fabs(_pid_info.I) > 0.010f)
         {
         // printf("PID%s: Integral decay applied: %f\n", pid_name.c_str(), _pid_info.I);
-            _pid_info.I *= 0.99f; // 轻微衰减，避免长期偏差
+            _pid_info.I *= 0.925f; // 轻微衰减，避免长期偏差
         }
-        if (fabs(_error) > separation_threshold) 
+        if (fabs(_error) > 0.15f) 
         {
             // 可选：清空或衰减现有积分项
-            _pid_info.I *= 0.89f;  // 轻微衰减
+            _pid_info.I *= 0.95f;  // 轻微衰减
             if (fabs(_pid_info.I) < 0.03f)
             {
-                _pid_info.I = _pid_info.I > 0 ? 0.03f : -0.03f; // 设定积分项最小值防止清0
+                _pid_info.I = _pid_info.I > 0 ? 0.06f : -0.06f; // 设定积分项最小值防止清0
             }
         }
     

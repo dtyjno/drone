@@ -288,7 +288,7 @@ bool AppochTargetTask::run(DeviceType device) {
             );
             if (image_target_position.has_value() && (getCurrentPIDMode() == PIDControlMode::POS_VEL || getCurrentPIDMode() == PIDControlMode::POS_POINT)) {
                 // device->log_info("Pixel to world position: (", image_target_position->x(), ", ", image_target_position->y(), ", ", image_target_position->z(), ")");
-                std::cout << "use_pos_pid: Pixel to world position: (" << image_target_position->x() << ", " << image_target_position->y() << ", " << image_target_position->z() << ")" << std::endl;
+                device->log_info_throttle(std::chrono::milliseconds(500), get_string(), "use_pos_pid: Pixel to world position: (", image_target_position->x(), ", ", image_target_position->y(), ", ", image_target_position->z(), ")" );
                 // 更新位置目标
                 static PositionTarget pos_target;
                 if (getCurrentImageTargets().has_target) {
@@ -314,8 +314,8 @@ bool AppochTargetTask::run(DeviceType device) {
                         Vector4f{pos_target.position.x(), pos_target.position.y(), pos_target.position.z(), parameters.target_yaw + device->get_default_yaw()}, // 目标坐标  parameters.target_yaw
                         pos_pid_defaults,
                         0.0,               				// 精度
-                        0.0 			 				// 偏航精度
-                        // true             				// 是否不使用飞机速度计算
+                        0.0, 			 				// 偏航精度
+                        true             				// 是否不使用飞机速度计算
                         //	get_velocity_x(target) / max_frame, 	// 飞机速度
                         //	get_velocity_y(target) / max_frame  	// 飞机速度
                     );
@@ -379,8 +379,8 @@ bool AppochTargetTask::run(DeviceType device) {
                     Vector4f{now_x / max_frame, now_y / max_frame, current_target.z, parameters.target_yaw + device->get_default_yaw()}, // 目标坐标  parameters.target_yaw
                     pid_defaults,
                     0.0,               				// 精度
-                    0.0 			 				// 偏航精度
-                    // true             				// 是否不使用飞机速度计算
+                    0.0, 			 				// 偏航精度
+                    true             				// 是否不使用飞机速度计算
                     //	get_velocity_x(target) / max_frame, 	// 飞机速度
                     //	get_velocity_y(target) / max_frame  	// 飞机速度
                 );

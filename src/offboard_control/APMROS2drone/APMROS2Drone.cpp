@@ -379,7 +379,7 @@ void APMROS2Drone::timer_callback(void)
 			dy_see,    // target_y
 			see_halt,    // target_z
 			0.0f,  // target_yaw
-			7.5f,    // point_time (到达点位的最长等待时间)
+			8.0f,    // point_time (到达点位的最长等待时间)
 			0.2f     // accuracy (点位到达精度)
 		}
 	);
