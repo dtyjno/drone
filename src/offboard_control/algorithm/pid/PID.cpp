@@ -523,7 +523,7 @@ void PID::update_i(float dt, float limit)
     
     if ((_pid_info.I >= 0 && _error <= 0) || (_pid_info.I <= 0 && _error >= 0))
     {
-        _pid_info.I *= 0.8f;
+        _pid_info.I *= 0.7;
     }
     
     
@@ -607,13 +607,13 @@ void PID::update_i(float dt, float limit)
         // printf("PID%s: Integral decay applied: %f\n", pid_name.c_str(), _pid_info.I);
             _pid_info.I *= 0.95f; // 轻微衰减，避免长期偏差
         }
-        if (fabs(_error) > 0.15f) 
+        if (fabs(_error) > 0.20f) 
         {
             // 可选：清空或衰减现有积分项
             _pid_info.I *= 0.95f;  // 轻微衰减
-            if (fabs(_pid_info.I) < 0.03f)
+            if (fabs(_pid_info.I) < 0.20f)
             {
-                _pid_info.I = _pid_info.I > 0 ? 0.06f : -0.06f; // 设定积分项最小值防止清0
+                _pid_info.I = _pid_info.I > 0 ? 0.20f : -0.20f; // 设定积分项最小值防止清0
             }
         }
     

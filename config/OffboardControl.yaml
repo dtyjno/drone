@@ -1,5 +1,5 @@
-headingangle_compass: 179.0
-# headingangle_compass: 348.0
+# headingangle_compass: 179.0
+headingangle_compass: 348.0
 # headingangle_real: 263.0 # 限定投弹区域有效位置范围的实际角度，不设置默认为headingangle_compass
 dx_shot: 0.0
 dy_shot: 30.0
