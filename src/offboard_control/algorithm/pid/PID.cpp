@@ -527,8 +527,6 @@ void PID::update_i(float dt, float limit)
     }
     
     
-    // 定义积分分离阈值（可根据实际情况调整）
-    // float separation_threshold = 0.030f;
 
     // if (fabs(_error) > separation_threshold) 
     // {
@@ -542,80 +540,84 @@ void PID::update_i(float dt, float limit)
     //     }
     // }
     // printf("PID%s: integral_increment:%+10f, dt:%+10f, kI:%+10f, I:%+10f, error:%+10f, integral_enabled:%d\n", pid_name.c_str(), integral_increment, dt, _pid_info._kI, _pid_info.I, _error, integral_enabled);
-        if (limit <= 0)
-        {
-            _pid_info.I += integral_increment;
-            _pid_info.I = constrain_float(_pid_info.I, _kimax, -_kimax);
-            _pid_info.limit = false;
-            return;
-        }
+    if (limit <= 0)
+    {
+        _pid_info.I += integral_increment;
+        _pid_info.I = constrain_float(_pid_info.I, _kimax, -_kimax);
+        _pid_info.limit = false;
+        return;
+    }
     
     // 计算当前输出的饱和状态
-        float saturated_output = constrain_float(_pid_info.output, limit, -limit);
-        bool is_saturated = (fabs(_pid_info.output - saturated_output) > 1e-6);
-    
+    float saturated_output = constrain_float(_pid_info.output, limit, -limit);
+    bool is_saturated = (fabs(_pid_info.output - saturated_output) > 1e-6);
+
     // 抗饱和处理
-        if (is_saturated)
+    if (is_saturated)
+    {
+    // 输出饱和时的抗积分饱和策略
+        if ((_pid_info.output > limit && _error > 0) || (_pid_info.output < -limit && _error < 0))
         {
-        // 输出饱和时的抗积分饱和策略
-            if ((_pid_info.output > limit && _error > 0) || (_pid_info.output < -limit && _error < 0))
+        // 如果误差会使饱和更严重，则不增加积分项
+        // 但允许积分项朝减少饱和的方向变化
+            if ((_pid_info.I > 0 && _error < 0) || (_pid_info.I < 0 && _error > 0))
             {
-            // 如果误差会使饱和更严重，则不增加积分项
-            // 但允许积分项朝减少饱和的方向变化
-                if ((_pid_info.I > 0 && _error < 0) || (_pid_info.I < 0 && _error > 0))
-                {
-                    _pid_info.I += integral_increment;
-                }
-            // 否则保持积分项不变或使用条件积分
-                else
-                {
-                // 使用条件积分：如果积分项很大，允许其缓慢衰减
-                    if (fabs(_pid_info.I) > _kimax * 0.9f)
-                    {
-                        _pid_info.I *= 0.97f; // 缓慢衰减
-                    }
-                }
-            }
-            else
-            {
-            // 误差有助于减少饱和，正常更新积分项
                 _pid_info.I += integral_increment;
             }
-        
-        // 使用抗饱和反馈（基于饱和量）
-            if (!is_zero(_pid_info._kP))
+        // 否则保持积分项不变或使用条件积分
+            else
             {
-                float kb = _pid_info._kI / _pid_info._kP; // 抗饱和增益
-                float saturation_error = _pid_info.output - saturated_output;
-                float anti_windup_correction = -saturation_error * kb * dt;
-                _pid_info.I += anti_windup_correction;
-            // printf("PID%s: Anti-windup correction: %f\n", pid_name.c_str(), anti_windup_correction);
+            // 使用条件积分：如果积分项很大，允许其缓慢衰减
+                if (fabs(_pid_info.I) > _kimax * 0.9f)
+                {
+                    _pid_info.I *= 0.97f; // 缓慢衰减
+                }
             }
         }
         else
         {
-        // 输出未饱和，正常更新积分项
+        // 误差有助于减少饱和，正常更新积分项
             _pid_info.I += integral_increment;
         }
     
-    // 限制积分项幅值
-        _pid_info.I = constrain_float(_pid_info.I, _kimax, -_kimax);
-    
+    // 使用抗饱和反馈（基于饱和量）
+        if (!is_zero(_pid_info._kP))
+        {
+            float kb = _pid_info._kI / _pid_info._kP; // 抗饱和增益
+            float saturation_error = _pid_info.output - saturated_output;
+            float anti_windup_correction = -saturation_error * kb * dt;
+            _pid_info.I += anti_windup_correction;
+        // printf("PID%s: Anti-windup correction: %f\n", pid_name.c_str(), anti_windup_correction);
+        }
+    }
+    else
+    {
+    // 输出未饱和，正常更新积分项
+        _pid_info.I += integral_increment;
+    }
+
     // // 积分项衰减机制（当误差接近零时）
-        if (fabs(_error) < 0.03f && fabs(_pid_info.I) > 0.010f)
-        {
+    if (fabs(_error) < 0.03f && fabs(_pid_info.I) > 0.010f)
+    {
         // printf("PID%s: Integral decay applied: %f\n", pid_name.c_str(), _pid_info.I);
-            _pid_info.I *= 0.95f; // 轻微衰减，避免长期偏差
-        }
-        if (fabs(_error) > 0.20f) 
-        {
-            // 可选：清空或衰减现有积分项
-            _pid_info.I *= 0.95f;  // 轻微衰减
-            if (fabs(_pid_info.I) < 0.20f)
-            {
-                _pid_info.I = _pid_info.I > 0 ? 0.20f : -0.20f; // 设定积分项最小值防止清0
-            }
-        }
+        _pid_info.I *= 0.99f; // 轻微衰减，避免长期偏差
+    }
+    // 定义积分分离阈值（可根据实际情况调整）
+    float separation_threshold = 0.050f;
+    if (fabs(_error) > separation_threshold) 
+    {
+        // 可选：清空或衰减现有积分项
+        _pid_info.I *= 0.97f;  // 轻微衰减
+        // printf("PID%s: Integral decay applied due to large error %f: %f\n", pid_name.c_str(), _error, _pid_info.I);
+        // if (fabs(_pid_info.I) < 0.20f)
+        // {
+        //     _pid_info.I = _pid_info.I > 0 ? 0.20f : -0.20f; // 设定积分项最小值防止清0
+        // }
+    }
+
+    // 限制积分项幅值
+    _pid_info.I = constrain_float(_pid_info.I, _kimax, -_kimax);
+    // printf("PID%s: I after constrain:%+10f, kimax:%+10f\n", pid_name.c_str(), _pid_info.I, _kimax);
     
     // 设置限制标志
     _pid_info.limit = (limit > 0);

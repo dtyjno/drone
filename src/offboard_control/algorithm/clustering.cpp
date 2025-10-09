@@ -19,38 +19,25 @@ double computeStdDev(const std::vector<double>& data, double mean)
 }
 
 // 标准化处理
-std::vector<Circles> normalizeCircles(const std::vector<Circles>& originalCircles) 
+std::vector<Circles> normalizeCircles(const std::vector<Circles>& originalCircles, 
+                                      double meanX, double stdX, 
+                                      double meanY, double stdY, 
+                                      double meanD, double stdD) 
 {
-    std::vector<double> xs, ys, ds;
-    for (const auto& c : originalCircles) 
-    {
-        xs.push_back(c.point.x());
-        ys.push_back(c.point.y());
-        ds.push_back(c.diameters);
-    }
-
-    double meanX = computeMean(xs);
-    double meanY = computeMean(ys);
-    double meanD = computeMean(ds);
-
-    double stdX = computeStdDev(xs, meanX);
-    double stdY = computeStdDev(ys, meanY);
-    double stdD = computeStdDev(ds, meanD);
     std::vector<Circles> normalized;
+    normalized.reserve(originalCircles.size());
     for (size_t i = 0; i < originalCircles.size(); ++i)
     {
-        std::vector<Circles> c = originalCircles;
         Circles normC;
-        normC.point.x() = (stdX != 0) ? (c[i].point.x() - meanX) / stdX : 0;
-        normC.point.y() = (stdY != 0) ? (c[i].point.y() - meanY) / stdY : 0;
-        normC.diameters = (stdD != 0) ? (c[i].diameters - meanD) / stdD : 0;
-        normC.original_index = i; // 保留原始索引
-
-        normalized.push_back(normC);
+        normC.point.x() = (stdX != 0) ? (originalCircles[i].point.x() - meanX) / stdX : 0;
+        normC.point.y() = (stdY != 0) ? (originalCircles[i].point.y() - meanY) / stdY : 0;
+        normC.diameters = (stdD != 0) ? (originalCircles[i].diameters - meanD) / stdD : 0;
+        normC.original_index = i;
+        normalized.emplace_back(normC);
     }
-
     return normalized;
 }
+
 
 // 计算两个三维点的欧几里得距离
 double distance(Circles a, Circles b) 
@@ -65,7 +52,7 @@ double AbsoluteDistance(double a, double b)
 }
 
 //从原样本空间中选取三个点作为起始点
-std::vector<Circles> Initialize_Clustering(std::vector<Circles> samples)
+std::vector<Circles> Initialize_Clustering(const std::vector<Circles>& samples)
 {
     std::vector<Circles> Center(3);
     for(size_t i = 0;i < Center.size(); ++i)
@@ -148,6 +135,7 @@ std::vector<Circles> updateCenters(const std::vector<Circles>& data, const std::
 std::vector<Circles> denormalizeCenters(const std::vector<Circles>& centers, double meanX, double stdX, double meanY, double stdY, double meanD, double stdD) 
 {
     std::vector<Circles> result;
+    result.reserve(centers.size());
     for (const auto& c : centers) {
         Circles cc = c;
         cc.point.x() = c.point.x() * stdX + meanX;
@@ -165,27 +153,13 @@ bool cmpByDiameter(const Circles& a, const Circles& b)
 }
 
 // 主聚类算法
-std::vector<Circles> Clustering(std::vector<Circles> samples)
+std::vector<Circles> Clustering(const std::vector<Circles>& samples)
 {
-    std::vector<Circles> data = normalizeCircles(samples);//数据标准化
-    const int K = 3;
-    const int max_iter = 300;//最大迭代次数
-    std::vector<Circles> centers = Initialize_Clustering(data);
-    std::vector<int> labels(data.size(), 0);
-    
-    //根据lables分配中心点（即簇id）
-    for (int iter = 0; iter < max_iter; ++iter) 
-    {
-        std::vector<int> new_labels = assignLabels(data, centers);
-        if (new_labels == labels && iter > 0)
-        {
-            break;
-        } 
-        labels = new_labels;
-        centers = updateCenters(data, labels, K);
-    }
-    // 将结果映射回原始空间
+    // 只计算一次均值和方差
     std::vector<double> xs, ys, ds;
+    xs.reserve(samples.size());
+    ys.reserve(samples.size());
+    ds.reserve(samples.size());
     for (const auto& c : samples)
     {
         xs.push_back(c.point.x());
@@ -194,8 +168,67 @@ std::vector<Circles> Clustering(std::vector<Circles> samples)
     }
     double meanX = computeMean(xs), meanY = computeMean(ys), meanD = computeMean(ds);
     double stdX = computeStdDev(xs, meanX), stdY = computeStdDev(ys, meanY), stdD = computeStdDev(ds, meanD);
+
+    std::vector<Circles> data = normalizeCircles(samples, meanX, stdX, meanY, stdY, meanD, stdD);
+    const int K = 3;
+    const int max_iter = 100; // 可适当减小
+    std::vector<Circles> centers = Initialize_Clustering(data);
+    std::vector<int> labels(data.size(), -1);
+
+    for (int iter = 0; iter < max_iter; ++iter) 
+    {
+        std::vector<int> new_labels = assignLabels(data, centers);
+        if (new_labels == labels && iter > 0)
+            break;
+        labels = new_labels;
+        centers = updateCenters(data, labels, K);
+    }
     std::vector<Circles> result = denormalizeCenters(centers, meanX, stdX, meanY, stdY, meanD, stdD);
-    // std::sort(result.begin(), result.end(), cmpByDiameter);
-    
+    return result;
+}
+
+
+// 增量式更新统计量
+void updateClusteringData(ClusteringData& data, const Circles& new_circle) {
+    data.sample.push_back(new_circle);
+    data.sum_xs += new_circle.point.x();
+    data.sum_ys += new_circle.point.y();
+    data.sum_ds += new_circle.diameters;
+    data.sumSq_xs += new_circle.point.x() * new_circle.point.x();
+    data.sumSq_ys += new_circle.point.y() * new_circle.point.y();
+    data.sumSq_ds += new_circle.diameters * new_circle.diameters;
+}
+
+// 增量式均值和方差
+void computeMeanStd(const ClusteringData& data, double& meanX, double& stdX, double& meanY, double& stdY, double& meanD, double& stdD) {
+    size_t n = data.sample.size();
+    meanX = data.sum_xs / n;
+    meanY = data.sum_ys / n;
+    meanD = data.sum_ds / n;
+    stdX = std::sqrt((data.sumSq_xs - n * meanX * meanX) / n);
+    stdY = std::sqrt((data.sumSq_ys - n * meanY * meanY) / n);
+    stdD = std::sqrt((data.sumSq_ds - n * meanD * meanD) / n);
+}
+
+// 增量式聚类主入口
+std::vector<Circles> Clustering(ClusteringData& samples, const Circles& new_data) {
+    updateClusteringData(samples, new_data);
+    double meanX, stdX, meanY, stdY, meanD, stdD;
+    computeMeanStd(samples, meanX, stdX, meanY, stdY, meanD, stdD);
+    // 标准化处理
+    std::vector<Circles> data = normalizeCircles(samples.sample, meanX, stdX, meanY, stdY, meanD, stdD);
+    const int K = 3;
+    const int max_iter = 100;
+    std::vector<Circles> centers = Initialize_Clustering(data);
+    std::vector<int> labels(data.size(), -1);
+
+    for (int iter = 0; iter < max_iter; ++iter) {
+        std::vector<int> new_labels = assignLabels(data, centers);
+        if (new_labels == labels && iter > 0)
+            break;
+        labels = new_labels;
+        centers = updateCenters(data, labels, K);
+    }
+    std::vector<Circles> result = denormalizeCenters(centers, meanX, stdX, meanY, stdY, meanD, stdD);
     return result;
 }

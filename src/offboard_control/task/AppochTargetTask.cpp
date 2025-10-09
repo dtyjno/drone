@@ -188,10 +188,18 @@ bool AppochTargetTask::run(DeviceType device) {
 
         // PID
         if (is_pid && (parameters.task_type == Type::PID || parameters.task_type == Type::AUTO)) {
+
+            // if constexpr (std::is_same_v<DeviceType, std::shared_ptr<APMROS2Drone>>) {
+            //     device->is_calculate_target_position = false; // 在PID模式下，不进行目标位置的重新计算
+            // }
             current_type = Type::PID;
-            device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": Approaching image target ", parameters.device_index, " at (",
+            // device->log_info_throttle(std::chrono::milliseconds(1000), get_string(), ": Approaching image target ", parameters.device_index, " at (",
+            //     getCurrentImageTargets().data.x(), ", ",
+            //     getCurrentImageTargets().data.y(), ")");
+            device->log_info(get_string(), ": Approaching image target ", parameters.device_index, " at (",
                 getCurrentImageTargets().data.x(), ", ",
                 getCurrentImageTargets().data.y(), ")");
+            // return false;
             // pid_defaults = PID::readPIDParameters(parameters.config_file_name, "pid");
 
             // 检查是否有目标

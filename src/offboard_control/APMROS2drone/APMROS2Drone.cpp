@@ -249,10 +249,6 @@ void APMROS2Drone::timer_callback(void)
 		}
 	}
 
-	if (current_state == state::init || current_state ==  state::gotoshot || current_state == state::shot || current_state == state::dropping) {
-		calculate_target_position();
-	}
-
 	// state_machine_.executeAllStates();
 	if (print_info_) {
 		accept(PrintInfoTask::createTask()->set_print_time(10000));
@@ -416,10 +412,9 @@ void APMROS2Drone::timer_callback(void)
 		//  				get_yolo_detector()->get_y(YOLO_TARGET_TYPE::H)).transpose() << std::endl;
 		h_x = get_yolo_detector()->get_x(YOLO_TARGET_TYPE::H);
 		h_y = get_yolo_detector()->get_y(YOLO_TARGET_TYPE::H);
-		if (h_x > 0 && h_y > 0 ) {
-			// RCLCPP_INFO_THROTTLE(node->get_logger(), *node->get_clock(), 2000, "检测到降落桩目标，坐标: (%.1f, %.1f)", h_x, h_y);
-			result.data = Vector2f(get_yolo_detector()->get_x(YOLO_TARGET_TYPE::H),
-							get_yolo_detector()->get_y(YOLO_TARGET_TYPE::H));
+		if (h_x >= 0 && h_y >= 0 ) {
+			RCLCPP_INFO_THROTTLE(node->get_logger(), *node->get_clock(), 2000, "检测到降落目标，坐标: (%.1f, %.1f)", h_x, h_y);
+			result.data = Vector2f(h_x, h_y);
 			result.has_target = true;
 		} else {
 			result.data = Vector2f::Zero();
@@ -428,6 +423,11 @@ void APMROS2Drone::timer_callback(void)
 		return result;
 	};
 	do_land_task->setParameters(doland_params);
+
+	// if (current_state == state::init || current_state ==  state::gotoshot || current_state == state::shot || current_state == state::dropping) {
+	if (current_state == state::init || current_state ==  state::gotoshot || (do_shot_task->get_appochtarget_task()->getCurrentType() != AppochTargetTask::Type::PID && current_state == state::shot) || current_state == state::dropping) {
+		calculate_target_position();
+	}
 
 	// static state current_state =setParameters shot;
 	switch (current_state) {
@@ -520,6 +520,7 @@ void APMROS2Drone::timer_callback(void)
 	publish_current_state(state_to_int(current_state));
 	// 发布目标点
 	get_yolo_detector()->publish_visualization_target();
+	RCLCPP_INFO(node->get_logger(), "任务完成");
 }
 
 
@@ -790,7 +791,11 @@ void APMROS2Drone::calculate_target_position()
 	// std::cout << "相机旋转角度: roll=" << get_camera()->get_camera_relative_rotation().x() << " pitch=" << get_camera()->get_camera_relative_rotation().y() << " yaw=" << get_camera()->get_camera_relative_rotation().z() << std::endl;
 	// std::cout << "相机内参: fx=" << get_camera()->get_fx() << " fy=" << get_camera()->get_fy() << " cx=" << get_camera()->get_cx() << " cy=" << get_camera()->get_cy() << std::endl;
 
+	static ClusteringData Target_Samples; // 存储所有检测到的目标点
+
 	std::vector<vision_msgs::msg::BoundingBox2D> raw_circles = get_yolo_detector()->get_raw_targets(YOLO_TARGET_TYPE::CIRCLE);
+	std::vector<vision_msgs::msg::BoundingBox2D> raw_stuffed = get_yolo_detector()->get_raw_targets(YOLO_TARGET_TYPE::STUFFED);
+	raw_circles.insert(raw_circles.end(), raw_stuffed.begin(), raw_stuffed.end());
 	if (debug_mode_) {
 		vision_msgs::msg::BoundingBox2D debug_circle;
 		debug_circle.center.position.x = 665;
@@ -823,7 +828,8 @@ void APMROS2Drone::calculate_target_position()
 			circle.cluster_id = 0;
 			circle.original_index = 0;
 			circle.diameters = diameter;
-			Target_Samples.push_back(circle);
+			// Target_Samples.push_back(circle);
+			this->cal_center = Clustering(Target_Samples, circle);
 		}
 		else {
 			RCLCPP_WARN(get_node()->get_logger(), "Example 1 - 无效的目标位置");
@@ -831,7 +837,7 @@ void APMROS2Drone::calculate_target_position()
 	}
 	if(!Target_Samples.empty() && (current_state == init || current_state == shot || current_state == gotoshot))
 	{
-		this->cal_center = Clustering(Target_Samples);
+		// this->cal_center = Clustering(Target_Samples);
 		if (!cal_center.empty()) {
 			std::ostringstream ss;
 			ss << "(T 2s) \n";
